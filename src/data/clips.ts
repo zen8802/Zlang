@@ -1,4 +1,5 @@
 import { ClipData } from '@/types'
+import { TRUSTED_CHANNELS } from '@/lib/youtube-search'
 
 export const clips: ClipData[] = [
   // ============================================================
@@ -9,6 +10,8 @@ export const clips: ClipData[] = [
   {
     id: 'jp-greetings-01',
     youtubeId: 'K0H0F2UkCkk',
+    searchQuery: 'Easy Japanese greetings lesson NHK',
+    channelId: TRUSTED_CHANNELS.nhkWorldJapan,
     startSeconds: 0,
     endSeconds: 52,
     title: 'Easy Japanese - Greetings',
@@ -70,6 +73,8 @@ export const clips: ClipData[] = [
   {
     id: 'jp-selfintro-02',
     youtubeId: 'VBzAAWQm5Dg',
+    searchQuery: 'Japanese self introduction jikoshoukai',
+    channelId: TRUSTED_CHANNELS.nhkWorldJapan,
     startSeconds: 12,
     endSeconds: 68,
     title: 'Self-Introduction in Japanese',
@@ -142,6 +147,8 @@ export const clips: ClipData[] = [
   {
     id: 'jp-numbers-03',
     youtubeId: 'gZ2JhOiKJTI',
+    searchQuery: 'Japanese numbers counting lesson',
+    channelId: TRUSTED_CHANNELS.nhkWorldJapan,
     startSeconds: 0,
     endSeconds: 55,
     title: 'Counting & Numbers at the Market',
@@ -205,6 +212,8 @@ export const clips: ClipData[] = [
   {
     id: 'jp-politeness-04',
     youtubeId: 'LIsLaGpPXpE',
+    searchQuery: 'Japanese politeness levels formal casual',
+    channelId: TRUSTED_CHANNELS.nhkWorldJapan,
     startSeconds: 5,
     endSeconds: 62,
     title: 'Politeness Levels in Japanese',
@@ -266,6 +275,8 @@ export const clips: ClipData[] = [
   {
     id: 'jp-particles-05',
     youtubeId: 'txxVIMGOkLE',
+    searchQuery: 'Japanese particles wa ga explained',
+    channelId: TRUSTED_CHANNELS.nhkWorldJapan,
     startSeconds: 0,
     endSeconds: 58,
     title: 'Mastering Japanese Particles',
@@ -327,6 +338,8 @@ export const clips: ClipData[] = [
   {
     id: 'jp-food-06',
     youtubeId: 'sfFvYYnx8OA',
+    searchQuery: 'Japanese restaurant ordering food',
+    channelId: TRUSTED_CHANNELS.nhkWorldJapan,
     startSeconds: 10,
     endSeconds: 65,
     title: 'Ordering Food in Japanese',
@@ -399,6 +412,8 @@ export const clips: ClipData[] = [
   {
     id: 'jp-directions-07',
     youtubeId: 'WfYmFT1ZDCM',
+    searchQuery: 'Japanese directions asking street',
+    channelId: TRUSTED_CHANNELS.nhkWorldJapan,
     startSeconds: 0,
     endSeconds: 50,
     title: 'Asking for Directions',
@@ -462,6 +477,8 @@ export const clips: ClipData[] = [
   {
     id: 'jp-casual-08',
     youtubeId: 'x9cMBRyEMJQ',
+    searchQuery: 'anime casual speech Japanese slang',
+    channelId: TRUSTED_CHANNELS.crunchyroll,
     startSeconds: 15,
     endSeconds: 72,
     title: 'Casual Japanese & Slang',
@@ -534,6 +551,8 @@ export const clips: ClipData[] = [
   {
     id: 'jp-teform-09',
     youtubeId: 'wDBK8mxrjPA',
+    searchQuery: 'anime te form Japanese request scene',
+    channelId: TRUSTED_CHANNELS.crunchyroll,
     startSeconds: 8,
     endSeconds: 60,
     title: 'Te-Form Magic: Requests, Permissions & More',
@@ -595,6 +614,8 @@ export const clips: ClipData[] = [
   {
     id: 'jp-keigo-10',
     youtubeId: 'f3CSSH70sNg',
+    searchQuery: 'Japanese keigo formal business meeting',
+    channelId: TRUSTED_CHANNELS.nhkWorldJapan,
     startSeconds: 20,
     endSeconds: 78,
     title: 'Business Keigo Survival Guide',
@@ -667,6 +688,8 @@ export const clips: ClipData[] = [
   {
     id: 'jp-dialects-11',
     youtubeId: 'BcTG8v6mH1E',
+    searchQuery: 'Osaka dialect Kansai ben Japanese',
+    channelId: TRUSTED_CHANNELS.nhkWorldJapan,
     startSeconds: 5,
     endSeconds: 58,
     title: 'Japanese Dialects: Kansai-ben & Beyond',
@@ -728,6 +751,8 @@ export const clips: ClipData[] = [
   {
     id: 'jp-popculture-12',
     youtubeId: 'rGaQDAHxBWU',
+    searchQuery: 'anime motivational scene Japanese shonen',
+    channelId: TRUSTED_CHANNELS.crunchyroll,
     startSeconds: 10,
     endSeconds: 65,
     title: 'Anime & Pop Culture Japanese',
@@ -806,6 +831,8 @@ export const clips: ClipData[] = [
   {
     id: 'en-reductions-01',
     youtubeId: 'sXAnLOmFmAA',
+    searchQuery: 'American English reductions gonna wanna gotta',
+    channelId: TRUSTED_CHANNELS.nhkWorldJapan,
     startSeconds: 10,
     endSeconds: 55,
     title: "Sound Like a Native: Reductions & Connected Speech",
@@ -863,6 +890,8 @@ export const clips: ClipData[] = [
   {
     id: 'en-contractions-02',
     youtubeId: 'V1Z586UxN0Y',
+    searchQuery: 'English contractions casual conversation',
+    channelId: TRUSTED_CHANNELS.nhkWorldJapan,
     startSeconds: 5,
     endSeconds: 50,
     title: "Contractions in Real Conversation",
@@ -920,6 +949,8 @@ export const clips: ClipData[] = [
   {
     id: 'en-filler-03',
     youtubeId: 'SaOP7VFQ8GE',
+    searchQuery: 'English filler words like you know',
+    channelId: TRUSTED_CHANNELS.nhkWorldJapan,
     startSeconds: 0,
     endSeconds: 48,
     title: 'Filler Words & Natural Pauses',
@@ -977,6 +1008,8 @@ export const clips: ClipData[] = [
   {
     id: 'en-greetings-04',
     youtubeId: 'oFPedSJkzFQ',
+    searchQuery: 'American greeting rituals casual English',
+    channelId: TRUSTED_CHANNELS.nhkWorldJapan,
     startSeconds: 8,
     endSeconds: 52,
     title: 'Real American Greetings (Not What You Learned in School)',
@@ -1036,6 +1069,8 @@ export const clips: ClipData[] = [
   {
     id: 'en-sports-05',
     youtubeId: 'GY2kzLm7MQo',
+    searchQuery: 'NBA postgame interview sports English',
+    channelId: TRUSTED_CHANNELS.nhkWorldJapan,
     startSeconds: 0,
     endSeconds: 55,
     title: 'NBA Postgame Interview Breakdown',
@@ -1103,6 +1138,8 @@ export const clips: ClipData[] = [
   {
     id: 'en-memes-06',
     youtubeId: 'G7RgN9ijwE4',
+    searchQuery: 'Gen Z slang no cap lowkey explained',
+    channelId: TRUSTED_CHANNELS.nhkWorldJapan,
     startSeconds: 0,
     endSeconds: 48,
     title: 'Understanding Internet English & Meme Language',
@@ -1160,6 +1197,8 @@ export const clips: ClipData[] = [
   {
     id: 'en-sarcasm-07',
     youtubeId: 'mV4SLRHnkyA',
+    searchQuery: 'American sarcasm dry humor examples',
+    channelId: TRUSTED_CHANNELS.nhkWorldJapan,
     startSeconds: 12,
     endSeconds: 58,
     title: 'Sarcasm: The Hidden Language of English',
@@ -1217,6 +1256,8 @@ export const clips: ClipData[] = [
   {
     id: 'en-hyperbole-08',
     youtubeId: 'nqZLCa6HOKU',
+    searchQuery: 'English hyperbole literally dead exaggeration',
+    channelId: TRUSTED_CHANNELS.nhkWorldJapan,
     startSeconds: 5,
     endSeconds: 50,
     title: "Exaggeration Nation: American Hyperbole",
@@ -1276,6 +1317,8 @@ export const clips: ClipData[] = [
   {
     id: 'en-humor-09',
     youtubeId: 'PzVFwFGnsjM',
+    searchQuery: 'English self deprecating humor comedy',
+    channelId: TRUSTED_CHANNELS.nhkWorldJapan,
     startSeconds: 15,
     endSeconds: 68,
     title: 'Decoding American Humor',
@@ -1333,6 +1376,8 @@ export const clips: ClipData[] = [
   {
     id: 'en-roasting-10',
     youtubeId: 'cJVbMKqjD_k',
+    searchQuery: 'American roasting culture friendly insults',
+    channelId: TRUSTED_CHANNELS.nhkWorldJapan,
     startSeconds: 20,
     endSeconds: 72,
     title: 'The Art of Roasting & Friendly Insults',
@@ -1390,6 +1435,8 @@ export const clips: ClipData[] = [
   {
     id: 'en-email-11',
     youtubeId: 'RCtVKNpRMxw',
+    searchQuery: 'professional English email vs text message',
+    channelId: TRUSTED_CHANNELS.nhkWorldJapan,
     startSeconds: 10,
     endSeconds: 60,
     title: 'Decoding Passive-Aggressive English Emails',
@@ -1457,6 +1504,8 @@ export const clips: ClipData[] = [
   {
     id: 'en-dating-12',
     youtubeId: 'XS5mF7fHKWk',
+    searchQuery: 'American dating language culture English',
+    channelId: TRUSTED_CHANNELS.nhkWorldJapan,
     startSeconds: 10,
     endSeconds: 62,
     title: 'Dating Slang & Modern Relationship English',
@@ -1546,12 +1595,8 @@ export function getClipsByLevel(level: string): ClipData[] {
 export function getClipsForUser(
   targetLanguage: 'japanese' | 'english',
   level: string,
-  interests: string[]
 ): ClipData[] {
   const langClips = getClipsByLanguage(targetLanguage)
   const levelClips = langClips.filter(c => c.level === level)
-  const interestClips = levelClips.filter(c =>
-    c.categories.some(cat => interests.includes(cat))
-  )
-  return interestClips.length > 0 ? interestClips : levelClips
+  return levelClips
 }

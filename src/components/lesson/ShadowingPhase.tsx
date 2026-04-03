@@ -67,12 +67,8 @@ export default function ShadowingPhase({
 
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null)
   const { content, isLoading, fetchStream } = useStreamingFetch()
-  const { corridor, level, interests, goal } = useAppStore((s) => ({
-    corridor: s.corridor,
-    level: s.level,
-    interests: s.interests,
-    goal: s.goal,
-  }))
+  const corridor = useAppStore((s) => s.corridor)
+  const level = useAppStore((s) => s.level)
 
   const clip = getClipById(clipId)
   const targetLanguage = corridor === 'en-to-jp' ? 'Japanese' : 'English'
@@ -176,13 +172,11 @@ export default function ShadowingPhase({
       action: 'grade-shadowing',
       corridor,
       level,
-      interests,
-      goal,
       original: clip?.transcript || '',
       userAttempt: transcript,
       targetLanguage,
     })
-  }, [fetchStream, corridor, level, interests, goal, clip, transcript, targetLanguage])
+  }, [fetchStream, corridor, level, clip, transcript, targetLanguage])
 
   const handleTryAgain = useCallback(() => {
     setResult(null)
@@ -205,8 +199,8 @@ export default function ShadowingPhase({
           >
             <path
               d="M10 1.5l2.47 5.01 5.53.8-4 3.9.94 5.49L10 13.88l-4.94 2.82.94-5.49-4-3.9 5.53-.8L10 1.5z"
-              fill={i < count ? '#00FFB2' : 'rgba(255,255,255,0.1)'}
-              stroke={i < count ? '#00FFB2' : 'rgba(255,255,255,0.15)'}
+              fill={i < count ? '#1B4F8A' : 'rgba(255,255,255,0.1)'}
+              stroke={i < count ? '#1B4F8A' : 'rgba(255,255,255,0.15)'}
               strokeWidth="0.5"
             />
           </motion.svg>
@@ -221,7 +215,7 @@ export default function ShadowingPhase({
     label: string,
   ) => (
     <div className="space-y-1.5">
-      <p className="text-[10px] text-white/30 uppercase tracking-wider">{label}</p>
+      <p className="text-[10px] text-foreground/30 uppercase tracking-wider">{label}</p>
       <div className="flex items-end gap-[2px] h-10">
         {segments.map((height, i) => (
           <motion.div
@@ -250,8 +244,8 @@ export default function ShadowingPhase({
         animate={{ opacity: 1, y: 0 }}
       >
         <p className="text-xs text-accent uppercase tracking-[0.2em] mb-1">Phase 3</p>
-        <h2 className="text-2xl font-display font-bold text-white">Shadowing</h2>
-        <p className="text-sm text-white/40 mt-1">
+        <h2 className="text-2xl font-display font-bold text-foreground">Shadowing</h2>
+        <p className="text-sm text-foreground/40 mt-1">
           Repeat what you heard. Match the rhythm and tone.
         </p>
       </motion.div>
@@ -273,7 +267,7 @@ export default function ShadowingPhase({
               }`}>
                 {clip?.transcript || 'Loading...'}
               </p>
-              <p className="text-sm text-white/40 mt-3">
+              <p className="text-sm text-foreground/40 mt-3">
                 {clip?.translation || ''}
               </p>
             </motion.div>
@@ -330,7 +324,7 @@ export default function ShadowingPhase({
                 </svg>
               </motion.button>
 
-              <p className="text-sm text-white/40">
+              <p className="text-sm text-foreground/40">
                 {stage === 'recording' ? 'Listening... tap to stop' : 'Tap to start speaking'}
               </p>
             </div>
@@ -342,8 +336,8 @@ export default function ShadowingPhase({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
               >
-                <p className="text-xs text-white/30 uppercase tracking-wider mb-2">Your words</p>
-                <p className="text-lg text-white/80 font-jp">{transcript}</p>
+                <p className="text-xs text-foreground/30 uppercase tracking-wider mb-2">Your words</p>
+                <p className="text-lg text-foreground/80 font-jp">{transcript}</p>
               </motion.div>
             )}
 
@@ -392,7 +386,7 @@ export default function ShadowingPhase({
               <div className="flex justify-center mb-4">
                 {renderStars(result.overallStars)}
               </div>
-              <p className="text-white/70 text-sm leading-relaxed">
+              <p className="text-foreground/70 text-sm leading-relaxed">
                 {result.feedback}
               </p>
             </motion.div>
@@ -411,7 +405,7 @@ export default function ShadowingPhase({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 + i * 0.1 }}
                 >
-                  <p className="text-xs text-white/30 uppercase tracking-wider mb-2">{item.label}</p>
+                  <p className="text-xs text-foreground/30 uppercase tracking-wider mb-2">{item.label}</p>
                   <div className="flex justify-center">
                     {renderStars(item.score)}
                   </div>
@@ -426,7 +420,7 @@ export default function ShadowingPhase({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              {renderWaveform(originalWave, '#00FFB2', 'Original')}
+              {renderWaveform(originalWave, '#1B4F8A', 'Original')}
               {renderWaveform(userWave, corridor === 'en-to-jp' ? '#FF6B35' : '#3B82F6', 'Yours')}
             </motion.div>
 
@@ -441,7 +435,7 @@ export default function ShadowingPhase({
                 <p className="text-xs text-accent/60 uppercase tracking-wider mb-3">Tips to improve</p>
                 <ul className="space-y-2">
                   {result.tips.map((tip, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-white/60">
+                    <li key={i} className="flex items-start gap-2 text-sm text-foreground/60">
                       <span className="text-accent mt-0.5">*</span>
                       {tip}
                     </li>

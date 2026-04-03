@@ -13,8 +13,6 @@ const MODEL = 'claude-sonnet-4-20250514'
 interface UserProfile {
   corridor: 'en-to-jp' | 'jp-to-en'
   level: string
-  interests: string[]
-  goal: string
   nativeLanguage: string
   targetLanguage: string
 }
@@ -23,8 +21,6 @@ function getSystemPrompt(profile: UserProfile): string {
   const {
     corridor,
     level,
-    interests,
-    goal,
     nativeLanguage,
     targetLanguage,
   } = profile
@@ -33,20 +29,16 @@ function getSystemPrompt(profile: UserProfile): string {
 
 Student profile:
 - Level: ${level}
-- Interests: ${interests.join(', ')}
-- Goal: ${goal}
 
 Core principles:
 1. ALWAYS adapt your explanations to the student's level (${level}).
-2. Use the student's interests (${interests.join(', ')}) to make examples relatable.
-3. Emphasize REAL, natural language — not textbook stiffness. Teach how people actually speak.
-4. Explain cultural context. Language is inseparable from culture.
-5. Be encouraging but honest. Praise what's good, clearly note what needs work.
-6. When the corridor is en-to-jp, explain Japanese in English but include romaji AND kana/kanji.
-7. When the corridor is jp-to-en, explain English in Japanese but include natural English examples.
-8. Keep explanations concise. Students learn by doing, not reading walls of text.
-9. Use humor and personality — you're a cool tutor, not a boring professor.
-10. Reference the student's goal ("${goal}") to keep them motivated.
+2. Emphasize REAL, natural language — not textbook stiffness. Teach how people actually speak.
+3. Explain cultural context. Language is inseparable from culture.
+4. Be encouraging but honest. Praise what's good, clearly note what needs work.
+5. When the corridor is en-to-jp, explain Japanese in English but include romaji AND kana/kanji.
+6. When the corridor is jp-to-en, explain English in Japanese but include natural English examples.
+7. Keep explanations concise. Students learn by doing, not reading walls of text.
+8. Use humor and personality — you're a cool tutor, not a boring professor.
 
 Response format: Use markdown for structure. Use code blocks for vocabulary tables when appropriate.`
 }
@@ -55,13 +47,11 @@ Response format: Use markdown for structure. Use code blocks for vocabulary tabl
 // Helper to build a profile from partial params
 // ---------------------------------------------------------------------------
 
-function buildProfile(corridor: string, level: string, interests: string[] = []): UserProfile {
+function buildProfile(corridor: string, level: string): UserProfile {
   const isEnToJp = corridor === 'en-to-jp'
   return {
     corridor: corridor as 'en-to-jp' | 'jp-to-en',
     level,
-    interests,
-    goal: '',
     nativeLanguage: isEnToJp ? 'English' : 'Japanese',
     targetLanguage: isEnToJp ? 'Japanese' : 'English',
   }
@@ -76,10 +66,9 @@ export async function generateDecode(
   transcript: string,
   translation: string,
   userLevel: string,
-  interests: string[],
   corridor: string = 'en-to-jp',
 ) {
-  const profile = buildProfile(corridor, userLevel, interests)
+  const profile = buildProfile(corridor, userLevel)
 
   const stream = anthropic.messages.stream({
     model: MODEL,
@@ -105,7 +94,7 @@ Respond in this JSON structure (return ONLY valid JSON, no markdown fences):
   "vocab": [
     { "word": "...", "reading": "...", "meaning": "...", "exampleSentence": "...", "exampleTranslation": "..." }
   ],
-  "whyThisMatters": "motivational connection to student's interests/goals",
+  "whyThisMatters": "motivational connection to why this matters for the student",
   "difficulty": "beginner|intermediate|advanced",
   "elements": [
     {

@@ -25,12 +25,8 @@ export default function CulturalDivePhase({
   const [paragraphs, setParagraphs] = useState<string[]>([])
 
   const { content, isLoading, fetchStream } = useStreamingFetch()
-  const { corridor, level, interests, goal } = useAppStore((s) => ({
-    corridor: s.corridor,
-    level: s.level,
-    interests: s.interests,
-    goal: s.goal,
-  }))
+  const corridor = useAppStore((s) => s.corridor)
+  const level = useAppStore((s) => s.level)
 
   const clip = getClipById(clipId)
   const lesson = getLessonById(lessonId)
@@ -66,8 +62,6 @@ export default function CulturalDivePhase({
       action: 'cultural-dive',
       corridor,
       level,
-      interests,
-      goal,
       clipTitle: clip?.title || '',
       clipContext: `${clip?.transcript || ''}\n\n${clip?.translation || ''}`,
       culturalNotes: clip?.culturalNotes || '',
@@ -84,8 +78,8 @@ export default function CulturalDivePhase({
         animate={{ opacity: 1, y: 0 }}
       >
         <p className="text-xs text-accent uppercase tracking-[0.2em] mb-1">Phase 5</p>
-        <h2 className="text-2xl font-display font-bold text-white">Cultural Dive</h2>
-        <p className="text-sm text-white/40 mt-1">
+        <h2 className="text-2xl font-display font-bold text-foreground">Cultural Dive</h2>
+        <p className="text-sm text-foreground/40 mt-1">
           Language is culture. Understand the world behind the words.
         </p>
       </motion.div>
@@ -123,7 +117,7 @@ export default function CulturalDivePhase({
                   {/* Subtle divider between paragraphs */}
                   {i > 0 && (
                     <div className="flex items-center justify-center mb-6">
-                      <div className="h-px w-12 bg-white/10" />
+                      <div className="h-px w-12 bg-black/[0.05]" />
                       <svg width="16" height="16" viewBox="0 0 16 16" className="mx-3 text-accent/30">
                         <path
                           d="M8 2 L14 8 L8 14 L2 8 Z"
@@ -132,11 +126,11 @@ export default function CulturalDivePhase({
                           strokeWidth="1"
                         />
                       </svg>
-                      <div className="h-px w-12 bg-white/10" />
+                      <div className="h-px w-12 bg-black/[0.05]" />
                     </div>
                   )}
 
-                  <p className="text-white/70 text-base leading-[1.85] font-body">
+                  <p className="text-foreground/70 text-base leading-[1.85] font-body">
                     {/* Drop cap for first paragraph */}
                     {i === 0 && para.length > 0 ? (
                       <>
@@ -172,7 +166,7 @@ export default function CulturalDivePhase({
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
               >
-                <span className="text-xs text-white/20 px-3 py-1 rounded-full border border-white/8">
+                <span className="text-xs text-foreground/20 px-3 py-1 rounded-full border border-black/8">
                   {lesson.culturalTheme}
                 </span>
               </motion.div>

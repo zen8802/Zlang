@@ -36,12 +36,8 @@ export default function ResponsePhase({
   const [gradeResult, setGradeResult] = useState<GradeResult | null>(null)
 
   const { content, isLoading, fetchStream } = useStreamingFetch()
-  const { corridor, level, interests, goal } = useAppStore((s) => ({
-    corridor: s.corridor,
-    level: s.level,
-    interests: s.interests,
-    goal: s.goal,
-  }))
+  const corridor = useAppStore((s) => s.corridor)
+  const level = useAppStore((s) => s.level)
 
   const clip = getClipById(clipId)
   const lesson = getLessonById(lessonId)
@@ -94,12 +90,10 @@ Scene: ${lesson?.description || ''}`
       action: 'grade-response',
       corridor,
       level,
-      interests,
-      goal,
       userResponse: userResponse.trim(),
       context,
     })
-  }, [fetchStream, corridor, level, interests, goal, userResponse, clip, lesson])
+  }, [fetchStream, corridor, level, userResponse, clip, lesson])
 
   // Calculate overall grade letter from scores
   const getLetterGrade = (result: GradeResult): string => {
@@ -132,8 +126,8 @@ Scene: ${lesson?.description || ''}`
         animate={{ opacity: 1, y: 0 }}
       >
         <p className="text-xs text-accent uppercase tracking-[0.2em] mb-1">Phase 4</p>
-        <h2 className="text-2xl font-display font-bold text-white">Response</h2>
-        <p className="text-sm text-white/40 mt-1">
+        <h2 className="text-2xl font-display font-bold text-foreground">Response</h2>
+        <p className="text-sm text-foreground/40 mt-1">
           Show what you&apos;ve learned. Write your own response.
         </p>
       </motion.div>
@@ -154,14 +148,14 @@ Scene: ${lesson?.description || ''}`
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <p className="text-xs text-white/30 uppercase tracking-wider mb-2">Scene</p>
+              <p className="text-xs text-foreground/30 uppercase tracking-wider mb-2">Scene</p>
               <p className={`text-lg font-jp mb-2 ${
                 isEnToJp ? 'text-accent-jp' : 'text-accent-en'
               }`}>
                 {clip?.transcript || ''}
               </p>
-              <p className="text-sm text-white/50">{clip?.translation || ''}</p>
-              <p className="text-xs text-white/30 mt-3 italic">
+              <p className="text-sm text-foreground/50">{clip?.translation || ''}</p>
+              <p className="text-xs text-foreground/30 mt-3 italic">
                 {lesson?.description || ''}
               </p>
             </motion.div>
@@ -173,7 +167,7 @@ Scene: ${lesson?.description || ''}`
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
             >
-              <p className="text-white/70 text-sm leading-relaxed max-w-md mx-auto">
+              <p className="text-foreground/70 text-sm leading-relaxed max-w-md mx-auto">
                 {prompt}
               </p>
             </motion.div>
@@ -189,17 +183,17 @@ Scene: ${lesson?.description || ''}`
                 onChange={(e) => setUserResponse(e.target.value)}
                 placeholder={isEnToJp ? 'ここに日本語で書いてください...' : 'Write your response here...'}
                 rows={5}
-                className={`w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-lg placeholder-white/20 focus:outline-none focus:ring-2 transition-all resize-none leading-relaxed ${
+                className={`w-full bg-black/[0.03] border border-black/10 rounded-2xl px-5 py-4 text-foreground text-lg placeholder-foreground/20 focus:outline-none focus:ring-2 transition-all resize-none leading-relaxed ${
                   isEnToJp
                     ? 'font-jp focus:border-accent-jp/50 focus:ring-accent-jp/30'
                     : 'focus:border-accent-en/50 focus:ring-accent-en/30'
                 }`}
               />
               <div className="flex justify-between items-center mt-2">
-                <p className="text-xs text-white/20">
+                <p className="text-xs text-foreground/20">
                   {userResponse.length} characters
                 </p>
-                <p className="text-xs text-white/20">
+                <p className="text-xs text-foreground/20">
                   {isEnToJp ? 'Hint: Think about keigo level' : 'Hint: Keep it casual and natural'}
                 </p>
               </div>
@@ -266,10 +260,10 @@ Scene: ${lesson?.description || ''}`
                   transition={{ delay: i * 0.1, type: 'spring', stiffness: 200 }}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs text-white/40 uppercase tracking-wider">{item.label}</p>
-                    <p className="text-lg font-bold text-white tabular-nums">{item.score}/5</p>
+                    <p className="text-xs text-foreground/40 uppercase tracking-wider">{item.label}</p>
+                    <p className="text-lg font-bold text-foreground tabular-nums">{item.score}/5</p>
                   </div>
-                  <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div className="w-full h-2 bg-black/[0.05] rounded-full overflow-hidden">
                     <motion.div
                       className={`h-full rounded-full ${scoreBarColor(item.score)}`}
                       initial={{ width: 0 }}
@@ -288,7 +282,7 @@ Scene: ${lesson?.description || ''}`
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
             >
-              <p className="text-white/70 text-sm leading-relaxed">
+              <p className="text-foreground/70 text-sm leading-relaxed">
                 {gradeResult.overallFeedback}
               </p>
             </motion.div>

@@ -65,7 +65,7 @@ export default function SkillTree({ skillLevels }: SkillTreeProps) {
               y1={pa.y}
               x2={pb.x}
               y2={pb.y}
-              stroke="#00FFB2"
+              stroke="#1B4F8A"
               strokeWidth={1.5}
               initial={{ opacity: 0 }}
               animate={{ opacity: lineOpacity }}
@@ -103,7 +103,7 @@ export default function SkillTree({ skillLevels }: SkillTreeProps) {
                   cy={pos.y}
                   r={NODE_R + 6}
                   fill="none"
-                  stroke="#00FFB2"
+                  stroke="#1B4F8A"
                   strokeWidth={2}
                   animate={{
                     opacity: [0.15, 0.4, 0.15],
@@ -123,8 +123,8 @@ export default function SkillTree({ skillLevels }: SkillTreeProps) {
                 cx={pos.x}
                 cy={pos.y}
                 r={NODE_R}
-                fill={`rgba(0, 255, 178, ${fillOpacity})`}
-                stroke="rgba(0, 255, 178, 0.3)"
+                fill={`rgba(27, 79, 138, ${fillOpacity})`}
+                stroke="rgba(27, 79, 138, 0.3)"
                 strokeWidth={1.5}
               />
 

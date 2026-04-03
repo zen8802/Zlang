@@ -18,7 +18,7 @@ interface CardProps {
 }
 
 const glowMap: Record<GlowColor, string> = {
-  accent: 'hover:shadow-[0_0_24px_rgba(0,255,178,0.25)]',
+  accent: 'hover:shadow-[0_0_24px_rgba(27,79,138,0.25)]',
   jp: 'hover:shadow-[0_0_24px_rgba(255,107,53,0.25)]',
   en: 'hover:shadow-[0_0_24px_rgba(59,130,246,0.25)]',
   none: '',
@@ -73,11 +73,11 @@ export default function Card({
         .join(' ')}
     >
       {header && (
-        <div className="mb-4 pb-3 border-b border-white/8">{header}</div>
+        <div className="mb-4 pb-3 border-b border-black/8">{header}</div>
       )}
       {children}
       {footer && (
-        <div className="mt-4 pt-3 border-t border-white/8">{footer}</div>
+        <div className="mt-4 pt-3 border-t border-black/8">{footer}</div>
       )}
     </motion.div>
   )

@@ -23,12 +23,8 @@ export default function ImmersionPhase({
   const [answers, setAnswers] = useState<[string, string]>(['', ''])
 
   const { content, isLoading, fetchStream } = useStreamingFetch()
-  const { corridor, level, interests, goal } = useAppStore((s) => ({
-    corridor: s.corridor,
-    level: s.level,
-    interests: s.interests,
-    goal: s.goal,
-  }))
+  const corridor = useAppStore((s) => s.corridor)
+  const level = useAppStore((s) => s.level)
 
   const clip = getClipById(clipId)
 
@@ -39,15 +35,13 @@ export default function ImmersionPhase({
       action: 'comprehension',
       corridor,
       level,
-      interests,
-      goal,
       clipTitle: clip?.title || '',
       transcript: clip?.transcript || '',
       translation: clip?.translation || '',
     })
 
     setStage('questions')
-  }, [fetchStream, corridor, level, interests, goal, clip])
+  }, [fetchStream, corridor, level, clip])
 
   // Parse questions from streamed content
   const questions = content
@@ -64,8 +58,8 @@ export default function ImmersionPhase({
         animate={{ opacity: 1, y: 0 }}
       >
         <p className="text-xs text-accent uppercase tracking-[0.2em] mb-1">Phase 1</p>
-        <h2 className="text-2xl font-display font-bold text-white">Immersion</h2>
-        <p className="text-sm text-white/40 mt-1">
+        <h2 className="text-2xl font-display font-bold text-foreground">Immersion</h2>
+        <p className="text-sm text-foreground/40 mt-1">
           Watch without subtitles. Let the sounds wash over you.
         </p>
       </motion.div>
@@ -113,17 +107,17 @@ export default function ImmersionPhase({
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <h3 className="text-lg font-semibold text-white mb-1">
+              <h3 className="text-lg font-semibold text-foreground mb-1">
                 What did you pick up?
               </h3>
-              <p className="text-sm text-white/40 mb-6">
+              <p className="text-sm text-foreground/40 mb-6">
                 Don&apos;t worry about being right -- this is just to activate your brain.
               </p>
 
               {/* Streaming content display if questions haven't fully loaded */}
               {questions.length < 2 && content && (
                 <motion.div
-                  className="text-white/60 text-sm whitespace-pre-wrap mb-4 font-body"
+                  className="text-foreground/60 text-sm whitespace-pre-wrap mb-4 font-body"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                 >
@@ -148,7 +142,7 @@ export default function ImmersionPhase({
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.2 }}
                     >
-                      <label className="block text-white/80 text-sm font-medium mb-2">
+                      <label className="block text-foreground/80 text-sm font-medium mb-2">
                         <span className="text-accent mr-2">{i + 1}.</span>
                         {q}
                       </label>
@@ -162,7 +156,7 @@ export default function ImmersionPhase({
                           if (stage !== 'answering') setStage('answering')
                         }}
                         placeholder="Type your answer..."
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/30 transition-colors"
+                        className="w-full bg-black/[0.03] border border-black/10 rounded-xl px-4 py-3 text-foreground placeholder-foreground/20 focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/30 transition-colors"
                       />
                     </motion.div>
                   ))}

@@ -443,7 +443,7 @@ export default function DojoPage() {
   // ------- Star display helper -------
   const renderStars = (score: number) => {
     return Array.from({ length: 5 }, (_, i) => (
-      <span key={i} className={i < score ? 'text-accent' : 'text-white/20'}>
+      <span key={i} className={i < score ? 'text-accent' : 'text-foreground/20'}>
         ★
       </span>
     ))
@@ -470,7 +470,7 @@ export default function DojoPage() {
                 <h1 className="text-3xl font-display font-bold text-accent text-glow mb-2">
                   {uiLanguage === 'en' ? 'Conversation Dojo' : '会話道場'}
                 </h1>
-                <p className="text-white/50">
+                <p className="text-foreground/50">
                   {uiLanguage === 'en'
                     ? 'Choose a scenario to practice real conversation'
                     : 'シナリオを選んで実際の会話を練習しましょう'}
@@ -506,16 +506,16 @@ export default function DojoPage() {
               className="flex-1 flex flex-col max-w-3xl mx-auto w-full"
             >
               {/* Header bar */}
-              <div className="sticky top-16 z-30 flex items-center justify-between px-4 py-3 bg-white/[0.03] backdrop-blur-xl border-b border-white/[0.06]">
+              <div className="sticky top-16 z-30 flex items-center justify-between px-4 py-3 bg-black/[0.03] backdrop-blur-xl border-b border-black/[0.06]">
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">{selectedScenario.emoji}</span>
                   <div>
-                    <h2 className="text-sm font-semibold text-white">
+                    <h2 className="text-sm font-semibold text-foreground">
                       {uiLanguage === 'en'
                         ? selectedScenario.title
                         : selectedScenario.titleJP}
                     </h2>
-                    <p className="text-xs text-white/40">
+                    <p className="text-xs text-foreground/40">
                       {selectedScenario.characterName}
                     </p>
                   </div>
@@ -527,7 +527,7 @@ export default function DojoPage() {
                   disabled={
                     messages.filter((m) => m.role === 'user').length < 3 || isLoading
                   }
-                  className="text-white/50 hover:text-red-400"
+                  className="text-foreground/50 hover:text-red-400"
                 >
                   {uiLanguage === 'en' ? 'End Session' : 'セッション終了'}
                 </Button>
@@ -536,7 +536,7 @@ export default function DojoPage() {
               {/* Minimum exchanges hint */}
               {messages.filter((m) => m.role === 'user').length < 3 && (
                 <div className="text-center py-2">
-                  <p className="text-xs text-white/30">
+                  <p className="text-xs text-foreground/30">
                     {uiLanguage === 'en'
                       ? `Send at least ${3 - messages.filter((m) => m.role === 'user').length} more message${3 - messages.filter((m) => m.role === 'user').length === 1 ? '' : 's'} to enable session debrief`
                       : `セッションレビューを有効にするにはあと${3 - messages.filter((m) => m.role === 'user').length}通送信してください`}
@@ -573,14 +573,14 @@ export default function DojoPage() {
                     animate={{ opacity: 1 }}
                     className="flex gap-3"
                   >
-                    <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-lg border border-white/10">
+                    <div className="w-9 h-9 rounded-full bg-black/[0.05] flex items-center justify-center text-lg border border-black/10">
                       {selectedScenario.avatarEmoji}
                     </div>
                     <div className="glass-card px-4 py-3 rounded-2xl">
                       <div className="flex gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <span className="w-2 h-2 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <span className="w-2 h-2 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '300ms' }} />
+                        <span className="w-2 h-2 rounded-full bg-black/20 animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-2 h-2 rounded-full bg-black/20 animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-2 h-2 rounded-full bg-black/20 animate-bounce" style={{ animationDelay: '300ms' }} />
                       </div>
                     </div>
                   </motion.div>
@@ -590,7 +590,7 @@ export default function DojoPage() {
               </div>
 
               {/* Input area */}
-              <div className="sticky bottom-20 md:bottom-0 px-4 py-3 bg-background/80 backdrop-blur-xl border-t border-white/[0.06]">
+              <div className="sticky bottom-20 md:bottom-0 px-4 py-3 bg-background/80 backdrop-blur-xl border-t border-black/[0.06]">
                 <div className="flex gap-3">
                   <input
                     ref={inputRef}
@@ -604,7 +604,7 @@ export default function DojoPage() {
                         : 'メッセージを入力...'
                     }
                     disabled={isLoading}
-                    className="flex-1 rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/20 transition-colors disabled:opacity-50"
+                    className="flex-1 rounded-xl bg-black/[0.03] border border-black/10 px-4 py-3 text-sm text-foreground placeholder-foreground/30 focus:outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/20 transition-colors disabled:opacity-50"
                   />
                   <Button
                     onClick={handleSendMessage}
@@ -646,7 +646,7 @@ export default function DojoPage() {
                 <h2 className="text-2xl font-display font-bold text-accent text-glow mb-1">
                   {uiLanguage === 'en' ? 'Session Complete!' : 'セッション完了！'}
                 </h2>
-                <p className="text-white/40 text-sm">
+                <p className="text-foreground/40 text-sm">
                   {uiLanguage === 'en'
                     ? selectedScenario?.title
                     : selectedScenario?.titleJP}
@@ -656,7 +656,7 @@ export default function DojoPage() {
               {/* Overall score */}
               <Card padding="lg" className="mb-4">
                 <div className="text-center">
-                  <p className="text-sm text-white/50 mb-2">
+                  <p className="text-sm text-foreground/50 mb-2">
                     {uiLanguage === 'en' ? 'Overall Score' : '総合スコア'}
                   </p>
                   <div className="text-3xl tracking-wider mb-4">
@@ -680,7 +680,7 @@ export default function DojoPage() {
                       },
                     ].map((cat) => (
                       <div key={cat.label} className="text-center">
-                        <p className="text-xs text-white/40 mb-1">{cat.label}</p>
+                        <p className="text-xs text-foreground/40 mb-1">{cat.label}</p>
                         <div className="text-lg tracking-wider">
                           {renderStars(cat.score)}
                         </div>
@@ -701,7 +701,7 @@ export default function DojoPage() {
                     {debrief.highlights.map((h, i) => (
                       <li
                         key={i}
-                        className="text-sm text-white/70 flex items-start gap-2"
+                        className="text-sm text-foreground/70 flex items-start gap-2"
                       >
                         <span className="text-accent/60 mt-0.5 shrink-0">+</span>
                         {h}
@@ -719,7 +719,7 @@ export default function DojoPage() {
                     {debrief.improvements.map((imp, i) => (
                       <li
                         key={i}
-                        className="text-sm text-white/70 flex items-start gap-2"
+                        className="text-sm text-foreground/70 flex items-start gap-2"
                       >
                         <span className="text-yellow-400/60 mt-0.5 shrink-0">→</span>
                         {imp}
@@ -733,19 +733,19 @@ export default function DojoPage() {
               <Card padding="md" className="mb-6">
                 <div className="flex items-center justify-around">
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-white">
+                    <p className="text-2xl font-bold text-foreground">
                       {debrief.messagesSent}
                     </p>
-                    <p className="text-xs text-white/40">
+                    <p className="text-xs text-foreground/40">
                       {uiLanguage === 'en' ? 'Messages Sent' : '送信メッセージ'}
                     </p>
                   </div>
-                  <div className="w-px h-10 bg-white/10" />
+                  <div className="w-px h-10 bg-black/[0.05]" />
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-white">
+                    <p className="text-2xl font-bold text-foreground">
                       {debrief.newVocab.length}
                     </p>
-                    <p className="text-xs text-white/40">
+                    <p className="text-xs text-foreground/40">
                       {uiLanguage === 'en' ? 'New Vocab' : '新出語彙'}
                     </p>
                   </div>

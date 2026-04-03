@@ -240,7 +240,7 @@ export default function HumorLabPage() {
           >
             <Card padding="lg" className="text-center">
               {/* Lock icon */}
-              <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-5">
+              <div className="w-20 h-20 rounded-full bg-black/[0.03] border border-black/10 flex items-center justify-center mx-auto mb-5">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="36"
@@ -251,17 +251,17 @@ export default function HumorLabPage() {
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="text-white/30"
+                  className="text-foreground/30"
                 >
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                   <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                 </svg>
               </div>
 
-              <h1 className="text-xl font-display font-bold text-white mb-2">
+              <h1 className="text-xl font-display font-bold text-foreground mb-2">
                 {uiLanguage === 'en' ? 'Humor Lab' : 'ユーモアラボ'}
               </h1>
-              <p className="text-sm text-white/50 mb-5">
+              <p className="text-sm text-foreground/50 mb-5">
                 {uiLanguage === 'en'
                   ? 'Complete 10 lessons to unlock the Humor Lab'
                   : 'ユーモアラボを解除するには10レッスンを完了してください'}
@@ -300,7 +300,7 @@ export default function HumorLabPage() {
             <h1 className="text-3xl font-display font-bold text-accent text-glow mb-1">
               {uiLanguage === 'en' ? 'Humor Lab' : 'ユーモアラボ'}
             </h1>
-            <p className="text-white/40 text-sm">
+            <p className="text-foreground/40 text-sm">
               {uiLanguage === 'en'
                 ? '"Why Is This Funny?" decoder'
                 : '「なぜ面白い？」デコーダー'}
@@ -311,7 +311,7 @@ export default function HumorLabPage() {
               🧠
             </span>
             <div>
-              <p className="text-xs text-white/40">
+              <p className="text-xs text-foreground/40">
                 {uiLanguage === 'en' ? 'Humor IQ' : 'ユーモアIQ'}
               </p>
               <p className="text-lg font-bold text-accent tabular-nums">{humorIQ}</p>
@@ -332,7 +332,7 @@ export default function HumorLabPage() {
               {/* Back button */}
               <button
                 onClick={() => setSelectedClip(null)}
-                className="flex items-center gap-1.5 text-sm text-white/40 hover:text-white/70 transition-colors mb-4"
+                className="flex items-center gap-1.5 text-sm text-foreground/40 hover:text-foreground/70 transition-colors mb-4"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -352,7 +352,7 @@ export default function HumorLabPage() {
 
               {/* Clip title and badge */}
               <div className="flex items-center gap-3 mb-4">
-                <h2 className="text-xl font-semibold text-white">
+                <h2 className="text-xl font-semibold text-foreground">
                   {uiLanguage === 'en' ? selectedClip.title : selectedClip.titleJP}
                 </h2>
                 <Badge color={categoryColors[selectedClip.category]} size="sm">
@@ -383,7 +383,7 @@ export default function HumorLabPage() {
                   animate={{ opacity: 1, y: 0 }}
                   className="mb-6"
                 >
-                  <p className="text-sm text-white/50 text-center mb-4">
+                  <p className="text-sm text-foreground/50 text-center mb-4">
                     {uiLanguage === 'en' ? 'How well did you understand the humor?' : 'ユーモアはどの程度理解できましたか？'}
                   </p>
                   <div className="grid grid-cols-3 gap-3">
@@ -427,7 +427,7 @@ export default function HumorLabPage() {
               {/* Watch prompt */}
               {!hasWatched && !rating && (
                 <div className="text-center py-4">
-                  <p className="text-sm text-white/30 italic">
+                  <p className="text-sm text-foreground/30 italic">
                     {uiLanguage === 'en'
                       ? 'Watch the clip first, then rate your understanding...'
                       : 'まずクリップを見てから、理解度を評価してください...'}
@@ -446,10 +446,10 @@ export default function HumorLabPage() {
                     <h3 className="text-lg font-bold text-accent mb-2">
                       {uiLanguage === 'en' ? 'You got it!' : '正解！'}
                     </h3>
-                    <p className="text-sm text-white/50 mb-1">
+                    <p className="text-sm text-foreground/50 mb-1">
                       {uiLanguage === 'en' ? '+10 Humor IQ' : '+10 ユーモアIQ'}
                     </p>
-                    <p className="text-xs text-white/30">
+                    <p className="text-xs text-foreground/30">
                       {uiLanguage === 'en'
                         ? 'Great cultural instincts!'
                         : '素晴らしい文化的センスです！'}
@@ -477,7 +477,7 @@ export default function HumorLabPage() {
                           <span className="w-2 h-2 rounded-full bg-accent animate-bounce" style={{ animationDelay: '150ms' }} />
                           <span className="w-2 h-2 rounded-full bg-accent animate-bounce" style={{ animationDelay: '300ms' }} />
                         </div>
-                        <span className="text-sm text-white/50">
+                        <span className="text-sm text-foreground/50">
                           {uiLanguage === 'en' ? 'Analyzing the humor...' : 'ユーモアを分析中...'}
                         </span>
                       </div>
@@ -506,14 +506,14 @@ export default function HumorLabPage() {
                           }
                           if (line.match(/^\d+\./)) {
                             return (
-                              <p key={i} className="text-sm text-white/60 ml-4 mb-1">
+                              <p key={i} className="text-sm text-foreground/60 ml-4 mb-1">
                                 {line}
                               </p>
                             )
                           }
                           if (line.trim() === '') return <div key={i} className="h-2" />
                           return (
-                            <p key={i} className="text-sm text-white/70 leading-relaxed mb-1">
+                            <p key={i} className="text-sm text-foreground/70 leading-relaxed mb-1">
                               {line}
                             </p>
                           )
@@ -551,10 +551,10 @@ export default function HumorLabPage() {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => handleSelectClip(clip)}
-                    className="glass-card overflow-hidden text-left cursor-pointer group transition-shadow duration-300 hover:shadow-[0_0_24px_rgba(0,255,178,0.15)]"
+                    className="glass-card overflow-hidden text-left cursor-pointer group transition-shadow duration-300 hover:shadow-[0_0_24px_rgba(27,79,138,0.15)]"
                   >
                     {/* Thumbnail */}
-                    <div className="relative aspect-video bg-white/5">
+                    <div className="relative aspect-video bg-black/[0.03]">
                       <Image
                         src={`https://img.youtube.com/vi/${clip.youtubeId}/mqdefault.jpg`}
                         alt={clip.title}
@@ -564,14 +564,14 @@ export default function HumorLabPage() {
                       />
                       {/* Play button overlay */}
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-12 h-12 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center border border-white/20 group-hover:scale-110 transition-transform">
+                        <div className="w-12 h-12 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center border border-black/20 group-hover:scale-110 transition-transform">
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             width="20"
                             height="20"
                             viewBox="0 0 24 24"
                             fill="currentColor"
-                            className="text-white ml-0.5"
+                            className="text-foreground ml-0.5"
                           >
                             <polygon points="5 3 19 12 5 21 5 3" />
                           </svg>
@@ -582,7 +582,7 @@ export default function HumorLabPage() {
                     {/* Card body */}
                     <div className="p-4">
                       <div className="flex items-start justify-between gap-2 mb-1.5">
-                        <h3 className="text-sm font-semibold text-white group-hover:text-accent transition-colors line-clamp-2">
+                        <h3 className="text-sm font-semibold text-foreground group-hover:text-accent transition-colors line-clamp-2">
                           {uiLanguage === 'en' ? clip.title : clip.titleJP}
                         </h3>
                       </div>

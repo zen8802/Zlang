@@ -5,9 +5,9 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Noto+Sans+JP:wght@100..900&family=Syne:wght@400..800&display=swap');
 
 :root {
-  --background: #080810;
-  --foreground: #ffffff;
-  --accent: #00FFB2;
+  --background: #F5F0EB;
+  --foreground: #1a1a2e;
+  --accent: #1B4F8A;
   --accent-jp: #FF6B35;
   --accent-en: #3B82F6;
 }
@@ -21,7 +21,7 @@ html {
 }
 
 body {
-  background: var(--background);
+  background: #F5F0EB;
   color: var(--foreground);
   font-family: 'DM Sans', sans-serif;
   min-height: 100vh;
@@ -44,22 +44,22 @@ body::before {
 
 /* Glass card utility */
 .glass-card {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-width: 1px;
   border-style: solid;
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(0, 0, 0, 0.08);
   border-radius: 16px;
 }
 
 .glass-card:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.75);
 }
 
 /* Glow effects */
 .glow-accent {
-  box-shadow: 0 0 20px rgba(0, 255, 178, 0.3);
+  box-shadow: 0 0 20px rgba(27, 79, 138, 0.3);
 }
 
 .glow-jp {
@@ -72,7 +72,7 @@ body::before {
 
 /* Text glow */
 .text-glow {
-  text-shadow: 0 0 20px rgba(0, 255, 178, 0.5);
+  text-shadow: 0 0 20px rgba(27, 79, 138, 0.5);
 }
 
 /* Scrollbar styling */
@@ -85,12 +85,12 @@ body::before {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.15);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(0, 0, 0, 0.25);
 }
 
 /* Confetti animation classes */
@@ -162,7 +162,7 @@ body::before {
 
 .char-rain-column span {
   font-family: 'Noto Sans JP', sans-serif;
-  color: #00FFB2;
+  color: #1B4F8A;
   font-size: var(--rain-font-size, 14px);
   opacity: var(--rain-opacity, 0.08);
   writing-mode: vertical-rl;
@@ -173,6 +173,6 @@ body::before {
 
 /* Selection styling */
 ::selection {
-  background: rgba(0, 255, 178, 0.3);
-  color: #ffffff;
+  background: rgba(27, 79, 138, 0.3);
+  color: #1a1a2e;
 }

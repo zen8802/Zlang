@@ -100,7 +100,7 @@ export default function Modal({
                 <button
                   onClick={onClose}
                   aria-label="Close modal"
-                  className="shrink-0 p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+                  className="shrink-0 p-1.5 rounded-lg text-foreground/50 hover:text-foreground hover:bg-black/[0.05] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -126,7 +126,7 @@ export default function Modal({
               <button
                 onClick={onClose}
                 aria-label="Close modal"
-                className="absolute top-4 right-4 p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+                className="absolute top-4 right-4 p-1.5 rounded-lg text-foreground/50 hover:text-foreground hover:bg-black/[0.05] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

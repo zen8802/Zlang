@@ -17,7 +17,7 @@ const colorMap: Record<BadgeColor, string> = {
   accent: 'bg-accent/15 text-accent border-accent/20',
   jp: 'bg-accent-jp/15 text-accent-jp border-accent-jp/20',
   en: 'bg-accent-en/15 text-accent-en border-accent-en/20',
-  neutral: 'bg-white/10 text-white/80 border-white/10',
+  neutral: 'bg-black/[0.05] text-foreground/80 border-black/10',
   danger: 'bg-red-500/15 text-red-400 border-red-500/20',
   warning: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/20',
 }

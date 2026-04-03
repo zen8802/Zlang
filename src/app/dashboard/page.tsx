@@ -26,22 +26,19 @@ export default function DashboardPage() {
   const {
     corridor,
     uiLanguage,
-    setupComplete,
     lessonsCompleted,
     skillLevels,
     xpTotal,
   } = useAppStore()
 
-  // Guard: redirect if setup not complete or no corridor
+  // Guard: redirect if no corridor
   useEffect(() => {
-    if (!setupComplete) {
-      router.replace('/setup')
-    } else if (!corridor) {
+    if (!corridor) {
       router.replace('/')
     }
-  }, [setupComplete, corridor, router])
+  }, [corridor, router])
 
-  if (!setupComplete || !corridor) {
+  if (!corridor) {
     return null
   }
 
@@ -92,33 +89,33 @@ export default function DashboardPage() {
               transition={{ duration: 0.4, delay: 0.2 }}
               className={`glass-card p-6 border ${corridorBorderColor}`}
             >
-              <h2 className="font-display text-lg font-semibold mb-3 text-white/90">
+              <h2 className="font-display text-lg font-semibold mb-3 text-foreground/90">
                 {t('dashboard.nextLesson', uiLanguage)}
               </h2>
 
               {allDone ? (
                 <div className="text-center py-4">
                   <span className="text-4xl mb-2 block">🎉</span>
-                  <p className="text-white/60 text-sm">
+                  <p className="text-foreground/60 text-sm">
                     {t('dashboard.curriculumComplete', uiLanguage)}
                   </p>
                 </div>
               ) : nextLesson ? (
                 <div>
-                  <p className="text-xs text-white/40 mb-1">
+                  <p className="text-xs text-foreground/40 mb-1">
                     {t('dashboard.unit', uiLanguage)} {nextLesson.unit}:{' '}
                     {uiLanguage === 'jp'
                       ? nextLesson.unitTitleJP
                       : nextLesson.unitTitle}
                   </p>
-                  <h3 className="font-semibold text-white mb-1">
+                  <h3 className="font-semibold text-foreground mb-1">
                     {t('dashboard.lesson', uiLanguage)}{' '}
                     {nextLesson.lessonNumber}:{' '}
                     {uiLanguage === 'jp'
                       ? nextLesson.titleJP
                       : nextLesson.title}
                   </h3>
-                  <p className="text-xs text-white/40 mb-4">
+                  <p className="text-xs text-foreground/40 mb-4">
                     ~{nextLesson.estimatedMinutes}{' '}
                     {t('dashboard.min', uiLanguage)}
                   </p>
@@ -127,7 +124,7 @@ export default function DashboardPage() {
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      className="w-full py-3 rounded-xl font-semibold text-background bg-accent shadow-[0_0_20px_rgba(0,255,178,0.25)] hover:shadow-[0_0_30px_rgba(0,255,178,0.4)] transition-shadow"
+                      className="w-full py-3 rounded-xl font-semibold text-background bg-accent shadow-[0_0_20px_rgba(27,79,138,0.25)] hover:shadow-[0_0_30px_rgba(27,79,138,0.4)] transition-shadow"
                     >
                       {t('dashboard.startLesson', uiLanguage)}
                     </motion.button>
@@ -147,13 +144,13 @@ export default function DashboardPage() {
           >
             {/* Featured Clip */}
             <div>
-              <h2 className="font-display text-lg font-semibold mb-3 text-white/90">
+              <h2 className="font-display text-lg font-semibold mb-3 text-foreground/90">
                 {t('dashboard.featuredClip', uiLanguage)}
               </h2>
               {nextLesson ? (
                 <FeaturedClip clipId={nextLesson.clipId} />
               ) : (
-                <div className="glass-card p-8 text-center text-white/40 text-sm">
+                <div className="glass-card p-8 text-center text-foreground/40 text-sm">
                   {t('dashboard.curriculumComplete', uiLanguage)}
                 </div>
               )}
@@ -161,7 +158,7 @@ export default function DashboardPage() {
 
             {/* Quick Actions */}
             <div>
-              <h2 className="font-display text-lg font-semibold mb-3 text-white/90">
+              <h2 className="font-display text-lg font-semibold mb-3 text-foreground/90">
                 {t('dashboard.quickActions', uiLanguage)}
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3 gap-3">
@@ -173,7 +170,7 @@ export default function DashboardPage() {
                     className="glass-card p-4 text-center cursor-pointer hover:border-accent/20 transition-colors"
                   >
                     <span className="text-2xl block mb-1">🥋</span>
-                    <span className="text-sm font-medium text-white/80">
+                    <span className="text-sm font-medium text-foreground/80">
                       {t('dashboard.conversationDojo', uiLanguage)}
                     </span>
                   </motion.div>
@@ -188,7 +185,7 @@ export default function DashboardPage() {
                       className="glass-card p-4 text-center cursor-pointer hover:border-accent/20 transition-colors"
                     >
                       <span className="text-2xl block mb-1">😂</span>
-                      <span className="text-sm font-medium text-white/80">
+                      <span className="text-sm font-medium text-foreground/80">
                         {t('dashboard.humorLabTitle', uiLanguage)}
                       </span>
                     </motion.div>
@@ -198,10 +195,10 @@ export default function DashboardPage() {
                     className="glass-card p-4 text-center opacity-50 cursor-not-allowed relative"
                   >
                     <span className="text-2xl block mb-1">🔒</span>
-                    <span className="text-sm font-medium text-white/50">
+                    <span className="text-sm font-medium text-foreground/50">
                       {t('dashboard.humorLabTitle', uiLanguage)}
                     </span>
-                    <span className="text-[10px] block text-white/30 mt-0.5">
+                    <span className="text-[10px] block text-foreground/30 mt-0.5">
                       {t('dashboard.locked', uiLanguage)} (10 {t('dashboard.lessonProgress', uiLanguage)})
                     </span>
                   </motion.div>
@@ -215,7 +212,7 @@ export default function DashboardPage() {
                     className="glass-card p-4 text-center cursor-pointer hover:border-accent/20 transition-colors"
                   >
                     <span className="text-2xl block mb-1">📚</span>
-                    <span className="text-sm font-medium text-white/80">
+                    <span className="text-sm font-medium text-foreground/80">
                       {t('dashboard.reviewVocab', uiLanguage)}
                     </span>
                   </motion.div>
@@ -234,7 +231,7 @@ export default function DashboardPage() {
           >
             {/* Skills */}
             <div className="glass-card p-6">
-              <h2 className="font-display text-lg font-semibold mb-4 text-white/90">
+              <h2 className="font-display text-lg font-semibold mb-4 text-foreground/90">
                 {t('dashboard.yourSkills', uiLanguage)}
               </h2>
               <SkillTree skillLevels={skillLevels} />
@@ -247,36 +244,36 @@ export default function DashboardPage() {
               transition={{ duration: 0.4, delay: 0.5 }}
               className="glass-card p-6"
             >
-              <h2 className="font-display text-lg font-semibold mb-3 text-white/90">
+              <h2 className="font-display text-lg font-semibold mb-3 text-foreground/90">
                 {t('dashboard.yourProgress', uiLanguage)}
               </h2>
 
               {/* Lessons completed bar */}
               <div className="mb-4">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-white/60">
+                  <span className="text-sm text-foreground/60">
                     {t('dashboard.lessonsCompleted', uiLanguage)}
                   </span>
                   <span className="text-sm font-medium text-accent">
                     {completedCount}/{totalLessons}
                   </span>
                 </div>
-                <div className="h-2.5 bg-white/5 rounded-full overflow-hidden">
+                <div className="h-2.5 bg-black/[0.03] rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${lessonProgress * 100}%` }}
                     transition={{ duration: 1, ease: 'easeOut', delay: 0.6 }}
                     className="h-full rounded-full bg-gradient-to-r from-accent/80 to-accent"
                     style={{
-                      boxShadow: '0 0 12px rgba(0, 255, 178, 0.4)',
+                      boxShadow: '0 0 12px rgba(27, 79, 138, 0.4)',
                     }}
                   />
                 </div>
               </div>
 
               {/* Total XP */}
-              <div className="flex items-center justify-between pt-3 border-t border-white/8">
-                <span className="text-sm text-white/60">
+              <div className="flex items-center justify-between pt-3 border-t border-black/8">
+                <span className="text-sm text-foreground/60">
                   {t('dashboard.totalXP', uiLanguage)}
                 </span>
                 <span className="font-display text-xl font-bold text-accent text-glow">

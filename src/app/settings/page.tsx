@@ -3,10 +3,10 @@
 // ---------------------------------------------------------------------------
 // Translation keys used (add to useAppStore if missing):
 //   settings.title, settings.uiLanguage, settings.corridor, settings.level,
-//   settings.dailyMinutes, settings.resetProgress, settings.resetConfirm,
+//   settings.resetProgress, settings.resetConfirm,
 //   settings.about, settings.version, settings.resetAll,
 //   settings.switchCorridorWarning, settings.languageLearning,
-//   settings.dailyGoal, settings.progress, settings.currentStreak,
+//   settings.progress, settings.currentStreak,
 //   settings.totalXP, settings.lessonsCompleted
 // ---------------------------------------------------------------------------
 
@@ -30,8 +30,6 @@ export default function SettingsPage() {
   const setCorridor = useAppStore((s) => s.setCorridor)
   const level = useAppStore((s) => s.level)
   const setLevel = useAppStore((s) => s.setLevel)
-  const dailyMinutes = useAppStore((s) => s.dailyMinutes)
-  const setDailyMinutes = useAppStore((s) => s.setDailyMinutes)
   const xpTotal = useAppStore((s) => s.xpTotal)
   const streak = useAppStore((s) => s.streak)
   const lessonsCompleted = useAppStore((s) => s.lessonsCompleted)
@@ -71,14 +69,6 @@ export default function SettingsPage() {
     setShowResetAllModal(false)
   }, [resetAll])
 
-  // ------- Time options -------
-  const timeOptions = [
-    { minutes: 5, label: uiLanguage === 'en' ? '5 min' : '5分', sublabel: uiLanguage === 'en' ? 'Quick review' : 'クイック復習' },
-    { minutes: 15, label: uiLanguage === 'en' ? '15 min' : '15分', sublabel: uiLanguage === 'en' ? 'Steady progress' : '着実な上達' },
-    { minutes: 30, label: uiLanguage === 'en' ? '30 min' : '30分', sublabel: uiLanguage === 'en' ? 'Serious study' : '本格的な学習' },
-    { minutes: 60, label: uiLanguage === 'en' ? '60 min' : '60分', sublabel: uiLanguage === 'en' ? 'Immersion mode' : 'イマージョン' },
-  ]
-
   // ------- Level options -------
   const levelOptions: Array<{ value: 'beginner' | 'basics' | 'intermediate' | 'advanced'; label: string }> = [
     { value: 'beginner', label: uiLanguage === 'en' ? 'Beginner' : '初心者' },
@@ -109,29 +99,29 @@ export default function SettingsPage() {
         {/* ===== Language & Learning ===== */}
         <motion.div custom={0} initial="hidden" animate="visible" variants={sectionVariants}>
           <Card padding="lg" className="mb-5">
-            <h2 className="text-lg font-semibold text-white mb-5 flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-foreground mb-5 flex items-center gap-2">
               <span className="text-accent/60">⚙</span>
               {uiLanguage === 'en' ? 'Language & Learning' : '言語と学習'}
             </h2>
 
             {/* UI Language toggle */}
-            <div className="flex items-center justify-between py-3 border-b border-white/[0.06]">
+            <div className="flex items-center justify-between py-3 border-b border-black/[0.06]">
               <div>
-                <p className="text-sm font-medium text-white">
+                <p className="text-sm font-medium text-foreground">
                   {t('settings.uiLanguage', uiLanguage)}
                 </p>
-                <p className="text-xs text-white/40">
+                <p className="text-xs text-foreground/40">
                   {uiLanguage === 'en' ? 'App interface language' : 'アプリのインターフェース言語'}
                 </p>
               </div>
-              <div className="flex items-center rounded-xl bg-white/5 border border-white/10 p-0.5">
+              <div className="flex items-center rounded-xl bg-black/[0.03] border border-black/10 p-0.5">
                 <button
                   onClick={() => setUiLanguage('en')}
                   className={[
                     'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200',
                     uiLanguage === 'en'
-                      ? 'bg-accent text-background shadow-[0_0_12px_rgba(0,255,178,0.3)]'
-                      : 'text-white/50 hover:text-white/80',
+                      ? 'bg-accent text-background shadow-[0_0_12px_rgba(27,79,138,0.3)]'
+                      : 'text-foreground/50 hover:text-foreground/80',
                   ].join(' ')}
                 >
                   English
@@ -141,8 +131,8 @@ export default function SettingsPage() {
                   className={[
                     'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200',
                     uiLanguage === 'jp'
-                      ? 'bg-accent text-background shadow-[0_0_12px_rgba(0,255,178,0.3)]'
-                      : 'text-white/50 hover:text-white/80',
+                      ? 'bg-accent text-background shadow-[0_0_12px_rgba(27,79,138,0.3)]'
+                      : 'text-foreground/50 hover:text-foreground/80',
                   ].join(' ')}
                 >
                   日本語
@@ -151,13 +141,13 @@ export default function SettingsPage() {
             </div>
 
             {/* Learning Path / Corridor */}
-            <div className="py-3 border-b border-white/[0.06]">
+            <div className="py-3 border-b border-black/[0.06]">
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <p className="text-sm font-medium text-white">
+                  <p className="text-sm font-medium text-foreground">
                     {uiLanguage === 'en' ? 'Learning Path' : '学習パス'}
                   </p>
-                  <p className="text-xs text-white/40">
+                  <p className="text-xs text-foreground/40">
                     {uiLanguage === 'en' ? 'Your language corridor' : '言語コリドー'}
                   </p>
                 </div>
@@ -169,11 +159,11 @@ export default function SettingsPage() {
                     'rounded-xl px-4 py-3 text-left transition-all duration-200 border',
                     corridor === 'en-to-jp'
                       ? 'bg-accent-jp/10 border-accent-jp/30 shadow-[0_0_16px_rgba(255,107,53,0.15)]'
-                      : 'bg-white/5 border-white/10 hover:bg-white/8 hover:border-white/15',
+                      : 'bg-black/[0.03] border-black/10 hover:bg-black/[0.05] hover:border-black/15',
                   ].join(' ')}
                 >
-                  <p className="text-sm font-medium text-white">EN → JP</p>
-                  <p className="text-xs text-white/40 mt-0.5">
+                  <p className="text-sm font-medium text-foreground">EN → JP</p>
+                  <p className="text-xs text-foreground/40 mt-0.5">
                     {uiLanguage === 'en' ? 'Learn Japanese' : '日本語を学ぶ'}
                   </p>
                 </button>
@@ -183,11 +173,11 @@ export default function SettingsPage() {
                     'rounded-xl px-4 py-3 text-left transition-all duration-200 border',
                     corridor === 'jp-to-en'
                       ? 'bg-accent-en/10 border-accent-en/30 shadow-[0_0_16px_rgba(59,130,246,0.15)]'
-                      : 'bg-white/5 border-white/10 hover:bg-white/8 hover:border-white/15',
+                      : 'bg-black/[0.03] border-black/10 hover:bg-black/[0.05] hover:border-black/15',
                   ].join(' ')}
                 >
-                  <p className="text-sm font-medium text-white">JP → EN</p>
-                  <p className="text-xs text-white/40 mt-0.5">
+                  <p className="text-sm font-medium text-foreground">JP → EN</p>
+                  <p className="text-xs text-foreground/40 mt-0.5">
                     {uiLanguage === 'en' ? 'Learn English' : '英語を学ぶ'}
                   </p>
                 </button>
@@ -198,10 +188,10 @@ export default function SettingsPage() {
             <div className="py-3">
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <p className="text-sm font-medium text-white">
+                  <p className="text-sm font-medium text-foreground">
                     {t('settings.level', uiLanguage)}
                   </p>
-                  <p className="text-xs text-white/40">
+                  <p className="text-xs text-foreground/40">
                     {uiLanguage === 'en' ? 'Adjust lesson difficulty' : 'レッスンの難易度を調整'}
                   </p>
                 </div>
@@ -214,8 +204,8 @@ export default function SettingsPage() {
                     className={[
                       'rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 border',
                       level === opt.value
-                        ? 'bg-accent/10 border-accent/30 text-accent shadow-[0_0_12px_rgba(0,255,178,0.15)]'
-                        : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/8 hover:text-white/80',
+                        ? 'bg-accent/10 border-accent/30 text-accent shadow-[0_0_12px_rgba(27,79,138,0.15)]'
+                        : 'bg-black/[0.03] border-black/10 text-foreground/60 hover:bg-black/[0.05] hover:text-foreground/80',
                     ].join(' ')}
                   >
                     {opt.label}
@@ -226,71 +216,36 @@ export default function SettingsPage() {
           </Card>
         </motion.div>
 
-        {/* ===== Daily Goal ===== */}
+        {/* ===== Progress ===== */}
         <motion.div custom={1} initial="hidden" animate="visible" variants={sectionVariants}>
           <Card padding="lg" className="mb-5">
-            <h2 className="text-lg font-semibold text-white mb-5 flex items-center gap-2">
-              <span className="text-accent/60">🎯</span>
-              {uiLanguage === 'en' ? 'Daily Goal' : '毎日の目標'}
-            </h2>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {timeOptions.map((opt) => (
-                <button
-                  key={opt.minutes}
-                  onClick={() => setDailyMinutes(opt.minutes)}
-                  className={[
-                    'rounded-xl px-4 py-4 text-center transition-all duration-200 border',
-                    dailyMinutes === opt.minutes
-                      ? 'bg-accent/10 border-accent/30 shadow-[0_0_16px_rgba(0,255,178,0.15)]'
-                      : 'bg-white/5 border-white/10 hover:bg-white/8 hover:border-white/15',
-                  ].join(' ')}
-                >
-                  <p
-                    className={[
-                      'text-xl font-bold mb-0.5',
-                      dailyMinutes === opt.minutes ? 'text-accent' : 'text-white',
-                    ].join(' ')}
-                  >
-                    {opt.label}
-                  </p>
-                  <p className="text-xs text-white/40">{opt.sublabel}</p>
-                </button>
-              ))}
-            </div>
-          </Card>
-        </motion.div>
-
-        {/* ===== Progress ===== */}
-        <motion.div custom={2} initial="hidden" animate="visible" variants={sectionVariants}>
-          <Card padding="lg" className="mb-5">
-            <h2 className="text-lg font-semibold text-white mb-5 flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-foreground mb-5 flex items-center gap-2">
               <span className="text-accent/60">📊</span>
               {uiLanguage === 'en' ? 'Progress' : '進捗'}
             </h2>
 
             {/* Stats grid */}
             <div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="text-center py-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+              <div className="text-center py-3 rounded-xl bg-black/[0.03] border border-black/[0.06]">
                 <p className="text-2xl font-bold text-accent tabular-nums">{xpTotal}</p>
-                <p className="text-xs text-white/40 mt-0.5">
+                <p className="text-xs text-foreground/40 mt-0.5">
                   {uiLanguage === 'en' ? 'Total XP' : '合計XP'}
                 </p>
               </div>
-              <div className="text-center py-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-                <p className="text-2xl font-bold text-white tabular-nums">
+              <div className="text-center py-3 rounded-xl bg-black/[0.03] border border-black/[0.06]">
+                <p className="text-2xl font-bold text-foreground tabular-nums">
                   {streak}
                   <span className="text-sm ml-0.5">🔥</span>
                 </p>
-                <p className="text-xs text-white/40 mt-0.5">
+                <p className="text-xs text-foreground/40 mt-0.5">
                   {uiLanguage === 'en' ? 'Day Streak' : '日連続'}
                 </p>
               </div>
-              <div className="text-center py-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-                <p className="text-2xl font-bold text-white tabular-nums">
+              <div className="text-center py-3 rounded-xl bg-black/[0.03] border border-black/[0.06]">
+                <p className="text-2xl font-bold text-foreground tabular-nums">
                   {lessonsCompleted.length}
                 </p>
-                <p className="text-xs text-white/40 mt-0.5">
+                <p className="text-xs text-foreground/40 mt-0.5">
                   {uiLanguage === 'en' ? 'Lessons' : 'レッスン'}
                 </p>
               </div>
@@ -318,35 +273,35 @@ export default function SettingsPage() {
         </motion.div>
 
         {/* ===== About ===== */}
-        <motion.div custom={3} initial="hidden" animate="visible" variants={sectionVariants}>
+        <motion.div custom={2} initial="hidden" animate="visible" variants={sectionVariants}>
           <Card padding="lg" className="mb-5">
-            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
               <span className="text-accent/60">ℹ</span>
               {t('settings.about', uiLanguage)}
             </h2>
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-white/60">
+                <span className="text-sm text-foreground/60">
                   {uiLanguage === 'en' ? 'App Name' : 'アプリ名'}
                 </span>
                 <span className="text-sm font-semibold text-accent">Zlang</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-white/60">
+                <span className="text-sm text-foreground/60">
                   {t('settings.version', uiLanguage)}
                 </span>
-                <span className="text-sm text-white/80 tabular-nums">0.1.0</span>
+                <span className="text-sm text-foreground/80 tabular-nums">0.1.0</span>
               </div>
-              <div className="pt-2 border-t border-white/[0.06]">
-                <p className="text-sm text-white/40 italic text-center">
+              <div className="pt-2 border-t border-black/[0.06]">
+                <p className="text-sm text-foreground/40 italic text-center">
                   {uiLanguage === 'en'
                     ? '"Learn through what you love"'
                     : '「好きなもので学ぼう」'}
                 </p>
               </div>
               <div className="text-center pt-1">
-                <p className="text-xs text-white/30">
+                <p className="text-xs text-foreground/30">
                   {t('common.poweredBy', uiLanguage)}
                 </p>
               </div>
@@ -366,7 +321,7 @@ export default function SettingsPage() {
         }}
         title={uiLanguage === 'en' ? 'Switch Learning Path?' : '学習パスを変更しますか？'}
       >
-        <p className="text-sm text-white/60 mb-5">
+        <p className="text-sm text-foreground/60 mb-5">
           {uiLanguage === 'en'
             ? 'Switching your learning corridor will change the content and lessons available. Your progress will be preserved.'
             : '学習コリドーを変更すると、利用可能なコンテンツとレッスンが変わります。進捗は保持されます。'}
@@ -394,10 +349,10 @@ export default function SettingsPage() {
         onClose={() => setShowResetModal(false)}
         title={t('settings.resetProgress', uiLanguage)}
       >
-        <p className="text-sm text-white/60 mb-5">
+        <p className="text-sm text-foreground/60 mb-5">
           {t('settings.resetConfirm', uiLanguage)}
         </p>
-        <p className="text-xs text-white/40 mb-5">
+        <p className="text-xs text-foreground/40 mb-5">
           {uiLanguage === 'en'
             ? 'This will reset your XP, streak, lesson progress, and skill levels. Your account settings will be preserved.'
             : 'XP、ストリーク、レッスンの進捗、スキルレベルがリセットされます。アカウント設定は保持されます。'}
@@ -418,10 +373,10 @@ export default function SettingsPage() {
         onClose={() => setShowResetAllModal(false)}
         title={t('settings.resetAll', uiLanguage)}
       >
-        <p className="text-sm text-white/60 mb-5">
+        <p className="text-sm text-foreground/60 mb-5">
           {t('settings.resetConfirm', uiLanguage)}
         </p>
-        <p className="text-xs text-white/40 mb-5">
+        <p className="text-xs text-foreground/40 mb-5">
           {uiLanguage === 'en'
             ? 'This will completely reset the app to its initial state, including all settings, progress, and preferences.'
             : 'アプリを初期状態に完全にリセットします。設定、進捗、設定のすべてが削除されます。'}

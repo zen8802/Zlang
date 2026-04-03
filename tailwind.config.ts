@@ -9,17 +9,17 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#080810",
-        foreground: "#ffffff",
-        accent: "#00FFB2",        // Electric mint-green primary
+        background: "#F5F0EB",
+        foreground: "#1a1a2e",
+        accent: "#1B4F8A",        // Deep blue primary
         "accent-jp": "#FF6B35",   // Warm orange for Japanese content
         "accent-en": "#3B82F6",   // Cool blue for English content
         glass: {
-          DEFAULT: "rgba(255,255,255,0.05)",
-          border: "rgba(255,255,255,0.08)",
-          hover: "rgba(255,255,255,0.10)",
+          DEFAULT: "rgba(0,0,0,0.04)",
+          border: "rgba(0,0,0,0.08)",
+          hover: "rgba(0,0,0,0.07)",
         },
-        muted: "rgba(255,255,255,0.5)",
+        muted: "rgba(26,26,46,0.5)",
       },
       fontFamily: {
         display: ["Syne", "sans-serif"],
@@ -51,8 +51,8 @@ const config: Config = {
           "100%": { opacity: "1", transform: "translateX(0)" },
         },
         pulseGlow: {
-          "0%, 100%": { boxShadow: "0 0 20px rgba(0,255,178,0.3)" },
-          "50%": { boxShadow: "0 0 40px rgba(0,255,178,0.6)" },
+          "0%, 100%": { boxShadow: "0 0 20px rgba(27,79,138,0.3)" },
+          "50%": { boxShadow: "0 0 40px rgba(27,79,138,0.6)" },
         },
         float: {
           "0%, 100%": { transform: "translateY(0)" },

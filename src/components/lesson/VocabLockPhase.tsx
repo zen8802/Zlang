@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useUser } from '@clerk/nextjs'
+import { useRouter } from 'next/navigation'
 import Button from '@/components/ui/Button'
 import FlipCard from '@/components/ui/FlipCard'
 import ProgressBar from '@/components/ui/ProgressBar'
@@ -21,7 +23,7 @@ interface VocabLockPhaseProps {
 }
 
 // Confetti colors
-const CONFETTI_COLORS = ['#00FFB2', '#FF6B35', '#3B82F6', '#A855F7', '#F59E0B', '#EC4899']
+const CONFETTI_COLORS = ['#1B4F8A', '#FF6B35', '#3B82F6', '#A855F7', '#F59E0B', '#EC4899']
 
 function ConfettiPiece({ index }: { index: number }) {
   const left = Math.random() * 100
@@ -64,6 +66,10 @@ export default function VocabLockPhase({
   responseGrade,
   onComplete,
 }: VocabLockPhaseProps) {
+  const { isSignedIn } = useUser()
+  const router = useRouter()
+  const lesson = getLessonById(lessonId)
+
   const [currentIndex, setCurrentIndex] = useState(0)
   const [reviewed, setReviewed] = useState<Set<number>>(new Set())
   const [isComplete, setIsComplete] = useState(false)
@@ -71,13 +77,11 @@ export default function VocabLockPhase({
   const [xpEarned, setXpEarned] = useState(0)
   const confettiShownRef = useRef(false)
 
-  const { corridor, completeLesson, addXP, updateSkill, updateStreak } = useAppStore((s) => ({
-    corridor: s.corridor,
-    completeLesson: s.completeLesson,
-    addXP: s.addXP,
-    updateSkill: s.updateSkill,
-    updateStreak: s.updateStreak,
-  }))
+  const corridor = useAppStore((s) => s.corridor)
+  const completeLesson = useAppStore((s) => s.completeLesson)
+  const addXP = useAppStore((s) => s.addXP)
+  const updateSkill = useAppStore((s) => s.updateSkill)
+  const updateStreak = useAppStore((s) => s.updateStreak)
 
   const clip = getClipById(clipId)
   const vocab: VocabItem[] = useMemo(() => clip?.vocab?.slice(0, 5) || [], [clip])
@@ -163,8 +167,8 @@ export default function VocabLockPhase({
         animate={{ opacity: 1, y: 0 }}
       >
         <p className="text-xs text-accent uppercase tracking-[0.2em] mb-1">Phase 6</p>
-        <h2 className="text-2xl font-display font-bold text-white">Vocab Lock-in</h2>
-        <p className="text-sm text-white/40 mt-1">
+        <h2 className="text-2xl font-display font-bold text-foreground">Vocab Lock-in</h2>
+        <p className="text-sm text-foreground/40 mt-1">
           Lock these words into long-term memory.
         </p>
       </motion.div>
@@ -199,7 +203,7 @@ export default function VocabLockPhase({
                         ? 'bg-accent scale-125'
                         : reviewed.has(i)
                           ? 'bg-accent/30'
-                          : 'bg-white/15'
+                          : 'bg-black/[0.07]'
                     }`}
                     aria-label={`Word ${i + 1}`}
                   />
@@ -285,7 +289,7 @@ export default function VocabLockPhase({
               >
                 Lesson Complete!
               </motion.div>
-              <p className="text-white/50 text-sm">
+              <p className="text-foreground/50 text-sm">
                 You crushed it. Every lesson makes you sharper.
               </p>
             </motion.div>
@@ -297,7 +301,7 @@ export default function VocabLockPhase({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <p className="text-xs text-white/30 uppercase tracking-wider mb-3">XP Earned</p>
+              <p className="text-xs text-foreground/30 uppercase tracking-wider mb-3">XP Earned</p>
               <motion.p
                 className="text-5xl font-display font-bold text-accent tabular-nums"
                 initial={{ scale: 0 }}
@@ -306,7 +310,7 @@ export default function VocabLockPhase({
               >
                 +{xpEarned}
               </motion.p>
-              <p className="text-xs text-white/30 mt-3">
+              <p className="text-xs text-foreground/30 mt-3">
                 {xpEarned >= 100 ? 'Perfect lesson bonus earned!' : 'Great work! Keep improving.'}
               </p>
             </motion.div>
@@ -335,7 +339,7 @@ export default function VocabLockPhase({
                 >
                   <span className="text-lg">{phase.icon}</span>
                   <div className="text-left">
-                    <p className="text-xs text-white/60">{phase.label}</p>
+                    <p className="text-xs text-foreground/60">{phase.label}</p>
                     {phase.detail && (
                       <p className="text-[10px] text-accent/60">{phase.detail}</p>
                     )}
@@ -359,26 +363,54 @@ export default function VocabLockPhase({
               ))}
             </motion.div>
 
-            {/* Back to dashboard */}
+            {/* Back to dashboard OR guest upsell */}
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1 }}
+              className="max-w-md mx-auto w-full space-y-3"
             >
-              <Button
-                variant="primary"
-                size="lg"
-                fullWidth
-                onClick={onComplete}
-                className="max-w-md mx-auto"
-                icon={
-                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                    <path d="M7.5 17.5V10h5v7.5M2.5 7.5L10 1.667 17.5 7.5v9.167a1.667 1.667 0 01-1.667 1.666H4.167A1.667 1.667 0 012.5 16.667V7.5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                }
-              >
-                Back to Dashboard
-              </Button>
+              {!isSignedIn && lesson?.lessonNumber === 1 ? (
+                <>
+                  <div className="text-center mb-4">
+                    <span className="text-4xl">&#x1F525;</span>
+                    <p className="text-foreground/50 text-sm mt-2">
+                      Create a free account to keep your streak alive and unlock all lessons.
+                    </p>
+                  </div>
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    fullWidth
+                    onClick={() => {
+                      localStorage.setItem('zlang_intended_lesson', lessonId)
+                      router.push('/sign-up?reason=streak')
+                    }}
+                  >
+                    Save My Progress &mdash; It&apos;s Free
+                  </Button>
+                  <button
+                    onClick={onComplete}
+                    className="w-full py-3 text-foreground/40 text-sm hover:text-foreground/60 transition-colors"
+                  >
+                    Maybe later
+                  </button>
+                </>
+              ) : (
+                <Button
+                  variant="primary"
+                  size="lg"
+                  fullWidth
+                  onClick={onComplete}
+                  icon={
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                      <path d="M7.5 17.5V10h5v7.5M2.5 7.5L10 1.667 17.5 7.5v9.167a1.667 1.667 0 01-1.667 1.666H4.167A1.667 1.667 0 012.5 16.667V7.5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  }
+                >
+                  Back to Dashboard
+                </Button>
+              )}
             </motion.div>
           </motion.div>
         )}

@@ -1,94 +1,74 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
-import { useAppStore, t } from '@/store/useAppStore'
-import { useMemo, useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useAppStore } from '@/store/useAppStore'
+import { useState, useCallback } from 'react'
 
 // ---------------------------------------------------------------------------
-// Japanese character sets for the matrix rain
+// Types
 // ---------------------------------------------------------------------------
-const HIRAGANA = 'あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん'
-const KATAKANA = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン'
-const KANJI = '一二三四五六七八九十百千万円人日月火水木金土年時中大小上下左右前後東西南北口目手足'
-const ALL_CHARS = HIRAGANA + KATAKANA + KANJI
-
-function randomChars(count: number): string {
-  let result = ''
-  for (let i = 0; i < count; i++) {
-    result += ALL_CHARS[Math.floor(Math.random() * ALL_CHARS.length)]
-  }
-  return result
-}
-
-// Pre-generate column data so it doesn't change on re-render
-function generateColumns(count: number) {
-  return Array.from({ length: count }, (_, i) => ({
-    id: i,
-    chars: randomChars(12 + Math.floor(Math.random() * 8)),
-    left: `${(i / count) * 100}%`,
-    duration: 6 + Math.random() * 10,
-    delay: Math.random() * -16,
-    fontSize: 12 + Math.floor(Math.random() * 6),
-    opacity: 0.04 + Math.random() * 0.1,
-  }))
-}
+type Step = 1 | 2
+type Level = 'beginner' | 'basics' | 'intermediate' | 'advanced'
 
 // ---------------------------------------------------------------------------
-// Matrix Rain Background Component
+// Level pills data
 // ---------------------------------------------------------------------------
-function MatrixRain() {
-  const [mounted, setMounted] = useState(false)
-  const columns = useMemo(() => (mounted ? generateColumns(28) : []), [mounted])
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted) return null
-
-  return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-      {columns.map((col) => (
-        <div
-          key={col.id}
-          className="char-rain-column"
-          style={{
-            left: col.left,
-            ['--rain-duration' as string]: `${col.duration}s`,
-            ['--rain-delay' as string]: `${col.delay}s`,
-            ['--rain-font-size' as string]: `${col.fontSize}px`,
-            ['--rain-opacity' as string]: col.opacity,
-          }}
-        >
-          {col.chars.split('').map((char, ci) => (
-            <span key={ci}>{char}</span>
-          ))}
-        </div>
-      ))}
-    </div>
-  )
-}
+const LEVELS: { jp: string; en: string; value: Level }[] = [
+  { jp: '完全初心者', en: 'Beginner', value: 'beginner' },
+  { jp: '少し知ってる', en: 'Some Basics', value: 'basics' },
+  { jp: '日常会話', en: 'Intermediate', value: 'intermediate' },
+  { jp: 'ほぼペラペラ', en: 'Advanced', value: 'advanced' },
+]
 
 // ---------------------------------------------------------------------------
 // Animation variants
 // ---------------------------------------------------------------------------
-const containerVariants = {
+const staggerContainer = {
   hidden: {},
   visible: {
-    transition: {
-      staggerChildren: 0.15,
-      delayChildren: 0.3,
-    },
+    transition: { staggerChildren: 0.12, delayChildren: 0.2 },
+  },
+  exit: {
+    transition: { staggerChildren: 0.05, staggerDirection: -1 },
   },
 }
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 30 },
+const fadeUpItem = {
+  hidden: { opacity: 0, y: 40 },
   visible: {
     opacity: 1,
     y: 0,
     transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
+  },
+  exit: {
+    opacity: 0,
+    y: -30,
+    transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
+  },
+}
+
+const slideUpContainer = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.08, delayChildren: 0.15 },
+  },
+  exit: {
+    transition: { staggerChildren: 0.04, staggerDirection: -1 },
+  },
+}
+
+const slideUpItem = {
+  hidden: { opacity: 0, y: 50 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
+  },
+  exit: {
+    opacity: 0,
+    y: 30,
+    transition: { duration: 0.25 },
   },
 }
 
@@ -97,139 +77,282 @@ const itemVariants = {
 // ---------------------------------------------------------------------------
 export default function LandingPage() {
   const router = useRouter()
-  const { uiLanguage, setCorridor, setUiLanguage } = useAppStore()
-  const lang = uiLanguage
+  const { corridor, uiLanguage, setCorridor, setLevel, setUiLanguage } = useAppStore()
+  const [step, setStep] = useState<Step>(1)
+  const [selectedLevel, setSelectedLevel] = useState<Level | null>(null)
+
+  const handleCorridorPick = useCallback(
+    (c: 'en-to-jp' | 'jp-to-en') => {
+      setCorridor(c)
+      setStep(2)
+    },
+    [setCorridor],
+  )
+
+  const handleBack = useCallback(() => {
+    setCorridor('en-to-jp') // reset — store expects non-null, we treat step as source of truth
+    setStep(1)
+    setSelectedLevel(null)
+  }, [setCorridor])
+
+  const handleLevelPick = useCallback(
+    (level: Level) => {
+      setSelectedLevel(level)
+      setLevel(level)
+      const lessonId = corridor === 'jp-to-en' ? 'jp-en-1-1' : 'en-jp-1-1'
+      setTimeout(() => {
+        router.push(`/lesson/${lessonId}`)
+      }, 300)
+    },
+    [corridor, setLevel, router],
+  )
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-4 py-12">
-      {/* Matrix rain background */}
-      <MatrixRain />
+      {/* ---- Main content ---- */}
+      <div className="relative z-10 flex flex-col items-center text-center max-w-5xl w-full">
+        <AnimatePresence mode="wait">
+          {/* ============================================================= */}
+          {/* STEP 1 — Corridor selection                                    */}
+          {/* ============================================================= */}
+          {step === 1 && (
+            <motion.div
+              key="step1"
+              className="flex flex-col items-center w-full"
+              variants={staggerContainer}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+            >
+              {/* Logo */}
+              <motion.h1
+                variants={fadeUpItem}
+                className="font-display text-7xl sm:text-8xl md:text-9xl font-bold tracking-tight select-none"
+                style={{ color: '#1a1a2e' }}
+              >
+                Zlang
+              </motion.h1>
 
-      {/* Center content */}
-      <motion.div
-        className="relative z-10 flex flex-col items-center text-center max-w-4xl w-full"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        {/* Logo / Title */}
-        <motion.h1
-          variants={itemVariants}
-          className="font-display text-6xl sm:text-7xl md:text-8xl font-bold tracking-tight text-white text-glow select-none"
-        >
-          Zlang
-        </motion.h1>
+              {/* Tagline */}
+              <motion.p
+                variants={fadeUpItem}
+                className="mt-3 text-lg sm:text-xl text-foreground/50 font-body"
+              >
+                Choose your path
+              </motion.p>
 
-        {/* Tagline */}
-        <motion.p
-          variants={itemVariants}
-          className={`mt-4 text-lg sm:text-xl md:text-2xl text-white/70 max-w-md ${
-            lang === 'jp' ? 'font-jp' : 'font-body'
-          }`}
-        >
-          {lang === 'en'
-            ? 'Learn through what you love'
-            : '好きなコンテンツで学ぼう'}
-        </motion.p>
+              {/* Cards */}
+              <motion.div
+                variants={fadeUpItem}
+                className="mt-14 w-full flex flex-col sm:flex-row gap-6 sm:gap-8 justify-center"
+              >
+                {/* Card A — Learn Japanese */}
+                <motion.button
+                  onClick={() => handleCorridorPick('en-to-jp')}
+                  className="group relative flex-1 max-w-lg rounded-2xl p-8 text-left cursor-pointer overflow-hidden"
+                  style={{
+                    background: '#1B4F8A',
+                    minHeight: 280,
+                    color: '#ffffff',
+                  }}
+                  whileHover={{
+                    scale: 1.02,
+                    boxShadow: '0 0 50px rgba(27, 79, 138, 0.5), 0 20px 60px rgba(27, 79, 138, 0.3)',
+                  }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  {/* CSS decorative wave/circle pattern */}
+                  <div
+                    className="absolute inset-0 opacity-[0.08] pointer-events-none"
+                    style={{
+                      backgroundImage:
+                        'repeating-radial-gradient(circle at 30% 40%, transparent 0, transparent 20px, rgba(255,183,197,0.4) 20px, rgba(255,183,197,0.4) 21px, transparent 21px, transparent 60px), repeating-radial-gradient(circle at 70% 60%, transparent 0, transparent 30px, rgba(255,183,197,0.3) 30px, rgba(255,183,197,0.3) 31px, transparent 31px, transparent 80px)',
+                    }}
+                  />
+                  {/* Accent cherry blossom dot */}
+                  <div
+                    className="absolute top-6 right-6 w-3 h-3 rounded-full"
+                    style={{ background: '#FFB7C5', opacity: 0.6 }}
+                  />
+                  <div className="relative z-10">
+                    <span className="text-3xl sm:text-4xl">🇺🇸 → 🇯🇵</span>
+                    <h2 className="mt-5 font-display text-2xl sm:text-3xl font-bold">
+                      Learn Japanese
+                    </h2>
+                    <p className="mt-3 text-sm sm:text-base opacity-70 font-body leading-relaxed">
+                      Through anime, J-drama, and real street Japanese
+                    </p>
+                  </div>
+                  {/* Bottom accent bar */}
+                  <div
+                    className="absolute bottom-0 left-0 right-0 h-1 opacity-40"
+                    style={{ background: 'linear-gradient(to right, transparent, #FFB7C5, transparent)' }}
+                  />
+                </motion.button>
 
-        {/* Corridor cards */}
-        <motion.div
-          variants={itemVariants}
-          className="mt-12 w-full flex flex-col sm:flex-row gap-6 sm:gap-8 justify-center"
-        >
-          {/* Card A: EN -> JP */}
-          <motion.button
-            onClick={() => {
-              setCorridor('en-to-jp')
-              router.push('/setup')
-            }}
-            className="glass-card group relative flex-1 max-w-md p-6 sm:p-8 text-left cursor-pointer transition-all duration-300 border border-white/[0.08] hover:border-accent-jp/60"
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.98 }}
-            style={{
-              boxShadow: 'none',
-            }}
-            onMouseEnter={(e) => {
-              ;(e.currentTarget as HTMLElement).style.boxShadow =
-                '0 0 30px rgba(255, 107, 53, 0.25), inset 0 0 30px rgba(255, 107, 53, 0.05)'
-            }}
-            onMouseLeave={(e) => {
-              ;(e.currentTarget as HTMLElement).style.boxShadow = 'none'
-            }}
-          >
-            {/* Decorative gradient placeholder */}
-            <div className="w-full h-32 sm:h-40 rounded-xl mb-5 bg-gradient-to-br from-accent-jp/30 via-orange-600/20 to-amber-500/10 flex items-center justify-center">
-              <span className="text-5xl sm:text-6xl opacity-60">🏯</span>
-            </div>
-            <h2 className="font-display text-xl sm:text-2xl font-bold text-white">
-              {t('landing.corridorA.title', lang)}
-            </h2>
-            <p className="mt-2 text-sm sm:text-base text-white/50 font-body">
-              {t('landing.corridorA.subtitle', lang)}
-            </p>
-          </motion.button>
+                {/* Card B — Learn English */}
+                <motion.button
+                  onClick={() => handleCorridorPick('jp-to-en')}
+                  className="group relative flex-1 max-w-lg rounded-2xl p-8 text-left cursor-pointer overflow-hidden"
+                  style={{
+                    background: '#1A1A2E',
+                    minHeight: 280,
+                    color: '#ffffff',
+                  }}
+                  whileHover={{
+                    scale: 1.02,
+                    boxShadow: '0 0 50px rgba(0, 255, 178, 0.3), 0 20px 60px rgba(26, 26, 46, 0.5)',
+                  }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  {/* CSS decorative star/dot pattern */}
+                  <div
+                    className="absolute inset-0 opacity-[0.07] pointer-events-none"
+                    style={{
+                      backgroundImage:
+                        'radial-gradient(circle, rgba(0,255,178,0.5) 1px, transparent 1px), radial-gradient(circle, rgba(0,255,178,0.3) 1px, transparent 1px)',
+                      backgroundSize: '40px 40px, 20px 20px',
+                      backgroundPosition: '0 0, 10px 10px',
+                    }}
+                  />
+                  {/* Accent mint dot */}
+                  <div
+                    className="absolute top-6 right-6 w-3 h-3 rounded-full"
+                    style={{ background: '#00FFB2', opacity: 0.6 }}
+                  />
+                  <div className="relative z-10">
+                    <span className="text-3xl sm:text-4xl">🇯🇵 → 🇺🇸</span>
+                    <h2 className="mt-5 font-display text-2xl sm:text-3xl font-bold font-jp">
+                      英語を学ぶ
+                    </h2>
+                    <p className="mt-3 text-sm sm:text-base opacity-70 font-body leading-relaxed">
+                      Through TikTok, NBA, and internet culture
+                    </p>
+                  </div>
+                  {/* Bottom accent bar */}
+                  <div
+                    className="absolute bottom-0 left-0 right-0 h-1 opacity-40"
+                    style={{ background: 'linear-gradient(to right, transparent, #00FFB2, transparent)' }}
+                  />
+                </motion.button>
+              </motion.div>
+            </motion.div>
+          )}
 
-          {/* Card B: JP -> EN */}
-          <motion.button
-            onClick={() => {
-              setCorridor('jp-to-en')
-              router.push('/setup')
-            }}
-            className="glass-card group relative flex-1 max-w-md p-6 sm:p-8 text-left cursor-pointer transition-all duration-300 border border-white/[0.08] hover:border-accent-en/60"
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.98 }}
-            style={{
-              boxShadow: 'none',
-            }}
-            onMouseEnter={(e) => {
-              ;(e.currentTarget as HTMLElement).style.boxShadow =
-                '0 0 30px rgba(59, 130, 246, 0.25), inset 0 0 30px rgba(59, 130, 246, 0.05)'
-            }}
-            onMouseLeave={(e) => {
-              ;(e.currentTarget as HTMLElement).style.boxShadow = 'none'
-            }}
-          >
-            <div className="w-full h-32 sm:h-40 rounded-xl mb-5 bg-gradient-to-br from-accent-en/30 via-blue-600/20 to-cyan-500/10 flex items-center justify-center">
-              <span className="text-5xl sm:text-6xl opacity-60">🗽</span>
-            </div>
-            <h2 className="font-display text-xl sm:text-2xl font-bold text-white font-jp">
-              {t('landing.corridorB.title', lang)}
-            </h2>
-            <p className="mt-2 text-sm sm:text-base text-white/50 font-body">
-              {t('landing.corridorB.subtitle', lang)}
-            </p>
-          </motion.button>
-        </motion.div>
+          {/* ============================================================= */}
+          {/* STEP 2 — Level selector                                        */}
+          {/* ============================================================= */}
+          {step === 2 && (
+            <motion.div
+              key="step2"
+              className="flex flex-col items-center w-full"
+              variants={slideUpContainer}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+            >
+              {/* Logo (smaller) */}
+              <motion.h1
+                variants={slideUpItem}
+                className="font-display text-5xl sm:text-6xl font-bold tracking-tight select-none"
+                style={{ color: '#1a1a2e' }}
+              >
+                Zlang
+              </motion.h1>
 
-        {/* Language toggle */}
-        <motion.div
-          variants={itemVariants}
-          className="mt-14 flex items-center gap-3 text-sm text-white/40 font-body"
-        >
-          <span>{t('landing.appLanguage', lang)}</span>
+              {/* Subtitle */}
+              <motion.p
+                variants={slideUpItem}
+                className="mt-3 text-base sm:text-lg text-foreground/50 font-body"
+              >
+                {corridor === 'en-to-jp' ? 'Learning Japanese' : '英語を学ぶ'} — How much do you know?
+              </motion.p>
+
+              {/* Back link */}
+              <motion.button
+                variants={slideUpItem}
+                onClick={handleBack}
+                className="mt-4 text-sm text-foreground/40 hover:text-foreground/70 transition-colors font-body underline underline-offset-4 decoration-foreground/20 hover:decoration-foreground/40"
+              >
+                Change language
+              </motion.button>
+
+              {/* Level pills */}
+              <motion.div
+                variants={slideUpContainer}
+                initial="hidden"
+                animate="visible"
+                className="mt-12 flex flex-wrap justify-center gap-4"
+              >
+                {LEVELS.map((lvl) => {
+                  const isSelected = selectedLevel === lvl.value
+                  return (
+                    <motion.button
+                      key={lvl.value}
+                      variants={slideUpItem}
+                      onClick={() => handleLevelPick(lvl.value)}
+                      className="relative rounded-xl px-6 py-4 text-center cursor-pointer transition-all duration-200 min-w-[150px]"
+                      style={{
+                        background: isSelected ? '#1B4F8A' : 'transparent',
+                        color: isSelected ? '#ffffff' : '#1a1a2e',
+                        border: isSelected
+                          ? '1.5px solid #1B4F8A'
+                          : '1.5px solid rgba(26, 26, 46, 0.2)',
+                      }}
+                      whileHover={{
+                        scale: 1.04,
+                        borderColor: 'rgba(27, 79, 138, 0.5)',
+                        boxShadow: '0 4px 20px rgba(27, 79, 138, 0.15)',
+                      }}
+                      whileTap={{ scale: 0.97 }}
+                    >
+                      <span className="block font-jp text-base font-medium leading-snug">
+                        {lvl.jp}
+                      </span>
+                      <span
+                        className="block text-xs mt-1 font-body"
+                        style={{ opacity: isSelected ? 0.8 : 0.5 }}
+                      >
+                        {lvl.en}
+                      </span>
+                    </motion.button>
+                  )
+                })}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* ---- Bottom language toggle (always visible) ---- */}
+      <div className="absolute bottom-6 left-0 right-0 flex justify-center z-10">
+        <div className="flex items-center gap-3 text-sm text-foreground/35 font-body">
+          <span>App language:</span>
           <button
             onClick={() => setUiLanguage('en')}
             className={`px-3 py-1 rounded-full transition-all duration-200 ${
-              lang === 'en'
-                ? 'bg-accent/15 text-accent border border-accent/30'
-                : 'text-white/50 hover:text-white/80'
+              uiLanguage === 'en'
+                ? 'bg-[#1B4F8A]/10 text-[#1B4F8A] border border-[#1B4F8A]/30'
+                : 'text-foreground/40 hover:text-foreground/70'
             }`}
           >
             English
           </button>
-          <span className="text-white/20">|</span>
+          <span className="text-foreground/15">|</span>
           <button
             onClick={() => setUiLanguage('jp')}
             className={`px-3 py-1 rounded-full font-jp transition-all duration-200 ${
-              lang === 'jp'
-                ? 'bg-accent/15 text-accent border border-accent/30'
-                : 'text-white/50 hover:text-white/80'
+              uiLanguage === 'jp'
+                ? 'bg-[#1B4F8A]/10 text-[#1B4F8A] border border-[#1B4F8A]/30'
+                : 'text-foreground/40 hover:text-foreground/70'
             }`}
           >
             日本語
           </button>
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
     </div>
   )
 }

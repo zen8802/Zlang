@@ -60,7 +60,7 @@ export default function StreakCard() {
           >
             {displayCount}
           </motion.span>
-          <p className="text-sm text-white/60 mt-0.5">
+          <p className="text-sm text-foreground/60 mt-0.5">
             {t('dashboard.dayStreak', uiLanguage)}
           </p>
         </div>
@@ -72,7 +72,7 @@ export default function StreakCard() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="text-sm text-white/50 mb-4 italic"
+          className="text-sm text-foreground/50 mb-4 italic"
         >
           {t('dashboard.encouragement', uiLanguage)}
         </motion.p>
@@ -81,7 +81,7 @@ export default function StreakCard() {
       {/* XP progress for today */}
       <div className="mt-2">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-white/70">
+          <span className="text-sm text-foreground/70">
             {t('dashboard.todayXP', uiLanguage)}
           </span>
           <span className="text-sm font-medium text-accent">
@@ -90,19 +90,19 @@ export default function StreakCard() {
         </div>
 
         {/* Progress bar */}
-        <div className="h-2.5 bg-white/5 rounded-full overflow-hidden">
+        <div className="h-2.5 bg-black/[0.03] rounded-full overflow-hidden">
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${xpProgress * 100}%` }}
             transition={{ duration: 1, ease: 'easeOut', delay: 0.3 }}
             className="h-full rounded-full bg-gradient-to-r from-accent/80 to-accent"
             style={{
-              boxShadow: '0 0 12px rgba(0, 255, 178, 0.4)',
+              boxShadow: '0 0 12px rgba(27, 79, 138, 0.4)',
             }}
           />
         </div>
 
-        <p className="text-xs text-white/40 mt-1.5">
+        <p className="text-xs text-foreground/40 mt-1.5">
           {t('dashboard.xpGoalSubtitle', uiLanguage)}
         </p>
       </div>

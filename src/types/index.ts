@@ -4,34 +4,6 @@ export type Language = 'en' | 'jp'
 export type Level = 'beginner' | 'basics' | 'intermediate' | 'advanced'
 export type ContentCategory = string
 
-// Interests for EN→JP
-export const EN_TO_JP_INTERESTS = [
-  { id: 'anime', label: 'Anime', labelJP: 'アニメ', emoji: '🎌' },
-  { id: 'manga', label: 'Manga', labelJP: 'マンガ', emoji: '📖' },
-  { id: 'jpop', label: 'J-Pop', labelJP: 'J-Pop', emoji: '🎵' },
-  { id: 'ghibli', label: 'Studio Ghibli', labelJP: 'スタジオジブリ', emoji: '🌿' },
-  { id: 'gaming', label: 'Gaming', labelJP: 'ゲーム', emoji: '🎮' },
-  { id: 'food', label: 'Japanese Food Culture', labelJP: '日本の食文化', emoji: '🍜' },
-  { id: 'travel', label: 'Travel/Daily Life', labelJP: '旅行/日常生活', emoji: '✈️' },
-  { id: 'jdrama', label: 'J-Drama', labelJP: 'Jドラマ', emoji: '📺' },
-  { id: 'martial-arts', label: 'Martial Arts', labelJP: '武道', emoji: '⚔️' },
-  { id: 'nature', label: 'Nature/Zen', labelJP: '自然/禅', emoji: '🌸' },
-] as const
-
-// Interests for JP→EN
-export const JP_TO_EN_INTERESTS = [
-  { id: 'nba', label: 'NBA/Sports', labelJP: 'NBA/スポーツ', emoji: '🏀' },
-  { id: 'tiktok', label: 'TikTok Culture', labelJP: 'TikTok文化', emoji: '📱' },
-  { id: 'hiphop', label: 'Hip-Hop', labelJP: 'ヒップホップ', emoji: '🎤' },
-  { id: 'hollywood', label: 'Hollywood Movies', labelJP: 'ハリウッド映画', emoji: '🎬' },
-  { id: 'youtube', label: 'YouTube Creators', labelJP: 'YouTubeクリエイター', emoji: '▶️' },
-  { id: 'memes', label: 'Memes/Internet', labelJP: 'ミーム/インターネット', emoji: '💻' },
-  { id: 'comedy', label: 'Stand-up Comedy', labelJP: 'スタンドアップコメディ', emoji: '😂' },
-  { id: 'fashion', label: 'Street Fashion', labelJP: 'ストリートファッション', emoji: '👟' },
-  { id: 'gaming', label: 'Gaming', labelJP: 'ゲーム', emoji: '🎮' },
-  { id: 'american-life', label: 'American Daily Life', labelJP: 'アメリカの日常生活', emoji: '🇺🇸' },
-] as const
-
 export interface VocabItem {
   id: string
   word: string
@@ -59,6 +31,8 @@ export interface ClipData {
   grammarPoints: string[]
   vocab: VocabItem[]
   culturalNotes: string
+  searchQuery?: string
+  channelId?: string
 }
 
 export interface LessonData {
@@ -85,11 +59,7 @@ export type SkillCategory = 'pronunciation' | 'vocabulary' | 'grammar' | 'cultur
 export interface UserProfile {
   corridor: Corridor
   uiLanguage: Language
-  interests: string[]
   level: Level
-  goal: string
-  dailyMinutes: number
-  setupComplete: boolean
 }
 
 export interface ProgressData {

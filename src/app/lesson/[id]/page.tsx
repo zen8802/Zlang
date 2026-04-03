@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAppStore } from '@/store/useAppStore'
@@ -11,6 +11,7 @@ import ShadowingPhase from '@/components/lesson/ShadowingPhase'
 import ResponsePhase from '@/components/lesson/ResponsePhase'
 import CulturalDivePhase from '@/components/lesson/CulturalDivePhase'
 import VocabLockPhase from '@/components/lesson/VocabLockPhase'
+import GuestLessonGate from '@/components/GuestLessonGate'
 
 type Phase = 1 | 2 | 3 | 4 | 5 | 6
 
@@ -33,19 +34,9 @@ export default function LessonPage() {
   const [responseGrade, setResponseGrade] = useState('')
   const [direction, setDirection] = useState(1) // 1 = forward, -1 = back
 
-  const { setupComplete, uiLanguage } = useAppStore((s) => ({
-    setupComplete: s.setupComplete,
-    uiLanguage: s.uiLanguage,
-  }))
+  const uiLanguage = useAppStore((s) => s.uiLanguage)
 
   const lesson = getLessonById(lessonId)
-
-  // Redirect if not set up
-  useEffect(() => {
-    if (!setupComplete) {
-      router.push('/setup')
-    }
-  }, [setupComplete, router])
 
   // Advance to next phase
   const advancePhase = useCallback(() => {
@@ -91,8 +82,8 @@ export default function LessonPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <p className="text-6xl font-display font-bold text-white/20">404</p>
-          <p className="text-white/50">Lesson not found</p>
+          <p className="text-6xl font-display font-bold text-foreground/20">404</p>
+          <p className="text-foreground/50">Lesson not found</p>
           <button
             onClick={() => router.push('/dashboard')}
             className="text-accent hover:text-accent/80 underline text-sm transition-colors"
@@ -122,9 +113,10 @@ export default function LessonPage() {
 
   return (
     <div className="min-h-screen bg-background relative">
+      <GuestLessonGate lessonId={lessonId} />
       {/* Top bar */}
       <motion.header
-        className="sticky top-0 z-40 bg-background/80 backdrop-blur-lg border-b border-white/5"
+        className="sticky top-0 z-40 bg-background/80 backdrop-blur-lg border-b border-black/5"
         initial={{ y: -60 }}
         animate={{ y: 0 }}
         transition={{ type: 'spring', stiffness: 200, damping: 25 }}
@@ -133,7 +125,7 @@ export default function LessonPage() {
           {/* Back button */}
           <button
             onClick={handleBack}
-            className="text-white/40 hover:text-white/70 transition-colors p-1"
+            className="text-foreground/40 hover:text-foreground/70 transition-colors p-1"
             aria-label="Go back"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -149,10 +141,10 @@ export default function LessonPage() {
 
           {/* Lesson title */}
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-white/30 truncate">
+            <p className="text-xs text-foreground/30 truncate">
               Unit {lesson.unit}: {uiLanguage === 'jp' ? lesson.unitTitleJP : lesson.unitTitle}
             </p>
-            <h1 className="text-sm font-semibold text-white truncate">
+            <h1 className="text-sm font-semibold text-foreground truncate">
               {uiLanguage === 'jp' ? lesson.titleJP : lesson.title}
             </h1>
           </div>
@@ -169,10 +161,10 @@ export default function LessonPage() {
                   <motion.div
                     className={`w-2.5 h-2.5 rounded-full transition-all ${
                       isActive
-                        ? 'bg-accent shadow-[0_0_8px_rgba(0,255,178,0.5)]'
+                        ? 'bg-accent shadow-[0_0_8px_rgba(27,79,138,0.5)]'
                         : isCompleted
                           ? 'bg-accent/40'
-                          : 'bg-white/10'
+                          : 'bg-black/[0.05]'
                     }`}
                     animate={isActive ? { scale: [1, 1.3, 1] } : {}}
                     transition={isActive ? { duration: 1.5, repeat: Infinity } : {}}
@@ -180,14 +172,14 @@ export default function LessonPage() {
                 </div>
               )
             })}
-            <span className="text-[10px] text-white/30 ml-2 tabular-nums">
+            <span className="text-[10px] text-foreground/30 ml-2 tabular-nums">
               {currentPhase}/6
             </span>
           </div>
         </div>
 
         {/* Progress bar */}
-        <div className="h-0.5 bg-white/5">
+        <div className="h-0.5 bg-black/[0.03]">
           <motion.div
             className="h-full bg-accent"
             initial={{ width: 0 }}
@@ -268,10 +260,10 @@ export default function LessonPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
       >
-        <div className="glass-card px-4 py-2 text-xs text-white/30 flex items-center gap-2">
+        <div className="glass-card px-4 py-2 text-xs text-foreground/30 flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-accent" />
           Phase {currentPhase}: {PHASE_LABELS[currentPhase - 1]}
-          <span className="text-white/15 ml-1">
+          <span className="text-foreground/15 ml-1">
             ~ {lesson.estimatedMinutes} min total
           </span>
         </div>

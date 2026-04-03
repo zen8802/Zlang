@@ -88,7 +88,7 @@ export default function LoadingHaiku({ className = '' }: { className?: string })
           cx="60"
           cy="60"
           r="50"
-          stroke="rgba(0, 255, 178, 0.3)"
+          stroke="rgba(27, 79, 138, 0.3)"
           strokeWidth="2"
           fill="none"
           strokeDasharray="314"
@@ -99,7 +99,7 @@ export default function LoadingHaiku({ className = '' }: { className?: string })
         {/* Brush stroke 1 - horizontal */}
         <motion.path
           d="M 30 55 Q 45 50 60 55 Q 75 60 90 55"
-          stroke="#00FFB2"
+          stroke="#1B4F8A"
           strokeWidth="3"
           strokeLinecap="round"
           fill="none"
@@ -115,7 +115,7 @@ export default function LoadingHaiku({ className = '' }: { className?: string })
         {/* Brush stroke 2 - diagonal */}
         <motion.path
           d="M 35 40 Q 50 55 65 50 Q 80 45 85 65"
-          stroke="#00FFB2"
+          stroke="#1B4F8A"
           strokeWidth="2.5"
           strokeLinecap="round"
           fill="none"
@@ -132,7 +132,7 @@ export default function LoadingHaiku({ className = '' }: { className?: string })
         {/* Brush stroke 3 - vertical */}
         <motion.path
           d="M 55 30 Q 58 45 60 60 Q 62 75 58 90"
-          stroke="#00FFB2"
+          stroke="#1B4F8A"
           strokeWidth="2"
           strokeLinecap="round"
           fill="none"
@@ -151,7 +151,7 @@ export default function LoadingHaiku({ className = '' }: { className?: string })
           cx="60"
           cy="60"
           r="3"
-          fill="#00FFB2"
+          fill="#1B4F8A"
           initial={{ scale: 0 }}
           animate={{ scale: [0, 1.2, 1, 1.2, 0] }}
           transition={{
@@ -184,13 +184,13 @@ export default function LoadingHaiku({ className = '' }: { className?: string })
           {/* English translation */}
           {phase === 'en' && (
             <motion.p
-              className="text-sm text-white/40 italic max-w-xs mx-auto"
+              className="text-sm text-foreground/40 italic max-w-xs mx-auto"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
             >
               {displayedEN}
               <motion.span
-                className="inline-block w-0.5 h-3 bg-white/30 ml-0.5 align-middle"
+                className="inline-block w-0.5 h-3 bg-black/20 ml-0.5 align-middle"
                 animate={{ opacity: [1, 0] }}
                 transition={{ duration: 0.5, repeat: Infinity }}
               />
@@ -199,7 +199,7 @@ export default function LoadingHaiku({ className = '' }: { className?: string })
 
           {/* Attribution */}
           <motion.p
-            className="text-xs text-white/20 mt-3"
+            className="text-xs text-foreground/20 mt-3"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 2 }}
@@ -211,7 +211,7 @@ export default function LoadingHaiku({ className = '' }: { className?: string })
 
       {/* Loading text */}
       <motion.p
-        className="text-sm text-white/30 mt-8 tracking-widest uppercase"
+        className="text-sm text-foreground/30 mt-8 tracking-widest uppercase"
         animate={{ opacity: [0.3, 0.7, 0.3] }}
         transition={{ duration: 2, repeat: Infinity }}
       >

@@ -14,8 +14,6 @@ const MODEL = 'claude-sonnet-4-20250514'
 function buildSystemPrompt(params: Record<string, unknown>): string {
   const corridor = (params.corridor as string) || 'en-to-jp'
   const level = (params.level as string) || 'beginner'
-  const interests = (params.interests as string[]) || []
-  const goal = (params.goal as string) || ''
   const isEnToJp = corridor === 'en-to-jp'
   const nativeLang = isEnToJp ? 'English' : 'Japanese'
   const targetLang = isEnToJp ? 'Japanese' : 'English'
@@ -25,8 +23,6 @@ function buildSystemPrompt(params: Record<string, unknown>): string {
 Student profile:
 - Corridor: ${corridor} (learning ${targetLang} from ${nativeLang})
 - Level: ${level}
-- Interests: ${interests.length ? interests.join(', ') : 'general'}
-- Goal: ${goal || 'become conversational'}
 
 Core teaching principles:
 1. ALWAYS adapt complexity to the student's level (${level}).
@@ -34,15 +30,13 @@ Core teaching principles:
    - basics: common patterns, some compound sentences, less hand-holding
    - intermediate: natural speech patterns, nuance, slang, minimal translation help
    - advanced: near-native complexity, idioms, cultural subtlety, minimal English/Japanese scaffolding
-2. Use the student's interests (${interests.join(', ') || 'general topics'}) to create relatable examples.
-3. Emphasize REAL, natural language — how people actually speak, not textbook stiffness.
-4. Language is culture. Always weave in cultural context.
-5. Be encouraging but honest. Praise specifics, note concrete improvements.
-6. For en-to-jp: explain Japanese in English, include romaji AND kana/kanji.
-7. For jp-to-en: explain English with Japanese scaffolding, include natural English examples.
-8. Be concise. Students learn by doing, not reading essays.
-9. Have personality — you're a cool, knowledgeable tutor, not a textbook.
-10. Reference the student's goal ("${goal || 'become conversational'}") for motivation.`
+2. Emphasize REAL, natural language — how people actually speak, not textbook stiffness.
+3. Language is culture. Always weave in cultural context.
+4. Be encouraging but honest. Praise specifics, note concrete improvements.
+5. For en-to-jp: explain Japanese in English, include romaji AND kana/kanji.
+6. For jp-to-en: explain English with Japanese scaffolding, include natural English examples.
+7. Be concise. Students learn by doing, not reading essays.
+8. Have personality — you're a cool, knowledgeable tutor, not a textbook.`
 }
 
 // ---------------------------------------------------------------------------

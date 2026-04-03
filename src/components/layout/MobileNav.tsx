@@ -65,7 +65,7 @@ export default function MobileNav() {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/[0.03] backdrop-blur-xl border-t border-white/[0.06] pb-[env(safe-area-inset-bottom)]"
+      className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-black/[0.03] backdrop-blur-xl border-t border-black/[0.06] pb-[env(safe-area-inset-bottom)]"
       role="navigation"
       aria-label="Mobile navigation"
     >
@@ -79,7 +79,7 @@ export default function MobileNav() {
               className={[
                 'relative flex flex-col items-center justify-center gap-0.5 w-full h-full text-[10px] font-medium transition-colors',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-inset rounded-lg',
-                isActive ? 'text-accent' : 'text-white/40 active:text-white/60',
+                isActive ? 'text-accent' : 'text-foreground/40 active:text-foreground/60',
               ].join(' ')}
               aria-current={isActive ? 'page' : undefined}
             >
@@ -87,7 +87,7 @@ export default function MobileNav() {
               {isActive && (
                 <motion.span
                   layoutId="mobile-nav-indicator"
-                  className="absolute -top-px left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-accent shadow-[0_0_8px_rgba(0,255,178,0.6)]"
+                  className="absolute -top-px left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-accent shadow-[0_0_8px_rgba(27,79,138,0.6)]"
                   transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 />
               )}

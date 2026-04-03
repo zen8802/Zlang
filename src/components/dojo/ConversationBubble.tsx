@@ -30,7 +30,7 @@ export default function ConversationBubble({
     >
       {/* Avatar */}
       {!isUser && (
-        <div className="shrink-0 w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-lg border border-white/10">
+        <div className="shrink-0 w-9 h-9 rounded-full bg-black/[0.05] flex items-center justify-center text-lg border border-black/10">
           {avatar || '🤖'}
         </div>
       )}
@@ -39,7 +39,7 @@ export default function ConversationBubble({
       <div className={`max-w-[80%] space-y-1.5 ${isUser ? 'items-end' : 'items-start'}`}>
         {/* Name label */}
         {!isUser && name && (
-          <p className="text-xs text-white/40 font-medium px-1">{name}</p>
+          <p className="text-xs text-foreground/40 font-medium px-1">{name}</p>
         )}
 
         {/* Message bubble */}
@@ -47,8 +47,8 @@ export default function ConversationBubble({
           className={[
             'rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
             isUser
-              ? 'bg-accent/15 border border-accent/30 text-white ml-auto'
-              : 'glass-card text-white/90',
+              ? 'bg-accent/15 border border-accent/30 text-foreground ml-auto'
+              : 'glass-card text-foreground/90',
             isStreaming ? 'animate-pulse' : '',
           ]
             .filter(Boolean)
@@ -63,9 +63,9 @@ export default function ConversationBubble({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.05] ml-1"
+            className="px-3 py-2 rounded-lg bg-black/[0.03] border border-black/[0.05] ml-1"
           >
-            <p className="text-xs text-white/40 italic leading-relaxed">
+            <p className="text-xs text-foreground/40 italic leading-relaxed">
               <span className="text-accent/60 not-italic mr-1">Coach:</span>
               {coachNote}
             </p>

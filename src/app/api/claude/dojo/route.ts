@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 
-// UserProfile shape: { nativeLanguage, targetLanguage, level, interests, goal }
+// UserProfile shape: { nativeLanguage, targetLanguage, level }
 
 export async function POST(request: Request) {
   if (!process.env.ANTHROPIC_API_KEY) {

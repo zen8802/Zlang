@@ -19,13 +19,13 @@ interface ButtonProps {
 
 const variantStyles: Record<string, string> = {
   primary:
-    'bg-accent text-background font-semibold shadow-[0_0_20px_rgba(0,255,178,0.25)] hover:shadow-[0_0_30px_rgba(0,255,178,0.4)]',
+    'bg-accent text-background font-semibold shadow-[0_0_20px_rgba(27,79,138,0.25)] hover:shadow-[0_0_30px_rgba(27,79,138,0.4)]',
   secondary:
-    'bg-white/5 backdrop-blur-glass border border-white/10 text-foreground hover:bg-white/10 hover:border-white/20',
+    'bg-black/[0.03] backdrop-blur-glass border border-black/10 text-foreground hover:bg-black/[0.05] hover:border-black/20',
   ghost:
-    'bg-transparent text-foreground hover:bg-white/5',
+    'bg-transparent text-foreground hover:bg-black/[0.03]',
   danger:
-    'bg-red-500/80 text-white font-semibold shadow-[0_0_20px_rgba(239,68,68,0.25)] hover:bg-red-500 hover:shadow-[0_0_30px_rgba(239,68,68,0.4)]',
+    'bg-red-500/80 text-foreground font-semibold shadow-[0_0_20px_rgba(239,68,68,0.25)] hover:bg-red-500 hover:shadow-[0_0_30px_rgba(239,68,68,0.4)]',
 }
 
 const sizeStyles: Record<string, string> = {

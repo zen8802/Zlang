@@ -41,12 +41,8 @@ export default function DecodePhase({
   const [decodeData, setDecodeData] = useState<DecodeData | null>(null)
 
   const { content, isLoading, fetchStream } = useStreamingFetch()
-  const { corridor, level, interests, goal } = useAppStore((s) => ({
-    corridor: s.corridor,
-    level: s.level,
-    interests: s.interests,
-    goal: s.goal,
-  }))
+  const corridor = useAppStore((s) => s.corridor)
+  const level = useAppStore((s) => s.level)
 
   const clip = getClipById(clipId)
   const lesson = getLessonById(lessonId)
@@ -93,14 +89,12 @@ export default function DecodePhase({
       action: 'decode',
       corridor,
       level,
-      interests,
-      goal,
       clipTitle: clip?.title || '',
       transcript: clip?.transcript || '',
       translation: clip?.translation || '',
       grammarPoints: lesson?.grammarFocus || [],
     })
-  }, [fetchStream, corridor, level, interests, goal, clip, lesson, lessonId])
+  }, [fetchStream, corridor, level, clip, lesson, lessonId])
 
   const levelBadgeColor = (lvl: string) => {
     const lower = lvl.toLowerCase()
@@ -109,7 +103,7 @@ export default function DecodePhase({
     if (lower.includes('n3') || lower.includes('b1')) return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
     if (lower.includes('n2') || lower.includes('b2')) return 'bg-orange-500/20 text-orange-400 border-orange-500/30'
     if (lower.includes('n1') || lower.includes('c')) return 'bg-red-500/20 text-red-400 border-red-500/30'
-    return 'bg-white/10 text-white/60 border-white/20'
+    return 'bg-black/[0.05] text-foreground/60 border-black/20'
   }
 
   return (
@@ -121,8 +115,8 @@ export default function DecodePhase({
         animate={{ opacity: 1, y: 0 }}
       >
         <p className="text-xs text-accent uppercase tracking-[0.2em] mb-1">Phase 2</p>
-        <h2 className="text-2xl font-display font-bold text-white">Decode</h2>
-        <p className="text-sm text-white/40 mt-1">
+        <h2 className="text-2xl font-display font-bold text-foreground">Decode</h2>
+        <p className="text-sm text-foreground/40 mt-1">
           Now let&apos;s break down what you heard, piece by piece.
         </p>
       </motion.div>
@@ -162,7 +156,7 @@ export default function DecodePhase({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 0.5 }}
               >
-                <p className="text-xs text-white/30 font-mono truncate">{content.slice(0, 200)}...</p>
+                <p className="text-xs text-foreground/30 font-mono truncate">{content.slice(0, 200)}...</p>
               </motion.div>
             )}
           </motion.div>
@@ -184,7 +178,7 @@ export default function DecodePhase({
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
               >
-                <p className="text-white/70 text-sm leading-relaxed">
+                <p className="text-foreground/70 text-sm leading-relaxed">
                   {decodeData.summary}
                 </p>
               </motion.div>
@@ -203,7 +197,7 @@ export default function DecodePhase({
                   padding="lg"
                   header={
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-white/40 uppercase tracking-wider">
+                      <span className="text-xs text-foreground/40 uppercase tracking-wider">
                         Element {i + 1}
                       </span>
                       <span
@@ -224,28 +218,28 @@ export default function DecodePhase({
 
                     {/* Translations */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="bg-white/5 rounded-xl p-3">
-                        <p className="text-[10px] text-white/30 uppercase tracking-wider mb-1">Literal</p>
-                        <p className="text-sm text-white/70">{element.literalTranslation}</p>
+                      <div className="bg-black/[0.03] rounded-xl p-3">
+                        <p className="text-[10px] text-foreground/30 uppercase tracking-wider mb-1">Literal</p>
+                        <p className="text-sm text-foreground/70">{element.literalTranslation}</p>
                       </div>
-                      <div className="bg-white/5 rounded-xl p-3">
-                        <p className="text-[10px] text-white/30 uppercase tracking-wider mb-1">Natural</p>
-                        <p className="text-sm text-white/70">{element.naturalTranslation}</p>
+                      <div className="bg-black/[0.03] rounded-xl p-3">
+                        <p className="text-[10px] text-foreground/30 uppercase tracking-wider mb-1">Natural</p>
+                        <p className="text-sm text-foreground/70">{element.naturalTranslation}</p>
                       </div>
                     </div>
 
                     {/* Grammar explanation */}
-                    <div className="border-t border-white/8 pt-3">
+                    <div className="border-t border-black/8 pt-3">
                       <p className="text-[10px] text-accent/60 uppercase tracking-wider mb-1.5">Grammar</p>
-                      <p className="text-sm text-white/60 leading-relaxed">
+                      <p className="text-sm text-foreground/60 leading-relaxed">
                         {element.grammarExplanation}
                       </p>
                     </div>
 
                     {/* Cultural context */}
-                    <div className="border-t border-white/8 pt-3">
+                    <div className="border-t border-black/8 pt-3">
                       <p className="text-[10px] text-accent-jp/60 uppercase tracking-wider mb-1.5">Cultural Context</p>
-                      <p className="text-sm text-white/50 leading-relaxed italic">
+                      <p className="text-sm text-foreground/50 leading-relaxed italic">
                         {element.culturalContext}
                       </p>
                     </div>
@@ -261,7 +255,7 @@ export default function DecodePhase({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
               >
-                <div className="text-white/70 text-sm whitespace-pre-wrap leading-relaxed">
+                <div className="text-foreground/70 text-sm whitespace-pre-wrap leading-relaxed">
                   {content}
                 </div>
               </motion.div>

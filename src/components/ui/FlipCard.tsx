@@ -88,7 +88,7 @@ export default function FlipCard({
           style={{ backfaceVisibility: 'hidden' }}
         >
           {reading && (
-            <span className="text-sm text-white/50 font-jp mb-1 tracking-wider">
+            <span className="text-sm text-foreground/50 font-jp mb-1 tracking-wider">
               {reading}
             </span>
           )}
@@ -97,7 +97,7 @@ export default function FlipCard({
           >
             {word}
           </span>
-          <span className="mt-6 text-xs text-white/30 uppercase tracking-widest">
+          <span className="mt-6 text-xs text-foreground/30 uppercase tracking-widest">
             Tap to reveal
           </span>
         </div>
@@ -118,7 +118,7 @@ export default function FlipCard({
           )}
 
           {exampleTranslation && (
-            <p className="text-sm text-white/50 mb-4">{exampleTranslation}</p>
+            <p className="text-sm text-foreground/50 mb-4">{exampleTranslation}</p>
           )}
 
           {/* Confidence rating buttons */}
@@ -146,7 +146,7 @@ export default function FlipCard({
           )}
 
           {!onRate && (
-            <span className="mt-4 text-xs text-white/30 uppercase tracking-widest">
+            <span className="mt-4 text-xs text-foreground/30 uppercase tracking-widest">
               Tap to flip back
             </span>
           )}

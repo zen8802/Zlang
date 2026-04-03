@@ -24,7 +24,7 @@ const fillColors: Record<ProgressColor, string> = {
 }
 
 const glowColors: Record<ProgressColor, string> = {
-  accent: 'shadow-[0_0_12px_rgba(0,255,178,0.5)]',
+  accent: 'shadow-[0_0_12px_rgba(27,79,138,0.5)]',
   jp: 'shadow-[0_0_12px_rgba(255,107,53,0.5)]',
   en: 'shadow-[0_0_12px_rgba(59,130,246,0.5)]',
 }
@@ -46,10 +46,10 @@ export default function ProgressBar({
       {(label || showPercentage) && (
         <div className="flex items-center justify-between mb-1.5">
           {label && (
-            <span className="text-sm text-white/70 font-medium">{label}</span>
+            <span className="text-sm text-foreground/70 font-medium">{label}</span>
           )}
           {showPercentage && (
-            <span className="text-sm text-white/50 tabular-nums">
+            <span className="text-sm text-foreground/50 tabular-nums">
               {Math.round(clampedValue)}%
             </span>
           )}
@@ -58,7 +58,7 @@ export default function ProgressBar({
 
       {/* Track */}
       <div
-        className={`w-full rounded-full bg-white/10 overflow-hidden ${height}`}
+        className={`w-full rounded-full bg-black/[0.05] overflow-hidden ${height}`}
         role="progressbar"
         aria-valuenow={Math.round(clampedValue)}
         aria-valuemin={0}

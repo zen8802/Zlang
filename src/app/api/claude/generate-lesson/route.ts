@@ -4,8 +4,6 @@ interface UserProfile {
   nativeLanguage: 'english' | 'japanese'
   targetLanguage: 'english' | 'japanese'
   level: 'beginner' | 'intermediate' | 'advanced'
-  interests: string[]
-  goal: string
 }
 
 function buildSystemPrompt(profile: UserProfile): string {
@@ -15,8 +13,6 @@ User profile:
 - Native language: ${profile.nativeLanguage}
 - Learning: ${profile.targetLanguage}
 - Level: ${profile.level}
-- Interests: ${profile.interests.join(', ')}
-- Goal: ${profile.goal}
 
 Core teaching philosophy:
 1. Culture and language are inseparable. Always ground explanations in cultural context.
@@ -53,7 +49,6 @@ export async function POST(request: Request) {
 Completed lessons: ${completedLessons.join(', ')}
 Vocabulary they struggle with: ${weakVocab.join(', ')}
 Grammar points needing work: ${weakGrammarPoints.join(', ')}
-Their interests: ${userProfile.interests.join(', ')}
 Level: ${userProfile.level}
 Learning: ${userProfile.targetLanguage}
 

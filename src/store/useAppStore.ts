@@ -9,11 +9,7 @@ interface AppState {
   // User profile
   corridor: 'en-to-jp' | 'jp-to-en' | null
   uiLanguage: 'en' | 'jp'
-  interests: string[]
   level: '' | 'beginner' | 'basics' | 'intermediate' | 'advanced'
-  goal: string
-  dailyMinutes: number
-  setupComplete: boolean
 
   // Progress
   xpToday: number
@@ -28,11 +24,7 @@ interface AppState {
   // Actions
   setCorridor: (corridor: 'en-to-jp' | 'jp-to-en') => void
   setUiLanguage: (lang: 'en' | 'jp') => void
-  setInterests: (interests: string[]) => void
   setLevel: (level: '' | 'beginner' | 'basics' | 'intermediate' | 'advanced') => void
-  setGoal: (goal: string) => void
-  setDailyMinutes: (minutes: number) => void
-  completeSetup: () => void
   addXP: (amount: number) => void
   completeLesson: (lessonId: string) => void
   updateSkill: (skill: string, amount: number) => void
@@ -65,11 +57,7 @@ function yesterdayStr(): string {
 const initialState = {
   corridor: null as 'en-to-jp' | 'jp-to-en' | null,
   uiLanguage: 'en' as 'en' | 'jp',
-  interests: [] as string[],
   level: '' as '' | 'beginner' | 'basics' | 'intermediate' | 'advanced',
-  goal: '',
-  dailyMinutes: 0,
-  setupComplete: false,
 
   xpToday: 0,
   xpTotal: 0,
@@ -103,15 +91,7 @@ export const useAppStore = create<AppState>()(
 
       setUiLanguage: (lang) => set({ uiLanguage: lang }),
 
-      setInterests: (interests) => set({ interests }),
-
       setLevel: (level) => set({ level }),
-
-      setGoal: (goal) => set({ goal }),
-
-      setDailyMinutes: (minutes) => set({ dailyMinutes: minutes }),
-
-      completeSetup: () => set({ setupComplete: true }),
 
       // -- Progress actions ---------------------------------------------------
 
@@ -281,266 +261,6 @@ const translations: Record<string, { en: string; jp: string }> = {
   'landing.appLanguage': {
     en: 'App language:',
     jp: 'アプリ言語:',
-  },
-
-  // ---- Setup flow (onboarding) --------------------------------------------
-  'setup.interests.title': {
-    en: 'What content do you love?',
-    jp: 'どんなコンテンツが好き？',
-  },
-  'setup.interests.instruction': {
-    en: 'Select 3\u20135',
-    jp: '3〜5つ選んでください',
-  },
-  'setup.level.title': {
-    en: "What's your level?",
-    jp: 'レベルは？',
-  },
-  'setup.level.beginner': {
-    en: 'Complete beginner',
-    jp: '完全な初心者',
-  },
-  'setup.level.beginnerDesc': {
-    en: 'Never studied this language before',
-    jp: 'この言語を学んだことがない',
-  },
-  'setup.level.basics': {
-    en: 'I know some basics',
-    jp: '基礎は知っている',
-  },
-  'setup.level.basicsDesc': {
-    en: 'Know some words and simple phrases',
-    jp: 'いくつかの単語と簡単なフレーズを知っている',
-  },
-  'setup.level.intermediate': {
-    en: 'Intermediate',
-    jp: '中級',
-  },
-  'setup.level.intermediateDesc': {
-    en: 'Can hold simple conversations',
-    jp: '簡単な会話ができる',
-  },
-  'setup.level.advanced': {
-    en: 'Advanced',
-    jp: '上級',
-  },
-  'setup.level.advancedDesc': {
-    en: 'Looking to master nuance',
-    jp: 'ニュアンスをマスターしたい',
-  },
-  'setup.goal.title': {
-    en: "What's your goal?",
-    jp: '目標は？',
-  },
-  'setup.goal.media': {
-    en: 'Watch content without subtitles',
-    jp: '字幕なしでコンテンツを見る',
-  },
-  'setup.goal.travel': {
-    en: 'Travel and survive',
-    jp: '旅行を楽しむ',
-  },
-  'setup.goal.social': {
-    en: 'Make friends / date',
-    jp: '友達を作る/デート',
-  },
-  'setup.goal.business': {
-    en: 'Business / professional',
-    jp: 'ビジネス/プロフェッショナル',
-  },
-  'setup.goal.exam': {
-    en: 'Pass JLPT',
-    jp: 'JLPT合格',
-  },
-  'setup.goal.examEN': {
-    en: 'Pass TOEIC',
-    jp: 'TOEIC合格',
-  },
-  'setup.goal.fun': {
-    en: 'Just for fun',
-    jp: '楽しみのために',
-  },
-  'setup.time.title': {
-    en: 'How much time daily?',
-    jp: '毎日どのくらい？',
-  },
-  'setup.time.5': {
-    en: '5 minutes \u2014 maintenance',
-    jp: '5分 \u2014 メンテナンス',
-  },
-  'setup.time.15': {
-    en: '15 minutes \u2014 steady progress',
-    jp: '15分 \u2014 着実な上達',
-  },
-  'setup.time.30': {
-    en: '30 minutes \u2014 serious study',
-    jp: '30分 \u2014 本格的な学習',
-  },
-  'setup.time.60': {
-    en: '1 hour+ \u2014 immersion mode',
-    jp: '1時間以上 \u2014 イマージョンモード',
-  },
-
-  // ---- Setup flow (original keys kept for backwards compat) ----------------
-  'setup.step1.title': {
-    en: 'Choose Your Corridor',
-    jp: 'コリドーを選択',
-  },
-  'setup.step1.subtitle': {
-    en: 'What language do you want to learn?',
-    jp: 'どの言語を学びたいですか？',
-  },
-  'setup.step1.enToJp': {
-    en: 'English → Japanese',
-    jp: '英語 → 日本語',
-  },
-  'setup.step1.jpToEn': {
-    en: 'Japanese → English',
-    jp: '日本語 → 英語',
-  },
-  'setup.step1.enToJpDesc': {
-    en: 'I speak English and want to learn Japanese',
-    jp: '英語を話して、日本語を学びたい',
-  },
-  'setup.step1.jpToEnDesc': {
-    en: 'I speak Japanese and want to learn English',
-    jp: '日本語を話して、英語を学びたい',
-  },
-
-  'setup.step2.title': {
-    en: 'Your Level',
-    jp: 'あなたのレベル',
-  },
-  'setup.step2.subtitle': {
-    en: 'Where are you in your learning journey?',
-    jp: '学習のどの段階にいますか？',
-  },
-  'setup.step2.beginner': {
-    en: 'Beginner',
-    jp: '初心者',
-  },
-  'setup.step2.beginnerDesc': {
-    en: 'I know almost nothing',
-    jp: 'ほとんど何も知らない',
-  },
-  'setup.step2.basics': {
-    en: 'Basics',
-    jp: '基礎',
-  },
-  'setup.step2.basicsDesc': {
-    en: 'I know some words and basic phrases',
-    jp: 'いくつかの単語と基本的なフレーズを知っている',
-  },
-  'setup.step2.intermediate': {
-    en: 'Intermediate',
-    jp: '中級',
-  },
-  'setup.step2.intermediateDesc': {
-    en: 'I can hold simple conversations',
-    jp: '簡単な会話ができる',
-  },
-  'setup.step2.advanced': {
-    en: 'Advanced',
-    jp: '上級',
-  },
-  'setup.step2.advancedDesc': {
-    en: 'I can discuss most topics but want to improve',
-    jp: 'ほとんどのトピックについて話せるが、上達したい',
-  },
-
-  'setup.step3.title': {
-    en: 'Your Interests',
-    jp: 'あなたの興味',
-  },
-  'setup.step3.subtitle': {
-    en: 'Pick topics that excite you (we\'ll match content to these)',
-    jp: '興味のあるトピックを選んでください（コンテンツをマッチングします）',
-  },
-  'setup.step3.selectAtLeast': {
-    en: 'Select at least 2 interests',
-    jp: '少なくとも2つの興味を選択してください',
-  },
-
-  'setup.step4.title': {
-    en: 'Your Goal',
-    jp: 'あなたの目標',
-  },
-  'setup.step4.subtitle': {
-    en: 'What motivates you to learn?',
-    jp: '学習のモチベーションは？',
-  },
-  'setup.step4.goalPlaceholder': {
-    en: 'e.g. I want to watch anime without subtitles',
-    jp: '例：字幕なしでアニメを見たい',
-  },
-  'setup.step4.dailyGoal': {
-    en: 'Daily Learning Goal',
-    jp: '毎日の学習目標',
-  },
-  'setup.step4.minutes5': {
-    en: '5 min / day',
-    jp: '5分/日',
-  },
-  'setup.step4.minutes10': {
-    en: '10 min / day',
-    jp: '10分/日',
-  },
-  'setup.step4.minutes15': {
-    en: '15 min / day',
-    jp: '15分/日',
-  },
-  'setup.step4.minutes20': {
-    en: '20 min / day',
-    jp: '20分/日',
-  },
-  'setup.step4.minutes30': {
-    en: '30 min / day',
-    jp: '30分/日',
-  },
-  'setup.step4.goalConversation': {
-    en: 'Have real conversations',
-    jp: 'リアルな会話をする',
-  },
-  'setup.step4.goalTravel': {
-    en: 'Travel confidently',
-    jp: '自信を持って旅行する',
-  },
-  'setup.step4.goalMedia': {
-    en: 'Understand media without subtitles',
-    jp: '字幕なしでメディアを理解する',
-  },
-  'setup.step4.goalBusiness': {
-    en: 'Use in work / business',
-    jp: '仕事/ビジネスで使う',
-  },
-  'setup.step4.goalExam': {
-    en: 'Pass a language exam',
-    jp: '語学試験に合格する',
-  },
-  'setup.step4.goalFun': {
-    en: 'Just for fun',
-    jp: '楽しみのために',
-  },
-
-  'setup.nav.back': {
-    en: 'Back',
-    jp: '戻る',
-  },
-  'setup.nav.next': {
-    en: 'Next',
-    jp: '次へ',
-  },
-  'setup.nav.finish': {
-    en: 'Start Learning!',
-    jp: '学習を始める！',
-  },
-  'setup.nav.step': {
-    en: 'Step',
-    jp: 'ステップ',
-  },
-  'setup.nav.of': {
-    en: 'of',
-    jp: '/',
   },
 
   // ---- Dashboard ----------------------------------------------------------
@@ -1217,18 +937,6 @@ const translations: Record<string, { en: string; jp: string }> = {
   'settings.level': {
     en: 'Current Level',
     jp: '現在のレベル',
-  },
-  'settings.interests': {
-    en: 'Interests',
-    jp: '興味',
-  },
-  'settings.goal': {
-    en: 'Learning Goal',
-    jp: '学習目標',
-  },
-  'settings.dailyMinutes': {
-    en: 'Daily Minutes',
-    jp: '毎日の学習時間',
   },
   'settings.notifications': {
     en: 'Notifications',

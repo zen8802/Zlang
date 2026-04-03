@@ -53,7 +53,7 @@ export default function ClipPlayer({
 
   if (!clip) {
     return (
-      <div className="text-center py-12 text-white/50">
+      <div className="text-center py-12 text-foreground/50">
         Clip not found
       </div>
     )
@@ -101,7 +101,7 @@ export default function ClipPlayer({
             animate={{ opacity: 1, x: 0 }}
           >
             <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-            <span className="text-sm text-white/70 tabular-nums font-mono">
+            <span className="text-sm text-foreground/70 tabular-nums font-mono">
               {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, '0')}
             </span>
           </motion.div>
@@ -117,16 +117,16 @@ export default function ClipPlayer({
           transition={{ delay: 0.3 }}
         >
           <div>
-            <p className="text-xs text-white/40 uppercase tracking-wider mb-1.5">Transcript</p>
+            <p className="text-xs text-foreground/40 uppercase tracking-wider mb-1.5">Transcript</p>
             <p className={`text-lg font-jp leading-relaxed ${
               corridor === 'en-to-jp' ? 'text-accent-jp' : 'text-accent-en'
             }`}>
               {clip.transcript}
             </p>
           </div>
-          <div className="border-t border-white/8 pt-3">
-            <p className="text-xs text-white/40 uppercase tracking-wider mb-1.5">Translation</p>
-            <p className="text-base text-white/70 leading-relaxed">
+          <div className="border-t border-black/8 pt-3">
+            <p className="text-xs text-foreground/40 uppercase tracking-wider mb-1.5">Translation</p>
+            <p className="text-base text-foreground/70 leading-relaxed">
               {clip.translation}
             </p>
           </div>

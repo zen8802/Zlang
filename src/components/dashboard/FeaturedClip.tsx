@@ -37,10 +37,10 @@ function VocabFlipCard({
       >
         {/* Front */}
         <div
-          className="absolute inset-0 glass-card flex items-center justify-center p-3 rounded-xl border border-white/10"
+          className="absolute inset-0 glass-card flex items-center justify-center p-3 rounded-xl border border-black/10"
           style={{ backfaceVisibility: 'hidden' }}
         >
-          <span className="font-jp text-lg font-medium text-white text-center">
+          <span className="font-jp text-lg font-medium text-foreground text-center">
             {word}
           </span>
         </div>
@@ -66,7 +66,7 @@ export default function FeaturedClip({ clipId }: FeaturedClipProps) {
 
   if (!clip) {
     return (
-      <div className="glass-card p-6 text-center text-white/40">
+      <div className="glass-card p-6 text-center text-foreground/40">
         Clip not found
       </div>
     )

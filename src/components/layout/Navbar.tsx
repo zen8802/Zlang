@@ -35,7 +35,7 @@ export default function Navbar() {
 
   return (
     <nav
-      className="sticky top-0 z-40 w-full bg-white/[0.03] backdrop-blur-xl border-b border-white/[0.06]"
+      className="sticky top-0 z-40 w-full bg-black/[0.03] backdrop-blur-xl border-b border-black/[0.06]"
       role="navigation"
       aria-label="Main navigation"
     >
@@ -64,7 +64,7 @@ export default function Navbar() {
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
                     isActive
                       ? 'text-accent'
-                      : 'text-white/60 hover:text-white hover:bg-white/5',
+                      : 'text-foreground/60 hover:text-foreground hover:bg-black/[0.03]',
                   ].join(' ')}
                 >
                   {t(link.key, uiLanguage)}
@@ -84,7 +84,7 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-3">
             {/* Streak */}
             <div
-              className="flex items-center gap-1 text-sm text-white/60"
+              className="flex items-center gap-1 text-sm text-foreground/60"
               title={`${streak} day streak`}
             >
               <span role="img" aria-label="Streak">
@@ -95,7 +95,7 @@ export default function Navbar() {
 
             {/* XP today */}
             <div
-              className="flex items-center gap-1 text-sm text-white/60"
+              className="flex items-center gap-1 text-sm text-foreground/60"
               title={`${xpToday} XP today`}
             >
               <span role="img" aria-label="XP today">
@@ -107,7 +107,7 @@ export default function Navbar() {
             {/* Language toggle */}
             <button
               onClick={toggleLanguage}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-white/10 bg-white/5 hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-black/10 bg-black/[0.03] hover:bg-black/[0.05] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
               aria-label={`Switch language to ${uiLanguage === 'en' ? 'Japanese' : 'English'}`}
             >
               {uiLanguage === 'en' ? 'EN' : 'JP'}
@@ -116,7 +116,7 @@ export default function Navbar() {
             {/* Settings */}
             <Link
               href="/settings"
-              className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+              className="p-2 rounded-lg text-foreground/50 hover:text-foreground hover:bg-black/[0.03] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
               aria-label={t('nav.settings', uiLanguage)}
             >
               <svg
@@ -140,7 +140,7 @@ export default function Navbar() {
           {/* ---- Mobile: Hamburger button ---- */}
           <button
             onClick={() => setMobileOpen((prev) => !prev)}
-            className="md:hidden p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+            className="md:hidden p-2 rounded-lg text-foreground/60 hover:text-foreground hover:bg-black/[0.03] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
             aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={mobileOpen}
           >
@@ -181,7 +181,7 @@ export default function Navbar() {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.25, ease: 'easeInOut' }}
-            className="md:hidden overflow-hidden border-t border-white/[0.06]"
+            className="md:hidden overflow-hidden border-t border-black/[0.06]"
           >
             <div className="px-4 py-4 space-y-1">
               {navLinks.map((link) => {
@@ -195,7 +195,7 @@ export default function Navbar() {
                       'block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors',
                       isActive
                         ? 'text-accent bg-accent/10'
-                        : 'text-white/60 hover:text-white hover:bg-white/5',
+                        : 'text-foreground/60 hover:text-foreground hover:bg-black/[0.03]',
                     ].join(' ')}
                   >
                     {t(link.key, uiLanguage)}
@@ -204,18 +204,18 @@ export default function Navbar() {
               })}
 
               {/* Mobile stats row */}
-              <div className="flex items-center gap-4 pt-3 mt-2 border-t border-white/[0.06] px-4">
-                <span className="flex items-center gap-1 text-sm text-white/60">
+              <div className="flex items-center gap-4 pt-3 mt-2 border-t border-black/[0.06] px-4">
+                <span className="flex items-center gap-1 text-sm text-foreground/60">
                   <span role="img" aria-label="Streak">🔥</span>
                   <span className="tabular-nums">{streak}</span>
                 </span>
-                <span className="flex items-center gap-1 text-sm text-white/60">
+                <span className="flex items-center gap-1 text-sm text-foreground/60">
                   <span role="img" aria-label="XP today">⚡</span>
                   <span className="tabular-nums">{xpToday}</span>
                 </span>
                 <button
                   onClick={toggleLanguage}
-                  className="px-3 py-1 rounded-lg text-xs font-semibold border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+                  className="px-3 py-1 rounded-lg text-xs font-semibold border border-black/10 bg-black/[0.03] hover:bg-black/[0.05] transition-colors"
                   aria-label={`Switch language to ${uiLanguage === 'en' ? 'Japanese' : 'English'}`}
                 >
                   {uiLanguage === 'en' ? 'EN' : 'JP'}
@@ -226,7 +226,7 @@ export default function Navbar() {
               <Link
                 href="/settings"
                 onClick={closeMobile}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-foreground/60 hover:text-foreground hover:bg-black/[0.03] transition-colors"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
