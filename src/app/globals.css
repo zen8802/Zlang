@@ -2,26 +2,177 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Noto+Sans+JP:wght@100..900&family=Syne:wght@400..800&display=swap');
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #080810;
+  --foreground: #ffffff;
+  --accent: #00FFB2;
+  --accent-jp: #FF6B35;
+  --accent-en: #3B82F6;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--foreground);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+/* Subtle grain texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+}
+
+/* Glass card utility */
+.glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+}
+
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Glow effects */
+.glow-accent {
+  box-shadow: 0 0 20px rgba(0, 255, 178, 0.3);
+}
+
+.glow-jp {
+  box-shadow: 0 0 20px rgba(255, 107, 53, 0.3);
+}
+
+.glow-en {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+}
+
+/* Text glow */
+.text-glow {
+  text-shadow: 0 0 20px rgba(0, 255, 178, 0.5);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Confetti animation classes */
+@keyframes confetti-fall {
+  0% { transform: translateY(-100%) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+.confetti-piece {
+  animation: confetti-fall 3s ease-out forwards;
+}
+
+/* YouTube player container */
+.youtube-container {
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%; /* 16:9 */
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.youtube-container iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Ink brush loading animation */
+@keyframes ink-stroke {
+  0% { stroke-dashoffset: 200; opacity: 0; }
+  20% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+
+.ink-loading path {
+  stroke-dasharray: 200;
+  animation: ink-stroke 2s ease-in-out infinite;
+}
+
+/* Matrix character rain */
+@keyframes charRainDrop {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
   }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(calc(100vh + 100%));
+    opacity: 0;
+  }
+}
+
+.char-rain-column {
+  position: absolute;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  animation: charRainDrop var(--rain-duration, 8s) linear infinite;
+  animation-delay: var(--rain-delay, 0s);
+}
+
+.char-rain-column span {
+  font-family: 'Noto Sans JP', sans-serif;
+  color: #00FFB2;
+  font-size: var(--rain-font-size, 14px);
+  opacity: var(--rain-opacity, 0.08);
+  writing-mode: vertical-rl;
+  line-height: 1;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Selection styling */
+::selection {
+  background: rgba(0, 255, 178, 0.3);
+  color: #ffffff;
 }
