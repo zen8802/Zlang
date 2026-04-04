@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// YouTube Search — channel-scoped search for trusted anime/culture content
+// YouTube Search — channel-scoped search with fallback
 // ---------------------------------------------------------------------------
 
 export const TRUSTED_CHANNELS = {
@@ -19,30 +19,28 @@ export interface YouTubeSearchResult {
   publishedAt: string
 }
 
-/**
- * Search YouTube within an optional trusted channel.
- * Returns the best matching result or null.
- */
-export async function searchYouTubeClip(
+function buildSearchParams(
   query: string,
+  apiKey: string,
   channelId?: string,
-): Promise<YouTubeSearchResult | null> {
-  const apiKey = process.env.YOUTUBE_API_KEY
-  if (!apiKey) {
-    throw new Error('YOUTUBE_API_KEY is not configured')
-  }
-
-  const params = new URLSearchParams({
+): URLSearchParams {
+  const params: Record<string, string> = {
     part: 'snippet',
     q: query,
     type: 'video',
     videoEmbeddable: 'true',
-    videoDuration: 'short',
     maxResults: '5',
     key: apiKey,
-    ...(channelId ? { channelId } : {}),
-  })
+  }
+  if (channelId) {
+    params.channelId = channelId
+  }
+  return new URLSearchParams(params)
+}
 
+async function fetchSearch(
+  params: URLSearchParams,
+): Promise<YouTubeSearchResult | null> {
   const res = await fetch(
     `https://www.googleapis.com/youtube/v3/search?${params.toString()}`,
   )
@@ -74,8 +72,32 @@ export async function searchYouTubeClip(
 }
 
 /**
+ * Search YouTube for a clip. Tries channel-scoped first,
+ * falls back to unscoped search if no results.
+ */
+export async function searchYouTubeClip(
+  query: string,
+  channelId?: string,
+): Promise<YouTubeSearchResult | null> {
+  const apiKey = process.env.YOUTUBE_API_KEY
+  if (!apiKey) {
+    throw new Error('YOUTUBE_API_KEY is not configured')
+  }
+
+  // Try channel-scoped search first
+  if (channelId) {
+    const channelParams = buildSearchParams(query, apiKey, channelId)
+    const channelResult = await fetchSearch(channelParams)
+    if (channelResult) return channelResult
+  }
+
+  // Fallback: search without channel filter
+  const openParams = buildSearchParams(query, apiKey)
+  return fetchSearch(openParams)
+}
+
+/**
  * Search multiple queries and return all results.
- * Useful for populating a lesson with several clip options.
  */
 export async function searchMultipleClips(
   queries: Array<{ query: string; channelId?: string }>,

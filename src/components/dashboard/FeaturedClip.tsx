@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { getClipById } from '@/data/clips'
+import { useResolvedClip } from '@/lib/useResolvedClip'
 import { useAppStore } from '@/store/useAppStore'
 
 interface FeaturedClipProps {
@@ -62,7 +62,7 @@ function VocabFlipCard({
 
 export default function FeaturedClip({ clipId }: FeaturedClipProps) {
   const { corridor } = useAppStore()
-  const clip = getClipById(clipId)
+  const { clip, videoId } = useResolvedClip(clipId)
 
   if (!clip) {
     return (
@@ -77,7 +77,7 @@ export default function FeaturedClip({ clipId }: FeaturedClipProps) {
       ? 'rgba(255, 107, 53, 0.35)'
       : 'rgba(59, 130, 246, 0.35)'
 
-  const embedUrl = `https://www.youtube.com/embed/${clip.youtubeId}?start=${clip.startSeconds}&end=${clip.endSeconds}&rel=0&modestbranding=1`
+  const embedUrl = `https://www.youtube.com/embed/${videoId}?start=${clip.startSeconds}&end=${clip.endSeconds}&rel=0&modestbranding=1`
 
   // Show up to 3 vocab items
   const vocabCards = clip.vocab.slice(0, 3)

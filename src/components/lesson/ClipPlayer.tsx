@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import Button from '@/components/ui/Button'
-import { getClipById } from '@/data/clips'
+import { useResolvedClip } from '@/lib/useResolvedClip'
 import { useAppStore } from '@/store/useAppStore'
 
 interface ClipPlayerProps {
@@ -19,7 +19,7 @@ export default function ClipPlayer({
   onComplete,
   showSubtitles = false,
 }: ClipPlayerProps) {
-  const clip = getClipById(clipId)
+  const { clip, videoId, isResolving } = useResolvedClip(clipId)
   const corridor = useAppStore((s) => s.corridor)
 
   const [countdown, setCountdown] = useState<number | null>(null)
@@ -59,8 +59,25 @@ export default function ClipPlayer({
     )
   }
 
-  // Build YouTube embed URL with start/end parameters
-  const embedUrl = `https://www.youtube.com/embed/${clip.youtubeId}?start=${Math.floor(clip.startSeconds)}&end=${Math.ceil(clip.endSeconds)}&rel=0&modestbranding=1&playsinline=1`
+  // Build YouTube embed URL with resolved video ID
+  const embedUrl = `https://www.youtube.com/embed/${videoId}?start=${Math.floor(clip.startSeconds)}&end=${Math.ceil(clip.endSeconds)}&rel=0&modestbranding=1&playsinline=1`
+
+  if (isResolving || !videoId) {
+    return (
+      <div className="space-y-4">
+        <div className="youtube-container rounded-2xl bg-black/[0.03]">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+            <motion.div
+              className="w-8 h-8 border-2 border-accent/30 border-t-accent rounded-full"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            />
+            <p className="text-xs text-foreground/30">Finding the perfect clip...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">

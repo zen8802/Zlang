@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAppStore } from '@/store/useAppStore'
 import { useState, useCallback } from 'react'
+import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
+import Link from 'next/link'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -109,6 +111,35 @@ export default function LandingPage() {
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-4 py-12">
+      {/* ---- Auth buttons top-right ---- */}
+      <div className="fixed top-5 right-6 z-50 flex items-center gap-3">
+        <SignedOut>
+          <Link
+            href="/sign-in"
+            className="text-sm font-medium text-foreground/60 hover:text-foreground transition-colors"
+          >
+            Log in
+          </Link>
+          <Link
+            href="/sign-up"
+            className="text-sm font-medium px-4 py-2 rounded-lg text-white transition-all hover:opacity-90"
+            style={{ backgroundColor: '#1B4F8A' }}
+          >
+            Sign up
+          </Link>
+        </SignedOut>
+        <SignedIn>
+          <UserButton
+            afterSignOutUrl="/"
+            appearance={{
+              elements: {
+                avatarBox: 'w-9 h-9',
+              },
+            }}
+          />
+        </SignedIn>
+      </div>
+
       {/* ---- Main content ---- */}
       <div className="relative z-10 flex flex-col items-center text-center max-w-5xl w-full">
         <AnimatePresence mode="wait">
