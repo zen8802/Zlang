@@ -1,19 +1,24 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface Props {
   keyword: Record<string, unknown>
-  position: { x: number; y: number }
+  anchor: DOMRect
   onClose: () => void
 }
 
-const jlptColors: Record<string, string> = {
+const JLPT_COLORS: Record<string, string> = {
   N5: '#4CAF50', N4: '#8BC34A', N3: '#FFC107', N2: '#FF9800', N1: '#F44336',
 }
 
-export default function KeywordPopup({ keyword, position, onClose }: Props) {
+export default function KeywordPopup({ keyword, anchor, onClose }: Props) {
   const ref = useRef<HTMLDivElement>(null)
+  const [saved, setSaved] = useState(false)
+
+  const top = anchor.bottom + 8
+  const left = Math.max(16, Math.min(anchor.left, (typeof window !== 'undefined' ? window.innerWidth : 400) - 288 - 16))
+  const level = keyword.jlptLevel as string
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -23,64 +28,60 @@ export default function KeywordPopup({ keyword, position, onClose }: Props) {
     return () => document.removeEventListener('mousedown', handler)
   }, [onClose])
 
-  const level = keyword.jlptLevel as string
+  const saveWord = () => {
+    const deck = JSON.parse(localStorage.getItem('zlang_srs') || '{}')
+    deck[keyword.word as string] = {
+      ...keyword,
+      nextReview: new Date(Date.now() + 86400000).toISOString(),
+      confidence: 1,
+      reviews: 0,
+      savedAt: new Date().toISOString(),
+    }
+    localStorage.setItem('zlang_srs', JSON.stringify(deck))
+    setSaved(true)
+    setTimeout(onClose, 800)
+  }
 
   return (
-    <div
-      ref={ref}
-      className="fixed z-50 w-72 bg-white rounded-2xl shadow-2xl border border-black/10 overflow-hidden"
-      style={{
-        left: Math.min(position.x, (typeof window !== 'undefined' ? window.innerWidth : 400) - 300),
-        top: position.y,
-      }}
-    >
-      <div className="px-4 pt-4 pb-3 border-b border-black/5">
-        <div className="flex items-start justify-between">
+    <div ref={ref} className="fixed z-50 w-72 bg-white rounded-2xl overflow-hidden shadow-2xl border border-gray-100" style={{ top, left }}>
+      <div className="h-1 w-full" style={{ backgroundColor: JLPT_COLORS[level] || '#ccc' }} />
+      <div className="p-4">
+        <div className="flex items-start justify-between mb-3">
           <div>
-            <span className="text-2xl font-bold font-jp">{keyword.word as string}</span>
-            <span className="text-sm text-foreground/40 ml-2">{keyword.reading as string}</span>
+            <span className="text-3xl font-bold font-jp" style={{ color: '#0A0A0F' }}>{keyword.word as string}</span>
+            {typeof keyword.reading === 'string' && (
+              <span className="text-xs ml-2 font-jp" style={{ color: '#1B4F8A' }}>{keyword.reading}</span>
+            )}
+            {typeof keyword.romaji === 'string' && (
+              <p className="text-xs text-foreground/30 font-mono mt-0.5">{keyword.romaji}</p>
+            )}
           </div>
-          {level && (
-            <span className="text-xs px-2 py-0.5 rounded-full text-white font-bold" style={{ backgroundColor: jlptColors[level] || '#999' }}>
-              {level}
-            </span>
-          )}
+          <div className="flex flex-col items-end gap-1">
+            <span className="text-xs font-bold text-white px-2 py-0.5 rounded-full" style={{ backgroundColor: JLPT_COLORS[level] || '#999' }}>{level}</span>
+            {typeof keyword.partOfSpeech === 'string' && (
+              <span className="text-xs text-foreground/30 font-body">{keyword.partOfSpeech}</span>
+            )}
+          </div>
         </div>
-        <p className="text-xs text-foreground/30 mt-0.5">{keyword.romaji as string}</p>
-      </div>
 
-      <div className="px-4 py-3 space-y-2">
-        <div>
-          <span className="text-xs text-foreground/30 uppercase tracking-wide">{keyword.partOfSpeech as string}</span>
-          <p className="text-sm font-medium text-foreground mt-0.5">{keyword.meaning as string}</p>
-        </div>
+        <p className="text-base font-semibold text-foreground font-body mb-2">{keyword.meaning as string}</p>
+
         {typeof keyword.exampleSentence === 'string' && (
-          <div className="bg-black/[0.03] rounded-lg p-2">
-            <p className="text-xs font-jp">{keyword.exampleSentence as string}</p>
+          <div className="bg-black/[0.03] rounded-xl p-2.5 mb-3">
+            <p className="text-sm text-foreground/70 leading-relaxed font-jp">{keyword.exampleSentence}</p>
           </div>
         )}
-        {typeof keyword.culturalNote === 'string' && (
-          <p className="text-xs text-accent italic">{keyword.culturalNote as string}</p>
-        )}
-      </div>
 
-      <div className="px-4 pb-4">
+        {typeof keyword.culturalNote === 'string' && (
+          <p className="text-xs italic mb-3 font-body" style={{ color: '#1B4F8A' }}>{keyword.culturalNote}</p>
+        )}
+
         <button
-          className="w-full py-2 rounded-xl text-xs font-bold text-white"
-          style={{ backgroundColor: '#1B4F8A' }}
-          onClick={() => {
-            const deck = JSON.parse(localStorage.getItem('zlang_srs') || '{}')
-            deck[keyword.word as string] = {
-              ...keyword,
-              nextReview: new Date(Date.now() + 86400000).toISOString(),
-              confidence: 1,
-              reviews: 0,
-            }
-            localStorage.setItem('zlang_srs', JSON.stringify(deck))
-            onClose()
-          }}
+          onClick={saveWord}
+          className={`w-full py-2.5 rounded-xl text-sm font-bold font-display transition-all duration-200 ${saved ? 'bg-green-500 text-white' : 'text-white hover:opacity-90'}`}
+          style={saved ? undefined : { backgroundColor: '#1B4F8A' }}
         >
-          + Add to my vocab deck
+          {saved ? '✓ Added' : '+ Add to vocab deck'}
         </button>
       </div>
     </div>

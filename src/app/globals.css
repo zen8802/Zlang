@@ -176,3 +176,30 @@ body::before {
   background: rgba(27, 79, 138, 0.3);
   color: #1a1a2e;
 }
+
+/* Furigana rendering */
+ruby {
+  ruby-align: center;
+}
+rt {
+  ruby-position: over;
+  text-align: center;
+}
+
+/* Safe area bottom padding */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 8px);
+}
+
+/* Prevent overscroll bounce */
+.no-bounce {
+  overscroll-behavior: none;
+}
+
+/* Building lesson progress animation */
+@keyframes buildProgress {
+  0% { width: 0% }
+  50% { width: 70% }
+  90% { width: 90% }
+  100% { width: 95% }
+}
