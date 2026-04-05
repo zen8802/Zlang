@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import BlockPalette from './BlockPalette'
 import SlideCanvas from './SlideCanvas'
 import SlideStrip from './SlideStrip'
@@ -43,6 +44,7 @@ export default function EditorLayout({
   saving,
   savedAt,
   onSave,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onBack,
   onAddBlock,
   onUpdateBlock,
@@ -54,8 +56,38 @@ export default function EditorLayout({
   onSelectSlide,
   onUpdateLesson,
 }: EditorLayoutProps) {
+  const router = useRouter()
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleValue, setTitleValue] = useState(lesson.title || '')
+  const [showLessonDropdown, setShowLessonDropdown] = useState(false)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [allLessons, setAllLessons] = useState<any[]>([])
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // Load lessons for the dropdown — filtered to same corridor
+  const corridor = lesson.target_language || lesson.targetLanguage || 'japanese'
+  useEffect(() => {
+    fetch('/api/admin/lessons')
+      .then(r => r.json())
+      .then(d => {
+        const all = d.lessons || []
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setAllLessons(all.filter((l: any) => (l.target_language || 'japanese') === corridor))
+      })
+      .catch(() => {})
+  }, [])
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!showLessonDropdown) return
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowLessonDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showLessonDropdown])
 
   const handleTitleSubmit = () => {
     setEditingTitle(false)
@@ -63,47 +95,158 @@ export default function EditorLayout({
   }
 
   const handleJlptChange = (level: string) => {
-    onUpdateLesson((l: AnyLesson) => ({ ...l, jlptLevel: level }))
+    onUpdateLesson((l: AnyLesson) => ({ ...l, jlptLevel: level, jlpt_level: level }))
   }
 
   const handlePublishToggle = () => {
-    onUpdateLesson((l: AnyLesson) => ({ ...l, published: !l.published }))
+    onUpdateLesson((l: AnyLesson) => ({ ...l, published: !l.published, is_published: !l.is_published }))
   }
+
+  const handleUnitChange = (unit: number) => {
+    onUpdateLesson((l: AnyLesson) => ({ ...l, unit }))
+  }
+
+  const handleOrderChange = (order: number) => {
+    onUpdateLesson((l: AnyLesson) => ({ ...l, order }))
+  }
+
+  // Group lessons by unit for dropdown
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const lessonsByUnit: Record<number, any[]> = {}
+  allLessons.forEach(l => {
+    const u = l.unit || 1
+    if (!lessonsByUnit[u]) lessonsByUnit[u] = []
+    lessonsByUnit[u].push(l)
+  })
+  Object.values(lessonsByUnit).forEach(arr => arr.sort((a: { order?: number }, b: { order?: number }) => (a.order || 0) - (b.order || 0)))
 
   return (
     <div className="fixed inset-0 bg-[#1A1A2E] flex flex-col text-white">
       {/* Top Bar */}
       <div className="h-14 border-b border-white/10 flex items-center px-4 gap-3 bg-[#12122A] shrink-0">
         <button
-          onClick={onBack}
+          onClick={() => {
+            const lang = lesson.target_language || lesson.targetLanguage || 'japanese'
+            router.push(lang === 'japanese' ? '/admin/lessons/enjp' : '/admin/lessons/jpen')
+          }}
           className="text-gray-400 hover:text-white transition-colors flex items-center gap-1"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          <span className="text-sm">Back</span>
+          <span className="text-sm">{corridor === 'japanese' ? '🇺🇸→🇯🇵' : '🇯🇵→🇺🇸'}</span>
         </button>
 
         <div className="w-px h-6 bg-white/10" />
 
-        {/* Inline title edit */}
-        {editingTitle ? (
+        {/* Unit + Order */}
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-gray-500">U</span>
           <input
-            autoFocus
-            value={titleValue}
-            onChange={(e) => setTitleValue(e.target.value)}
-            onBlur={handleTitleSubmit}
-            onKeyDown={(e) => e.key === 'Enter' && handleTitleSubmit()}
-            className="bg-white/10 border border-blue-500 rounded px-2 py-1 text-sm font-semibold outline-none w-64"
+            type="number"
+            value={lesson.unit || 1}
+            onChange={e => handleUnitChange(parseInt(e.target.value) || 1)}
+            className="w-10 bg-white/10 text-white text-xs font-bold rounded px-1.5 py-1 border border-white/10 focus:outline-none focus:border-[#1B4F8A] text-center"
+            min={1}
           />
-        ) : (
-          <button
-            onClick={() => { setTitleValue(lesson.title || ''); setEditingTitle(true) }}
-            className="text-sm font-semibold hover:text-blue-400 transition-colors truncate max-w-[300px]"
-          >
-            {lesson.title || 'Untitled Lesson'}
-          </button>
-        )}
+          <span className="text-xs text-gray-500">L</span>
+          <input
+            type="number"
+            value={lesson.order || 1}
+            onChange={e => handleOrderChange(parseInt(e.target.value) || 1)}
+            className="w-10 bg-white/10 text-white text-xs font-bold rounded px-1.5 py-1 border border-white/10 focus:outline-none focus:border-[#1B4F8A] text-center"
+            min={1}
+          />
+        </div>
+
+        <div className="w-px h-6 bg-white/10" />
+
+        {/* Inline title edit + lesson dropdown */}
+        <div className="relative" ref={dropdownRef}>
+          <div className="flex items-center gap-1">
+            {editingTitle ? (
+              <input
+                autoFocus
+                value={titleValue}
+                onChange={(e) => setTitleValue(e.target.value)}
+                onBlur={handleTitleSubmit}
+                onKeyDown={(e) => e.key === 'Enter' && handleTitleSubmit()}
+                className="bg-white/10 border border-[#1B4F8A] rounded px-2 py-1 text-sm font-semibold outline-none w-64"
+              />
+            ) : (
+              <button
+                onClick={() => { setTitleValue(lesson.title || ''); setEditingTitle(true) }}
+                className="text-sm font-semibold hover:text-[#93b4d4] transition-colors truncate max-w-[250px]"
+              >
+                {lesson.title || 'Untitled Lesson'}
+              </button>
+            )}
+
+            {/* Dropdown toggle */}
+            <button
+              onClick={() => setShowLessonDropdown(p => !p)}
+              className="text-gray-500 hover:text-gray-300 transition-colors p-1 rounded hover:bg-white/10"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Lesson dropdown */}
+          {showLessonDropdown && (
+            <div className="absolute top-full left-0 mt-1 w-80 bg-[#1A1A2E] border border-white/10 rounded-[12px] shadow-2xl z-50 max-h-96 overflow-y-auto">
+              <div className="p-2">
+                {Object.entries(lessonsByUnit)
+                  .sort(([a], [b]) => Number(a) - Number(b))
+                  .map(([unit, lessons]) => (
+                  <div key={unit} className="mb-2">
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider px-2 py-1">
+                      Unit {unit}
+                    </p>
+                    {lessons.map((l: { id: string; order?: number; title?: string; title_jp?: string; jlpt_level?: string; is_published?: boolean; blocks?: unknown[] }) => {
+                      const isCurrent = l.id === lesson.id
+                      return (
+                        <button
+                          key={l.id}
+                          onClick={() => {
+                            setShowLessonDropdown(false)
+                            if (!isCurrent) router.push(`/admin/editor/${l.id}`)
+                          }}
+                          className={`w-full text-left px-2 py-2 rounded-lg text-sm flex items-center gap-2 transition-all ${
+                            isCurrent
+                              ? 'bg-[#1B4F8A]/20 text-white'
+                              : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'
+                          }`}
+                        >
+                          <span className={`w-6 h-6 rounded text-xs font-bold flex items-center justify-center shrink-0 ${
+                            isCurrent ? 'bg-[#1B4F8A] text-white' : 'bg-white/10 text-gray-500'
+                          }`}>
+                            {l.order || '?'}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-semibold">{l.title || 'Untitled'}</p>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-gray-500 font-bold">
+                              {l.jlpt_level || '?'}
+                            </span>
+                            {l.is_published && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                            )}
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                ))}
+                {allLessons.length === 0 && (
+                  <p className="text-gray-600 text-xs text-center py-4">No lessons found</p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* JLPT Selector */}
         <div className="flex items-center gap-1 ml-2">
@@ -112,8 +255,8 @@ export default function EditorLayout({
               key={level}
               onClick={() => handleJlptChange(level)}
               className={`text-xs px-2 py-1 rounded transition-colors ${
-                lesson.jlptLevel === level
-                  ? 'bg-blue-600 text-white'
+                (lesson.jlptLevel || lesson.jlpt_level) === level
+                  ? 'bg-[#1B4F8A] text-white'
                   : 'bg-white/5 text-gray-400 hover:bg-white/10'
               }`}
             >
@@ -128,12 +271,12 @@ export default function EditorLayout({
         <button
           onClick={handlePublishToggle}
           className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
-            lesson.published
+            lesson.published || lesson.is_published
               ? 'bg-green-600/20 text-green-400 border border-green-500/30'
               : 'bg-white/5 text-gray-400 border border-white/10'
           }`}
         >
-          {lesson.published ? 'Published' : 'Draft'}
+          {lesson.published || lesson.is_published ? '● Live' : '○ Draft'}
         </button>
 
         {/* Save status */}
@@ -149,19 +292,19 @@ export default function EditorLayout({
         <button
           onClick={onSave}
           disabled={saving}
-          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm px-4 py-1.5 rounded-lg font-medium transition-colors"
+          className="bg-[#1B4F8A] hover:bg-[#133970] disabled:opacity-50 text-white text-sm px-4 py-1.5 rounded-lg font-bold transition-colors shadow-[0_3px_0_#0d2848] active:shadow-none active:translate-y-[3px]"
         >
-          {saving ? 'Saving...' : 'Save'}
+          Save
         </button>
 
         {/* Preview button */}
         <a
-          href={`/lessons/${lesson._id || lesson.id}`}
+          href={`/lesson/${lesson.id}`}
           target="_blank"
           rel="noopener noreferrer"
           className="bg-white/5 hover:bg-white/10 text-gray-300 text-sm px-3 py-1.5 rounded-lg transition-colors border border-white/10"
         >
-          Preview
+          Preview ↗
         </a>
       </div>
 
