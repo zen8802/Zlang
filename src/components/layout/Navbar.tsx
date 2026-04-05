@@ -15,8 +15,8 @@ interface NavLink {
 const navLinks: NavLink[] = [
   { key: 'nav.dashboard', href: '/dashboard' },
   { key: 'nav.lessons', href: '/lessons' },
+  { key: 'nav.share', href: '/share' },
   { key: 'nav.dojo', href: '/dojo' },
-  { key: 'nav.humorLab', href: '/humor' },
 ]
 
 export default function Navbar() {

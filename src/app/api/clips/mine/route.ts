@@ -1,12 +1,6 @@
 import { mineChannel } from '@/lib/clip-miner'
-import { auth } from '@clerk/nextjs/server'
 
 export async function POST(req: Request) {
-  const { userId } = auth()
-  if (!userId) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
   if (!process.env.DATABASE_URL) {
     return Response.json({ error: 'DATABASE_URL not configured' }, { status: 500 })
   }

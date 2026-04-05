@@ -1024,6 +1024,10 @@ const translations: Record<string, { en: string; jp: string }> = {
     en: 'Lessons',
     jp: 'レッスン',
   },
+  'nav.share': {
+    en: 'Share',
+    jp: 'シェア',
+  },
   'nav.dojo': {
     en: 'Dojo',
     jp: '道場',

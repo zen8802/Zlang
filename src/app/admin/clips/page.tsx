@@ -27,7 +27,10 @@ export default function ClipAdmin() {
 
   const loadStats = useCallback(() => {
     fetch('/api/clips/stats')
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`Stats API returned ${r.status}`)
+        return r.json()
+      })
       .then((data) => {
         if (data.error) setError(data.error)
         else setStats(data)

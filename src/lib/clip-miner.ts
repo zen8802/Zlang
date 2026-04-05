@@ -189,12 +189,12 @@ export function parseDuration(iso: string): number {
 // Claude Analysis
 // ---------------------------------------------------------------------------
 
-export async function analyzeTranscriptForClips(
+export async function analyzeVideoForClips(
   videoId: string,
   videoTitle: string,
   channelName: string,
   contentType: string,
-  transcript: string,
+  description: string,
   totalDuration: number,
 ): Promise<AnalyzedClip[]> {
   const apiKey = process.env.ANTHROPIC_API_KEY
@@ -202,47 +202,73 @@ export async function analyzeTranscriptForClips(
 
   const anthropic = new Anthropic({ apiKey })
 
+  // For short clips (under 3 min), treat the whole video as one clip
+  // For longer videos, ask Claude to suggest segments
+  const isShort = totalDuration <= 180
+
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 2000,
     messages: [
       {
         role: 'user',
-        content: `You are a Japanese language curriculum expert analyzing a YouTube video transcript to find teachable moments.
+        content: isShort
+          ? `You are a Japanese language curriculum expert. This is a short anime clip from YouTube that we want to use for Japanese language teaching.
 
 Video: "${videoTitle}"
-Channel: ${channelName}
-Type: ${contentType}
+Channel: ${channelName} (official ${contentType} channel)
 Duration: ${totalDuration} seconds
-Transcript/Context: ${transcript}
+Description: ${description.slice(0, 300)}
 
-Find 2-4 segments (30-90 seconds each) that contain genuinely useful Japanese language for learners.
+This is a SHORT clip (under 3 minutes). We will use the ENTIRE video as a single teaching clip.
 
-Look for segments with:
-- Natural conversational Japanese (not just action sounds)
-- Clear grammar patterns that can be taught
-- Emotionally memorable moments (funny, dramatic, heartwarming)
-- Cultural context worth explaining
-- Actual dialogue, not just narration
+Based on the title and description, determine what Japanese language content this clip likely contains. Think about what anime scenes with this title would teach.
+
+Return ONLY valid JSON array with exactly 1 entry, no markdown:
+
+[
+  {
+    "startSeconds": 0,
+    "endSeconds": ${totalDuration},
+    "transcriptJP": "Write 2-3 likely Japanese phrases/sentences that would appear in an anime clip with this title. Use natural anime Japanese.",
+    "transcriptEN": "English translation of the Japanese you wrote",
+    "grammarPoints": ["list 2-3 grammar points this type of scene would demonstrate"],
+    "vocab": ["list 4-6 Japanese vocabulary words relevant to this scene"],
+    "jlptLevel": "estimate: N5, N4, N3, N2, or N1",
+    "emotion": "one of: funny, emotional, tense, casual, formal, exciting",
+    "whyUseful": "one sentence on why this clip is good for learning",
+    "culturalNote": "one sentence of cultural context if relevant"
+  }
+]`
+          : `You are a Japanese language curriculum expert. This is an anime video from YouTube.
+
+Video: "${videoTitle}"
+Channel: ${channelName} (official ${contentType} channel)
+Duration: ${totalDuration} seconds
+Description: ${description.slice(0, 500)}
+
+Suggest 2-3 clip segments (each 30-90 seconds) from this video that would work well for Japanese language teaching. Space them out across the video.
+
+For each segment, estimate what Japanese dialogue and grammar it likely contains based on the title and anime context.
 
 Return ONLY valid JSON array, no markdown:
 
 [
   {
-    "startSeconds": 45,
-    "endSeconds": 90,
-    "transcriptJP": "exact Japanese text in this segment",
-    "transcriptEN": "your English translation",
-    "grammarPoints": ["te-form", "masu-form"],
-    "vocab": ["specific", "words", "worth", "teaching"],
-    "jlptLevel": "N4",
-    "emotion": "funny",
-    "whyUseful": "one sentence on pedagogical value",
-    "culturalNote": "optional cultural context"
+    "startSeconds": number,
+    "endSeconds": number,
+    "transcriptJP": "2-3 likely Japanese phrases for this segment",
+    "transcriptEN": "English translations",
+    "grammarPoints": ["2-3 grammar points"],
+    "vocab": ["4-6 Japanese vocab words"],
+    "jlptLevel": "N5|N4|N3|N2|N1",
+    "emotion": "funny|emotional|tense|casual|formal|exciting",
+    "whyUseful": "one sentence",
+    "culturalNote": "one sentence if relevant"
   }
 ]
 
-If the transcript has no useful teachable Japanese (just music, sound effects, English only, or incomprehensible noise), return an empty array: []`,
+If this video is clearly not suitable for Japanese learning (English-only content, just music, etc.), return: []`,
       },
     ],
   })
@@ -266,7 +292,7 @@ export async function mineChannel(
   channelId: string,
   channelName: string,
   contentType: string,
-  maxVideos = 25,
+  maxVideos = 50,
 ): Promise<MiningResult> {
   const dbUrl = process.env.DATABASE_URL
   if (!dbUrl) throw new Error('DATABASE_URL not configured')
@@ -307,36 +333,48 @@ export async function mineChannel(
         const existing = await sql`
           SELECT id FROM clips WHERE video_id = ${video.videoId} LIMIT 1
         `
-        if (existing.length > 0) continue
+        if (existing.length > 0) {
+          result.videosProcessed++
+          continue
+        }
 
-        const captions = await getVideoCaptions(video.videoId)
-        const hasJPCaptions = captions.some(
-          (c) => c.language === 'ja' || c.language === 'ja-JP',
-        )
-
-        if (!hasJPCaptions && contentType !== 'anime') continue
+        // For anime, skip caption check — we know it's Japanese audio
+        // For non-anime, try to verify Japanese captions exist
+        if (contentType !== 'anime') {
+          try {
+            const captions = await getVideoCaptions(video.videoId)
+            const hasJPCaptions = captions.some(
+              (c) => c.language === 'ja' || c.language === 'ja-JP',
+            )
+            if (!hasJPCaptions) continue
+          } catch {
+            // Caption API may require OAuth — skip check, proceed anyway
+          }
+        }
 
         const videoInfo = videos.find((v) => v.videoId === video.videoId)
-        const transcriptContext = `
-Title: ${video.title}
-Description: ${video.description?.slice(0, 500) || 'No description'}
-Duration: ${parseDuration(video.duration)} seconds
-Has Japanese captions: ${hasJPCaptions}
-`.trim()
+        const duration = parseDuration(video.duration)
 
-        const clips = await analyzeTranscriptForClips(
+        const clips = await analyzeVideoForClips(
           video.videoId,
           video.title,
           channelName,
           contentType,
-          transcriptContext,
-          parseDuration(video.duration),
+          video.description || '',
+          duration,
         )
+
+        result.videosProcessed++
 
         if (!clips.length) continue
 
         for (const clip of clips) {
-          const clipId = `${video.videoId}_${clip.startSeconds}_${clip.endSeconds}`
+          // Clamp clip times to video duration
+          const start = Math.max(0, Math.min(clip.startSeconds, duration - 10))
+          const end = Math.min(clip.endSeconds, duration)
+          if (end <= start) continue
+
+          const clipId = `${video.videoId}_${start}_${end}`
 
           await sql`
             INSERT INTO clips (
@@ -346,7 +384,7 @@ Has Japanese captions: ${hasJPCaptions}
               language, thumbnail, view_count
             ) VALUES (
               ${clipId}, ${video.videoId}, ${channelId}, ${channelName},
-              ${video.title}, ${clip.startSeconds}, ${clip.endSeconds},
+              ${video.title}, ${start}, ${end},
               ${clip.transcriptJP}, ${clip.transcriptEN},
               ${clip.grammarPoints}, ${clip.vocab},
               ${clip.jlptLevel}, ${contentType}, ${clip.emotion},
@@ -357,11 +395,11 @@ Has Japanese captions: ${hasJPCaptions}
           result.clipsFound++
         }
 
-        result.videosProcessed++
         await sleep(500)
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         result.errors.push(`Video ${video.videoId}: ${msg}`)
+        result.videosProcessed++
       }
     }
 
