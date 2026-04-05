@@ -186,10 +186,8 @@ export default function VocabLockPhase({
             <div className="space-y-2">
               <ProgressBar
                 value={progressPercent}
-                color="accent"
-                label={`${reviewedCount}/${vocab.length} words reviewed`}
-                showPercentage={false}
-                height="h-2"
+                color="#1B4F8A"
+                height={8}
               />
 
               {/* Word navigation dots */}

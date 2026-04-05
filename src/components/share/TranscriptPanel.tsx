@@ -51,21 +51,37 @@ export default function TranscriptPanel({ lesson }: { lesson: Record<string, unk
       {/* Scrollable content */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 pb-2">
         {tab === 'transcript' && (
-          <div className="space-y-6 py-2">
-            {sentences.map((sentence, idx) => (
-              <SentenceRow
-                key={idx}
-                sentence={sentence}
-                showEnglish={showEnglish}
-                activeKeyword={activeKeyword}
-                onKeywordClick={(kw: Record<string, unknown>, rect: DOMRect) => {
-                  setActiveKeyword(activeKeyword?.word === kw.word ? null : kw)
-                  setPopupAnchor(rect)
-                }}
-              />
-            ))}
-            <div className="h-4" />
-          </div>
+          lesson.languageConfidence === 'none' ? (
+            <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+              <span className="text-4xl mb-4">🎌</span>
+              <p className="font-display font-bold text-foreground mb-2">No Japanese detected</p>
+              <p className="text-sm text-foreground/40 font-body leading-relaxed">
+                This video didn&apos;t have Japanese audio or captions we could read.
+                Try a video from a Japanese creator or with Japanese dialogue.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-6 py-2">
+              {typeof lesson.transcriptNote === 'string' && (
+                <div className="px-3 py-2 bg-amber-50 rounded-xl border border-amber-100">
+                  <p className="text-xs text-amber-600 font-body">{lesson.transcriptNote}</p>
+                </div>
+              )}
+              {sentences.map((sentence, idx) => (
+                <SentenceRow
+                  key={idx}
+                  sentence={sentence}
+                  showEnglish={showEnglish}
+                  activeKeyword={activeKeyword}
+                  onKeywordClick={(kw: Record<string, unknown>, rect: DOMRect) => {
+                    setActiveKeyword(activeKeyword?.word === kw.word ? null : kw)
+                    setPopupAnchor(rect)
+                  }}
+                />
+              ))}
+              <div className="h-4" />
+            </div>
+          )
         )}
 
         {tab === 'vocab' && <VocabDeck vocab={vocabList} />}
@@ -79,7 +95,7 @@ export default function TranscriptPanel({ lesson }: { lesson: Record<string, unk
       </div>
 
       {/* Tab bar — pinned bottom */}
-      <div className="flex-shrink-0 border-t border-gray-100 bg-white grid grid-cols-4 safe-bottom">
+      <div className="flex-shrink-0 border-t border-black/5 bg-background grid grid-cols-4 safe-bottom">
         {TABS.map((t) => (
           <button
             key={t.key}

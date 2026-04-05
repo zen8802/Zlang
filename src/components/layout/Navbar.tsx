@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
 import { useAppStore, t } from '@/store/useAppStore'
 import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
+import XPPill from '@/components/ui/XPPill'
+import StreakPill from '@/components/ui/StreakPill'
 
 interface NavLink {
   key: string
@@ -21,7 +22,6 @@ const navLinks: NavLink[] = [
 
 export default function Navbar() {
   const pathname = usePathname()
-  const [mobileOpen, setMobileOpen] = useState(false)
 
   const streak = useAppStore((s) => s.streak)
   const xpToday = useAppStore((s) => s.xpToday)
@@ -32,249 +32,70 @@ export default function Navbar() {
     setUiLanguage(uiLanguage === 'en' ? 'jp' : 'en')
   }, [uiLanguage, setUiLanguage])
 
-  const closeMobile = useCallback(() => setMobileOpen(false), [])
-
   return (
-    <nav
-      className="sticky top-0 z-40 w-full bg-black/[0.03] backdrop-blur-xl border-b border-black/[0.06]"
-      role="navigation"
-      aria-label="Main navigation"
-    >
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
-          {/* ---- Left: Logo ---- */}
-          <Link
-            href="/"
-            className="flex items-center gap-1 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 rounded-lg"
-          >
-            <span className="font-display text-2xl font-bold text-accent text-glow tracking-tight">
-              Zlang
-            </span>
-          </Link>
+    <>
+      <header className="sticky top-0 z-40 px-4 py-3 flex items-center justify-between" style={{ backgroundColor: '#F5F0EB', boxShadow: '0 2px 0 rgba(0,0,0,0.04)' }}>
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <span className="text-2xl font-black" style={{ fontFamily: 'Noto Sans JP', color: '#1B4F8A' }}>未来</span>
+          <span className="text-xs font-bold tracking-[0.2em]" style={{ color: '#9CA3AF' }}>ZLANG</span>
+        </Link>
 
-          {/* ---- Center: Desktop nav links ---- */}
-          <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => {
-              const isActive = pathname === link.href || pathname?.startsWith(link.href + '/')
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={[
-                    'relative px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
-                    isActive
-                      ? 'text-accent'
-                      : 'text-foreground/60 hover:text-foreground hover:bg-black/[0.03]',
-                  ].join(' ')}
-                >
-                  {t(link.key, uiLanguage)}
-                  {isActive && (
-                    <motion.span
-                      layoutId="navbar-active-pill"
-                      className="absolute inset-0 rounded-lg bg-accent/10 border border-accent/20"
-                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                    />
-                  )}
-                </Link>
-              )
-            })}
-          </div>
-
-          {/* ---- Right: Stats & controls ---- */}
-          <div className="hidden md:flex items-center gap-3">
-            {/* Streak */}
-            <div
-              className="flex items-center gap-1 text-sm text-foreground/60"
-              title={`${streak} day streak`}
-            >
-              <span role="img" aria-label="Streak">
-                🔥
-              </span>
-              <span className="tabular-nums font-medium">{streak}</span>
-            </div>
-
-            {/* XP today */}
-            <div
-              className="flex items-center gap-1 text-sm text-foreground/60"
-              title={`${xpToday} XP today`}
-            >
-              <span role="img" aria-label="XP today">
-                ⚡
-              </span>
-              <span className="tabular-nums font-medium">{xpToday}</span>
-            </div>
-
-            {/* Language toggle */}
-            <button
-              onClick={toggleLanguage}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-black/10 bg-black/[0.03] hover:bg-black/[0.05] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
-              aria-label={`Switch language to ${uiLanguage === 'en' ? 'Japanese' : 'English'}`}
-            >
-              {uiLanguage === 'en' ? 'EN' : 'JP'}
-            </button>
-
-            {/* Settings */}
-            <Link
-              href="/settings"
-              className="p-2 rounded-lg text-foreground/50 hover:text-foreground hover:bg-black/[0.03] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
-              aria-label={t('nav.settings', uiLanguage)}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <circle cx="12" cy="12" r="3" />
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-              </svg>
-            </Link>
-
-            {/* Auth */}
-            <SignedOut>
-              <Link
-                href="/sign-in"
-                className="text-xs font-medium text-foreground/50 hover:text-foreground transition-colors"
-              >
-                Log in
+        {/* Desktop nav */}
+        <nav className="hidden md:flex items-center gap-1">
+          {navLinks.map(link => {
+            const isActive = pathname === link.href || pathname?.startsWith(link.href + '/')
+            return (
+              <Link key={link.key} href={link.href} className={`px-4 py-2 rounded-[12px] text-sm font-bold transition-all ${isActive ? 'bg-[#EBF0F8] text-[#1B4F8A]' : 'text-[#6B7280] hover:text-[#1A1A2E] hover:bg-gray-50'}`} style={{ fontFamily: 'Nunito' }}>
+                {t(link.key, uiLanguage)}
               </Link>
-              <Link
-                href="/sign-up"
-                className="text-xs font-medium px-3 py-1.5 rounded-lg text-white transition-all hover:opacity-90"
-                style={{ backgroundColor: '#1B4F8A' }}
-              >
-                Sign up
-              </Link>
-            </SignedOut>
-            <SignedIn>
-              <UserButton
-                afterSignOutUrl="/"
-                appearance={{
-                  elements: { avatarBox: 'w-8 h-8' },
-                }}
-              />
-            </SignedIn>
-          </div>
+            )
+          })}
+        </nav>
 
-          {/* ---- Mobile: Hamburger button ---- */}
+        <div className="flex items-center gap-2">
+          <StreakPill streak={streak} />
+          <XPPill xp={xpToday} />
+
+          {/* Language toggle */}
           <button
-            onClick={() => setMobileOpen((prev) => !prev)}
-            className="md:hidden p-2 rounded-lg text-foreground/60 hover:text-foreground hover:bg-black/[0.03] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
-            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
-            aria-expanded={mobileOpen}
+            onClick={toggleLanguage}
+            className="hidden md:inline-flex px-3 py-1.5 rounded-[10px] text-xs font-bold transition-all hover:bg-[#EBF0F8]"
+            style={{ color: '#6B7280', fontFamily: 'Nunito' }}
+            aria-label={`Switch language to ${uiLanguage === 'en' ? 'Japanese' : 'English'}`}
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              {mobileOpen ? (
-                <>
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </>
-              ) : (
-                <>
-                  <line x1="4" y1="6" x2="20" y2="6" />
-                  <line x1="4" y1="12" x2="20" y2="12" />
-                  <line x1="4" y1="18" x2="20" y2="18" />
-                </>
-              )}
-            </svg>
+            {uiLanguage === 'en' ? 'EN' : 'JP'}
           </button>
+
+          {/* Clerk auth */}
+          <SignedOut>
+            <Link href="/sign-in" className="text-xs font-bold ml-2" style={{ color: '#6B7280', fontFamily: 'Nunito' }}>Log in</Link>
+            <Link href="/sign-up" className="text-xs font-bold text-white px-3 py-1.5 rounded-[10px] ml-1 shadow-[0_2px_0_#133970]" style={{ backgroundColor: '#1B4F8A', fontFamily: 'Nunito' }}>Sign up</Link>
+          </SignedOut>
+          <SignedIn>
+            <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: 'w-8 h-8 ml-2' } }} />
+          </SignedIn>
         </div>
-      </div>
+      </header>
 
-      {/* ---- Mobile menu dropdown ---- */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25, ease: 'easeInOut' }}
-            className="md:hidden overflow-hidden border-t border-black/[0.06]"
-          >
-            <div className="px-4 py-4 space-y-1">
-              {navLinks.map((link) => {
-                const isActive = pathname === link.href || pathname?.startsWith(link.href + '/')
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={closeMobile}
-                    className={[
-                      'block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                      isActive
-                        ? 'text-accent bg-accent/10'
-                        : 'text-foreground/60 hover:text-foreground hover:bg-black/[0.03]',
-                    ].join(' ')}
-                  >
-                    {t(link.key, uiLanguage)}
-                  </Link>
-                )
-              })}
-
-              {/* Mobile stats row */}
-              <div className="flex items-center gap-4 pt-3 mt-2 border-t border-black/[0.06] px-4">
-                <span className="flex items-center gap-1 text-sm text-foreground/60">
-                  <span role="img" aria-label="Streak">🔥</span>
-                  <span className="tabular-nums">{streak}</span>
-                </span>
-                <span className="flex items-center gap-1 text-sm text-foreground/60">
-                  <span role="img" aria-label="XP today">⚡</span>
-                  <span className="tabular-nums">{xpToday}</span>
-                </span>
-                <button
-                  onClick={toggleLanguage}
-                  className="px-3 py-1 rounded-lg text-xs font-semibold border border-black/10 bg-black/[0.03] hover:bg-black/[0.05] transition-colors"
-                  aria-label={`Switch language to ${uiLanguage === 'en' ? 'Japanese' : 'English'}`}
-                >
-                  {uiLanguage === 'en' ? 'EN' : 'JP'}
-                </button>
-              </div>
-
-              {/* Mobile settings link */}
-              <Link
-                href="/settings"
-                onClick={closeMobile}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-foreground/60 hover:text-foreground hover:bg-black/[0.03] transition-colors"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                </svg>
-                {t('nav.settings', uiLanguage)}
+      {/* Mobile bottom nav */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-40 pb-[env(safe-area-inset-bottom)]" style={{ boxShadow: '0 -2px 12px rgba(0,0,0,0.06)' }}>
+        <div className="flex justify-around px-2 py-2">
+          {[
+            { key: 'nav.dashboard', href: '/dashboard', icon: '🏠', label: t('nav.dashboard', uiLanguage) },
+            { key: 'nav.lessons', href: '/lessons', icon: '📚', label: t('nav.lessons', uiLanguage) },
+            { key: 'nav.share', href: '/share', icon: '🎬', label: t('nav.share', uiLanguage) },
+            { key: 'nav.dojo', href: '/dojo', icon: '🥋', label: t('nav.dojo', uiLanguage) },
+          ].map(item => {
+            const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
+            return (
+              <Link key={item.key} href={item.href} className={`flex flex-col items-center gap-1 px-4 py-2 rounded-[16px] transition-all duration-150 min-w-[60px] ${isActive ? 'bg-[#EBF0F8] text-[#1B4F8A]' : 'text-gray-400 hover:text-gray-600'}`}>
+                <span className="text-xl">{item.icon}</span>
+                <span className="text-[10px] font-bold" style={{ fontFamily: 'Nunito' }}>{item.label}</span>
               </Link>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </nav>
+            )
+          })}
+        </div>
+      </nav>
+    </>
   )
 }

@@ -254,7 +254,7 @@ export default function SettingsPage() {
             {/* Reset buttons */}
             <div className="space-y-3">
               <Button
-                variant="danger"
+                variant="wrong"
                 fullWidth
                 onClick={() => setShowResetModal(true)}
               >
@@ -314,7 +314,7 @@ export default function SettingsPage() {
 
       {/* ===== Corridor Switch Warning Modal ===== */}
       <Modal
-        open={showCorridorModal}
+        isOpen={showCorridorModal}
         onClose={() => {
           setShowCorridorModal(false)
           setPendingCorridor(null)
@@ -345,7 +345,7 @@ export default function SettingsPage() {
 
       {/* ===== Reset Progress Modal ===== */}
       <Modal
-        open={showResetModal}
+        isOpen={showResetModal}
         onClose={() => setShowResetModal(false)}
         title={t('settings.resetProgress', uiLanguage)}
       >
@@ -361,7 +361,7 @@ export default function SettingsPage() {
           <Button variant="secondary" fullWidth onClick={() => setShowResetModal(false)}>
             {t('common.cancel', uiLanguage)}
           </Button>
-          <Button variant="danger" fullWidth onClick={handleResetProgress}>
+          <Button variant="wrong" fullWidth onClick={handleResetProgress}>
             {t('settings.resetProgress', uiLanguage)}
           </Button>
         </div>
@@ -369,7 +369,7 @@ export default function SettingsPage() {
 
       {/* ===== Reset All Modal ===== */}
       <Modal
-        open={showResetAllModal}
+        isOpen={showResetAllModal}
         onClose={() => setShowResetAllModal(false)}
         title={t('settings.resetAll', uiLanguage)}
       >
@@ -385,7 +385,7 @@ export default function SettingsPage() {
           <Button variant="secondary" fullWidth onClick={() => setShowResetAllModal(false)}>
             {t('common.cancel', uiLanguage)}
           </Button>
-          <Button variant="danger" fullWidth onClick={handleResetAll}>
+          <Button variant="wrong" fullWidth onClick={handleResetAll}>
             {t('settings.resetAll', uiLanguage)}
           </Button>
         </div>

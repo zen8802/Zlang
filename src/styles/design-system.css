@@ -1,0 +1,104 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Nunito:wght@400;600;700;800;900&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --blue-primary: #1B4F8A;
+  --blue-dark: #133970;
+  --blue-light: #EBF0F8;
+  --blue-border: #B8CBE0;
+  --warm-bg: #F5F0EB;
+  --card-bg: #FFFFFF;
+  --card-bg-2: #FAF8F5;
+  --text-primary: #1A1A2E;
+  --text-secondary: #6B7280;
+  --text-muted: #9CA3AF;
+  --green-correct: #58CC02;
+  --green-light: #E5F9D0;
+  --green-border: #89E219;
+  --red-wrong: #FF4B4B;
+  --red-light: #FFE5E5;
+  --gold-xp: #FFB800;
+  --gold-light: #FFF3CC;
+  --japanese-red: #E63946;
+  --shadow-sm: 0 2px 0 rgba(0,0,0,0.12);
+  --shadow-md: 0 4px 0 rgba(0,0,0,0.10);
+  --shadow-lg: 0 6px 0 rgba(0,0,0,0.08);
+  --shadow-card: 0 2px 8px rgba(0,0,0,0.06), 0 4px 0 rgba(0,0,0,0.06);
+  --shadow-float: 0 8px 24px rgba(0,0,0,0.10), 0 2px 0 rgba(0,0,0,0.06);
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-pill: 100px;
+  --font-ui: 'Nunito', sans-serif;
+  --font-jp: 'Noto Sans JP', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+}
+
+body {
+  font-family: var(--font-ui);
+  background-color: var(--warm-bg);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+[lang="ja"], .jp-text {
+  font-family: var(--font-jp);
+}
+
+/* Button physical press */
+.btn-press:active {
+  transform: translateY(4px);
+  box-shadow: none !important;
+}
+
+/* Card hover lift */
+.card-lift {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.card-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.10), 0 4px 0 rgba(0,0,0,0.06);
+}
+
+/* Bounce in */
+@keyframes bounceIn {
+  0%   { transform: scale(0.3); opacity: 0; }
+  50%  { transform: scale(1.05); }
+  70%  { transform: scale(0.9); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.bounce-in { animation: bounceIn 0.4s cubic-bezier(0.36,0.07,0.19,0.97); }
+
+/* XP appear */
+@keyframes countUp {
+  from { transform: translateY(10px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+.xp-appear { animation: countUp 0.3s ease-out; }
+
+/* Correct pulse */
+@keyframes correctPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(88,204,2,0.4); }
+  70%  { box-shadow: 0 0 0 12px rgba(88,204,2,0); }
+  100% { box-shadow: 0 0 0 0 rgba(88,204,2,0); }
+}
+.correct-pulse { animation: correctPulse 0.6s ease-out; }
+
+/* Streak wiggle */
+@keyframes wiggle {
+  0%,100% { transform: rotate(-3deg); }
+  50%     { transform: rotate(3deg); }
+}
+.wiggle { animation: wiggle 0.3s ease-in-out 2; }
+
+/* Page slide up */
+@keyframes slideUp {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+.page-enter { animation: slideUp 0.25s ease-out; }
+
+/* Safe area bottom */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 8px);
+}

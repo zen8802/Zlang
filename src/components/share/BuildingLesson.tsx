@@ -21,14 +21,14 @@ export default function BuildingLesson({ parsed }: { parsed: ParsedUrl | null })
   }, [])
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-black">
+    <div className="fixed inset-0 flex flex-col bg-background">
       <div style={{ height: '52vh' }}>
         {parsed && (
           <iframe src={parsed.embedUrl} className="w-full h-full" allowFullScreen allow="autoplay; encrypted-media" />
         )}
       </div>
 
-      <div className="flex-1 bg-white rounded-t-3xl flex flex-col items-center justify-center px-6" style={{ marginTop: '-16px' }}>
+      <div className="flex-1 bg-background rounded-t-3xl flex flex-col items-center justify-center px-6" style={{ marginTop: '-16px' }}>
         <div className="relative mb-6">
           <div className="text-6xl animate-pulse font-jp">学</div>
           <div className="absolute inset-0 flex items-center justify-center">

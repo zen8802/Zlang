@@ -38,6 +38,7 @@ function ShareContent() {
     setStage('building')
 
     try {
+      // Step 1: Server-side transcript pipeline (captions → AssemblyAI → metadata)
       const metaRes = await fetch('/api/clips/fetch-meta', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -45,12 +46,32 @@ function ShareContent() {
       })
       const meta = await metaRes.json()
 
+      // Save to shared media history
+      try {
+        const history = JSON.parse(localStorage.getItem('zlang_shared_media') || '[]')
+        const exists = history.some((m: Record<string, string>) => m.videoId === parsedUrl.videoId)
+        if (!exists) {
+          history.unshift({
+            url,
+            title: meta.title || 'Shared video',
+            platform,
+            videoId: parsedUrl.videoId,
+            sharedAt: new Date().toISOString(),
+          })
+          localStorage.setItem('zlang_shared_media', JSON.stringify(history.slice(0, 50)))
+        }
+      } catch { /* ignore storage errors */ }
+
+      // Step 2: Send to Claude for lesson generation
       const lessonRes = await fetch('/api/claude/shared-lesson', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           videoTitle: meta.title || '',
           transcript: meta.transcript || '',
+          transcriptSource: meta.transcriptSource || 'none',
+          transcriptConfidence: meta.transcriptConfidence || 'low',
+          durationSeconds: meta.durationSeconds,
           platform,
           userLevel: 'beginner',
         }),
@@ -80,13 +101,13 @@ function ShareContent() {
   if (stage === 'building') return <BuildingLesson parsed={parsed} />
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-black overflow-hidden no-bounce">
+    <div className="fixed inset-0 flex flex-col bg-background overflow-hidden no-bounce">
       <div className="flex-shrink-0" style={{ height: '52vh' }}>
         <VideoPanel parsed={parsed} />
       </div>
       <div
-        className="flex-1 flex flex-col bg-white rounded-t-3xl overflow-hidden"
-        style={{ boxShadow: '0 -8px 32px rgba(0,0,0,0.3)', marginTop: '-16px' }}
+        className="flex-1 flex flex-col bg-background rounded-t-3xl overflow-hidden"
+        style={{ boxShadow: '0 -8px 32px rgba(0,0,0,0.1)', marginTop: '-16px' }}
       >
         {lesson && <TranscriptPanel lesson={lesson} />}
       </div>

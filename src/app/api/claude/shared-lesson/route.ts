@@ -6,7 +6,15 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { videoTitle, transcript, platform, userLevel = 'beginner' } = await req.json()
+    const {
+      videoTitle,
+      transcript,
+      platform,
+      userLevel = 'beginner',
+      transcriptSource = 'unknown',
+      transcriptConfidence = 'low',
+      durationSeconds,
+    } = await req.json()
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -21,8 +29,17 @@ Extract and teach the Japanese content from it.
 
 Platform: ${platform}
 Video Title: ${videoTitle}
-Available transcript/metadata: ${transcript}
+Transcript source: ${transcriptSource} (confidence: ${transcriptConfidence})
+Duration: ${durationSeconds ? Math.round(durationSeconds) + ' seconds' : 'unknown'}
 Learner level: ${userLevel}
+
+TRANSCRIPT:
+${transcript}
+
+${transcriptSource === 'captions' ? 'This transcript comes from official video captions. It is accurate — use it as authoritative source material.' : ''}
+${transcriptSource === 'assemblyai' ? 'This transcript was generated from actual audio via speech recognition. It represents real spoken Japanese.' : ''}
+${transcriptSource === 'metadata' ? 'Only video title/description available. Generate what you can but set languageConfidence to "low".' : ''}
+${transcriptSource === 'none' ? 'No transcript available. Set languageConfidence to "none". Do NOT invent Japanese dialogue.' : ''}
 
 Generate a complete lesson. Return ONLY valid JSON, no markdown fences:
 
@@ -91,15 +108,17 @@ If the content doesn't have clear Japanese dialogue, still generate useful conte
     const encoder = new TextEncoder()
     const readable = new ReadableStream({
       async start(controller) {
+        let closed = false
+        const close = () => {
+          if (!closed) { closed = true; controller.close() }
+        }
         stream.on('text', (text) => {
-          controller.enqueue(encoder.encode(text))
+          if (!closed) controller.enqueue(encoder.encode(text))
         })
-        stream.on('end', () => {
-          controller.close()
-        })
+        stream.on('end', close)
         stream.on('error', (err) => {
-          controller.enqueue(encoder.encode(JSON.stringify({ error: err.message })))
-          controller.close()
+          if (!closed) controller.enqueue(encoder.encode(JSON.stringify({ error: err.message })))
+          close()
         })
       },
     })

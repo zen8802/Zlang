@@ -610,7 +610,7 @@ export default function DojoPage() {
                     onClick={handleSendMessage}
                     disabled={!input.trim() || isLoading}
                     size="md"
-                    ariaLabel={uiLanguage === 'en' ? 'Send message' : 'メッセージ送信'}
+                    className="min-w-[44px]"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"

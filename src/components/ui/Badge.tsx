@@ -1,60 +1,32 @@
-'use client'
+import { ReactNode } from 'react'
 
-import { motion } from 'framer-motion'
-
-type BadgeColor = 'accent' | 'jp' | 'en' | 'neutral' | 'danger' | 'warning'
-type BadgeSize = 'sm' | 'md' | 'lg'
+type BadgeColor = 'blue' | 'green' | 'gold' | 'red' | 'gray' | 'purple'
 
 interface BadgeProps {
-  children: React.ReactNode
+  children: ReactNode
   color?: BadgeColor
-  size?: BadgeSize
-  emoji?: string
-  className?: string
+  size?: 'sm' | 'md'
 }
 
-const colorMap: Record<BadgeColor, string> = {
-  accent: 'bg-accent/15 text-accent border-accent/20',
-  jp: 'bg-accent-jp/15 text-accent-jp border-accent-jp/20',
-  en: 'bg-accent-en/15 text-accent-en border-accent-en/20',
-  neutral: 'bg-black/[0.05] text-foreground/80 border-black/10',
-  danger: 'bg-red-500/15 text-red-400 border-red-500/20',
-  warning: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/20',
+const COLORS: Record<BadgeColor, string> = {
+  blue: 'bg-[#EBF0F8] text-[#1B4F8A] border border-[#B8CBE0]',
+  green: 'bg-[#E5F9D0] text-[#2D8800] border border-[#89E219]',
+  gold: 'bg-[#FFF3CC] text-[#CC7700] border border-[#FFB800]',
+  red: 'bg-[#FFE5E5] text-[#CC0000] border border-[#FF4B4B]',
+  gray: 'bg-gray-100 text-gray-500 border border-gray-200',
+  purple: 'bg-purple-50 text-purple-600 border border-purple-200',
 }
 
-const sizeMap: Record<BadgeSize, string> = {
-  sm: 'px-2 py-0.5 text-xs gap-1',
-  md: 'px-3 py-1 text-sm gap-1.5',
-  lg: 'px-4 py-1.5 text-base gap-2',
-}
-
-export default function Badge({
-  children,
-  color = 'accent',
-  size = 'md',
-  emoji,
-  className = '',
-}: BadgeProps) {
+export default function Badge({ children, color = 'blue', size = 'md' }: BadgeProps) {
   return (
-    <motion.span
-      initial={{ opacity: 0, scale: 0.85 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-      className={[
-        'inline-flex items-center font-medium rounded-full border whitespace-nowrap',
-        colorMap[color],
-        sizeMap[size],
-        className,
-      ]
-        .filter(Boolean)
-        .join(' ')}
+    <span
+      className={`
+        ${COLORS[color]}
+        ${size === 'sm' ? 'text-xs px-2 py-0.5' : 'text-sm px-3 py-1'}
+        rounded-full font-bold inline-flex items-center gap-1
+      `}
     >
-      {emoji && (
-        <span className="shrink-0" role="img" aria-hidden="true">
-          {emoji}
-        </span>
-      )}
       {children}
-    </motion.span>
+    </span>
   )
 }

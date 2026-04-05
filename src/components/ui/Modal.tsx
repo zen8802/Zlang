@@ -1,156 +1,47 @@
 'use client'
 
-import { useEffect, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useEffect, useRef, ReactNode } from 'react'
 
 interface ModalProps {
-  open: boolean
+  isOpen: boolean
   onClose: () => void
   title?: string
-  children: React.ReactNode
-  /** Maximum width Tailwind class, e.g. "max-w-lg" */
-  maxWidth?: string
-  className?: string
+  children: ReactNode
 }
 
-const backdropVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1 },
-}
-
-const panelVariants = {
-  hidden: { opacity: 0, scale: 0.92, y: 24 },
-  visible: {
-    opacity: 1,
-    scale: 1,
-    y: 0,
-    transition: { type: 'spring' as const, stiffness: 350, damping: 30 },
-  },
-  exit: {
-    opacity: 0,
-    scale: 0.92,
-    y: 24,
-    transition: { duration: 0.2, ease: 'easeIn' as const },
-  },
-}
-
-export default function Modal({
-  open,
-  onClose,
-  title,
-  children,
-  maxWidth = 'max-w-lg',
-  className = '',
-}: ModalProps) {
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    },
-    [onClose],
-  )
+export default function Modal({ isOpen, onClose, title, children }: ModalProps) {
+  const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (open) {
-      document.addEventListener('keydown', handleKeyDown)
-      document.body.style.overflow = 'hidden'
-    }
+    if (!isOpen) return
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', handler)
+    document.body.style.overflow = 'hidden'
     return () => {
-      document.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('keydown', handler)
       document.body.style.overflow = ''
     }
-  }, [open, handleKeyDown])
+  }, [isOpen, onClose])
+
+  if (!isOpen) return null
 
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          initial="hidden"
-          animate="visible"
-          exit="hidden"
-          aria-modal="true"
-          role="dialog"
-          aria-label={title ?? 'Modal dialog'}
-        >
-          {/* Backdrop */}
-          <motion.div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            variants={backdropVariants}
-            onClick={onClose}
-            aria-hidden="true"
-          />
-
-          {/* Panel */}
-          <motion.div
-            variants={panelVariants}
-            className={[
-              'relative z-10 w-full glass-card p-6',
-              maxWidth,
-              className,
-            ]
-              .filter(Boolean)
-              .join(' ')}
-          >
-            {/* Header with title and close button */}
-            {title && (
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="text-xl font-display font-semibold text-foreground">
-                  {title}
-                </h2>
-                <button
-                  onClick={onClose}
-                  aria-label="Close modal"
-                  className="shrink-0 p-1.5 rounded-lg text-foreground/50 hover:text-foreground hover:bg-black/[0.05] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              </div>
-            )}
-
-            {/* Close button when no title */}
-            {!title && (
-              <button
-                onClick={onClose}
-                aria-label="Close modal"
-                className="absolute top-4 right-4 p-1.5 rounded-lg text-foreground/50 hover:text-foreground hover:bg-black/[0.05] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            )}
-
-            {/* Content */}
-            <div>{children}</div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+      <div
+        ref={ref}
+        onClick={(e) => e.stopPropagation()}
+        className="relative bg-white rounded-[24px] w-full max-w-sm p-6 bounce-in"
+        style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.2), 0 6px 0 rgba(0,0,0,0.05)' }}
+      >
+        {title && (
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-black" style={{ fontFamily: 'Nunito', color: '#1A1A2E' }}>{title}</h2>
+            <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors">✕</button>
+          </div>
+        )}
+        {children}
+      </div>
+    </div>
   )
 }

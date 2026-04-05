@@ -1,84 +1,48 @@
-'use client'
+import { ReactNode } from 'react'
 
-import { motion } from 'framer-motion'
-
-type GlowColor = 'accent' | 'jp' | 'en' | 'none'
-type Padding = 'none' | 'sm' | 'md' | 'lg'
+type CardVariant = 'default' | 'elevated' | 'flat' | 'bordered'
 
 interface CardProps {
-  children: React.ReactNode
-  glow?: GlowColor
-  padding?: Padding
-  onClick?: () => void
-  header?: React.ReactNode
-  footer?: React.ReactNode
+  children: ReactNode
+  variant?: CardVariant
   className?: string
-  /** Delay (seconds) before the card's entrance animation begins */
-  delay?: number
+  onClick?: () => void
+  padding?: 'sm' | 'md' | 'lg' | 'none'
 }
 
-const glowMap: Record<GlowColor, string> = {
-  accent: 'hover:shadow-[0_0_24px_rgba(27,79,138,0.25)]',
-  jp: 'hover:shadow-[0_0_24px_rgba(255,107,53,0.25)]',
-  en: 'hover:shadow-[0_0_24px_rgba(59,130,246,0.25)]',
-  none: '',
-}
-
-const paddingMap: Record<Padding, string> = {
-  none: '',
+const PADDING: Record<string, string> = {
   sm: 'p-3',
   md: 'p-5',
-  lg: 'p-7',
+  lg: 'p-6',
+  none: '',
+}
+
+const VARIANTS: Record<CardVariant, string> = {
+  default: 'bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06),0_4px_0_rgba(0,0,0,0.04)] border border-gray-100',
+  elevated: 'bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08),0_6px_0_rgba(0,0,0,0.05)] border border-gray-100',
+  flat: 'bg-[#FAF8F5] border border-gray-100',
+  bordered: 'bg-white border-2 border-[#B8CBE0]',
 }
 
 export default function Card({
   children,
-  glow = 'none',
-  padding = 'md',
-  onClick,
-  header,
-  footer,
+  variant = 'default',
   className = '',
-  delay = 0,
+  onClick,
+  padding = 'md',
 }: CardProps) {
-  const interactive = typeof onClick === 'function'
-
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: 'easeOut', delay }}
-      whileHover={interactive ? { scale: 1.01 } : undefined}
+    <div
       onClick={onClick}
-      role={interactive ? 'button' : undefined}
-      tabIndex={interactive ? 0 : undefined}
-      onKeyDown={
-        interactive
-          ? (e: React.KeyboardEvent) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                onClick?.()
-              }
-            }
-          : undefined
-      }
-      className={[
-        'glass-card transition-shadow duration-300',
-        glowMap[glow],
-        paddingMap[padding],
-        interactive ? 'cursor-pointer' : '',
-        className,
-      ]
-        .filter(Boolean)
-        .join(' ')}
+      className={`
+        rounded-[20px] transition-all duration-200
+        ${VARIANTS[variant]}
+        ${PADDING[padding]}
+        ${onClick ? 'cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(0,0,0,0.10)] active:translate-y-[2px] active:shadow-none' : ''}
+        ${className}
+      `}
     >
-      {header && (
-        <div className="mb-4 pb-3 border-b border-black/8">{header}</div>
-      )}
       {children}
-      {footer && (
-        <div className="mt-4 pt-3 border-t border-black/8">{footer}</div>
-      )}
-    </motion.div>
+    </div>
   )
 }

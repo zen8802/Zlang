@@ -12,10 +12,10 @@ interface ScenarioCardProps {
   delay?: number
 }
 
-const difficultyColor: Record<string, 'accent' | 'warning' | 'danger'> = {
-  Beginner: 'accent',
-  Intermediate: 'warning',
-  Advanced: 'danger',
+const difficultyColor: Record<string, 'green' | 'gold' | 'red'> = {
+  Beginner: 'green',
+  Intermediate: 'gold',
+  Advanced: 'red',
 }
 
 export default function ScenarioCard({

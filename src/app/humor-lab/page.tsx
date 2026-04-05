@@ -120,12 +120,12 @@ const humorClips: HumorClip[] = [
   },
 ]
 
-const categoryColors: Record<HumorCategory, 'accent' | 'jp' | 'en' | 'warning' | 'neutral'> = {
-  Sarcasm: 'jp',
-  Irony: 'en',
-  Wordplay: 'accent',
-  Physical: 'warning',
-  Cultural: 'neutral',
+const categoryColors: Record<HumorCategory, 'blue' | 'green' | 'gold' | 'red' | 'gray' | 'purple'> = {
+  Sarcasm: 'red',
+  Irony: 'blue',
+  Wordplay: 'purple',
+  Physical: 'gold',
+  Cultural: 'gray',
 }
 
 // ---------------------------------------------------------------------------
@@ -269,10 +269,7 @@ export default function HumorLabPage() {
 
               <ProgressBar
                 value={(lessonsCompleted.length / 10) * 100}
-                color="accent"
-                label={`${lessonsCompleted.length}/10 ${uiLanguage === 'en' ? 'lessons completed' : 'レッスン完了'}`}
-                showPercentage
-                className="mb-5"
+                color="#1B4F8A"
               />
 
               <Link href="/dashboard">
@@ -441,7 +438,7 @@ export default function HumorLabPage() {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                 >
-                  <Card padding="lg" glow="accent" className="text-center mb-5">
+                  <Card padding="lg" className="text-center mb-5">
                     <span className="text-4xl block mb-3">🎉</span>
                     <h3 className="text-lg font-bold text-accent mb-2">
                       {uiLanguage === 'en' ? 'You got it!' : '正解！'}
@@ -491,7 +488,7 @@ export default function HumorLabPage() {
                         <h3 className="text-base font-semibold text-accent">
                           {uiLanguage === 'en' ? 'Humor Decoded' : 'ユーモア解読'}
                         </h3>
-                        <Badge color="accent" size="sm">
+                        <Badge color="blue" size="sm">
                           +5 IQ
                         </Badge>
                       </div>

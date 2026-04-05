@@ -192,22 +192,17 @@ export default function DecodePhase({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.15 }}
               >
-                <Card
-                  glow={corridor === 'en-to-jp' ? 'jp' : 'en'}
-                  padding="lg"
-                  header={
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-foreground/40 uppercase tracking-wider">
-                        Element {i + 1}
-                      </span>
-                      <span
-                        className={`text-xs px-2.5 py-0.5 rounded-full border ${levelBadgeColor(element.level)}`}
-                      >
-                        {element.level}
-                      </span>
-                    </div>
-                  }
-                >
+                <Card padding="lg">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-xs text-foreground/40 uppercase tracking-wider">
+                      Element {i + 1}
+                    </span>
+                    <span
+                      className={`text-xs px-2.5 py-0.5 rounded-full border ${levelBadgeColor(element.level)}`}
+                    >
+                      {element.level}
+                    </span>
+                  </div>
                   <div className="space-y-4">
                     {/* Original line */}
                     <p className={`text-2xl font-jp font-bold leading-relaxed ${
