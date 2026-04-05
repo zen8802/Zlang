@@ -136,7 +136,7 @@ export default function AdminLessonsPage() {
             <Card
               key={lesson.id}
               variant="elevated"
-              onClick={() => router.push(`/admin/lessons/${lesson.id}`)}
+              onClick={() => router.push(`/admin/editor/${lesson.id}`)}
               padding="md"
             >
               <div className="flex items-start gap-4">
