@@ -9,10 +9,12 @@ import VideoPanel from '@/components/share/VideoPanel'
 import TranscriptPanel from '@/components/share/TranscriptPanel'
 
 type Stage = 'input' | 'building' | 'ready'
+type BuildStep = 'meta' | 'transcribing' | 'generating' | 'streaming'
 
 function ShareContent() {
   const params = useSearchParams()
   const [stage, setStage] = useState<Stage>('input')
+  const [buildStep, setBuildStep] = useState<BuildStep>('meta')
   const [parsed, setParsed] = useState<ReturnType<typeof parseUrl>>(null)
   const [lesson, setLesson] = useState<Record<string, unknown> | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -36,15 +38,37 @@ function ShareContent() {
     setError(null)
     setParsed(parsedUrl)
     setStage('building')
+    setBuildStep('meta')
 
     try {
-      // Step 1: Server-side transcript pipeline (captions → AssemblyAI → metadata)
+      // Step 1: Fetch metadata + try captions
+      setBuildStep('transcribing')
       const metaRes = await fetch('/api/clips/fetch-meta', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url, platform, videoId: parsedUrl.videoId }),
       })
       const meta = await metaRes.json()
+
+      // If no captions found, try client-side caption extraction
+      let transcript = meta.transcript || ''
+      let transcriptSource = meta.transcriptSource || 'none'
+      let transcriptConfidence = meta.transcriptConfidence || 'low'
+
+      if (!transcript || transcriptSource === 'none' || transcriptSource === 'metadata') {
+        // Try fetching captions client-side (browser has YouTube cookies)
+        try {
+          const { fetchYouTubeCaptions } = await import('@/lib/client-transcript')
+          const clientCaptions = await fetchYouTubeCaptions(parsedUrl.videoId, 'ja')
+          if (clientCaptions && clientCaptions.segments.length > 0) {
+            transcript = clientCaptions.segments.map(s => `[${Math.floor(s.start)}s] ${s.text}`).join('\n')
+            transcriptSource = 'captions'
+            transcriptConfidence = 'high'
+          }
+        } catch {
+          // Client-side extraction failed too
+        }
+      }
 
       // Save to shared media history
       try {
@@ -63,20 +87,22 @@ function ShareContent() {
       } catch { /* ignore storage errors */ }
 
       // Step 2: Send to Claude for lesson generation
+      setBuildStep('generating')
       const lessonRes = await fetch('/api/claude/shared-lesson', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           videoTitle: meta.title || '',
-          transcript: meta.transcript || '',
-          transcriptSource: meta.transcriptSource || 'none',
-          transcriptConfidence: meta.transcriptConfidence || 'low',
+          transcript,
+          transcriptSource,
+          transcriptConfidence,
           durationSeconds: meta.durationSeconds,
           platform,
           userLevel: 'beginner',
         }),
       })
 
+      setBuildStep('streaming')
       const reader = lessonRes.body?.getReader()
       if (!reader) throw new Error('No stream')
 
@@ -98,7 +124,7 @@ function ShareContent() {
   }
 
   if (stage === 'input') return <UrlInput onSubmit={handleUrl} error={error} />
-  if (stage === 'building') return <BuildingLesson parsed={parsed} />
+  if (stage === 'building') return <BuildingLesson parsed={parsed} step={buildStep} />
 
   return (
     <div className="fixed inset-0 flex flex-col bg-background overflow-hidden no-bounce">

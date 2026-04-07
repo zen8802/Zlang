@@ -17,7 +17,7 @@ const navLinks: NavLink[] = [
   { key: 'nav.dashboard', href: '/dashboard' },
   { key: 'nav.lessons', href: '/lessons' },
   { key: 'nav.share', href: '/share' },
-  { key: 'nav.dojo', href: '/dojo' },
+  { key: 'nav.studio', href: '/studio' },
 ]
 
 export default function Navbar() {
@@ -84,7 +84,7 @@ export default function Navbar() {
             { key: 'nav.dashboard', href: '/dashboard', icon: '🏠', label: t('nav.dashboard', uiLanguage) },
             { key: 'nav.lessons', href: '/lessons', icon: '📚', label: t('nav.lessons', uiLanguage) },
             { key: 'nav.share', href: '/share', icon: '🎬', label: t('nav.share', uiLanguage) },
-            { key: 'nav.dojo', href: '/dojo', icon: '🥋', label: t('nav.dojo', uiLanguage) },
+            { key: 'nav.studio', href: '/studio', icon: '🎭', label: t('nav.studio', uiLanguage) },
           ].map(item => {
             const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
             return (

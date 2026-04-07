@@ -8,8 +8,11 @@ const isPublicRoute = createRouteMatcher([
   '/api/youtube(.*)',
   '/api/chat(.*)',
   '/api/clips(.*)',
+  '/api/transcribe(.*)',
   '/lessons(.*)',
   '/share(.*)',
+  '/studio(.*)',
+  '/api/studio(.*)',
   '/admin(.*)',
 ])
 

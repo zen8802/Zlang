@@ -214,3 +214,13 @@ rt {
 .page-enter {
   animation: pageEnter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+
+/* Option card fade-in animation */
+@keyframes optionCardIn {
+  0% { opacity: 0; transform: translateY(16px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.option-card-enter {
+  animation: optionCardIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}

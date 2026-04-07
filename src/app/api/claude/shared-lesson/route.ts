@@ -38,8 +38,12 @@ ${transcript}
 
 ${transcriptSource === 'captions' ? 'This transcript comes from official video captions. It is accurate — use it as authoritative source material.' : ''}
 ${transcriptSource === 'assemblyai' ? 'This transcript was generated from actual audio via speech recognition. It represents real spoken Japanese.' : ''}
-${transcriptSource === 'metadata' ? 'Only video title/description available. Generate what you can but set languageConfidence to "low".' : ''}
-${transcriptSource === 'none' ? 'No transcript available. Set languageConfidence to "none". Do NOT invent Japanese dialogue.' : ''}
+${transcriptSource === 'metadata' || transcriptSource === 'none' ? `Only video title/description available — no actual transcript.
+Based on the title and context, generate a realistic Japanese lesson using phrases and vocabulary that would naturally appear in this type of content.
+For anime clips: use common anime dialogue patterns, natural casual Japanese.
+For NHK/news: use polite Japanese, daily life vocabulary.
+Generate 3-5 realistic Japanese sentences that fit the theme, with full annotations.
+Set languageConfidence to "medium" and add a transcriptNote explaining this was generated from context.` : ''}
 
 Generate a complete lesson. Return ONLY valid JSON, no markdown fences:
 

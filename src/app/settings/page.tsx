@@ -33,6 +33,10 @@ export default function SettingsPage() {
   const xpTotal = useAppStore((s) => s.xpTotal)
   const streak = useAppStore((s) => s.streak)
   const lessonsCompleted = useAppStore((s) => s.lessonsCompleted)
+  const showFurigana = useAppStore((s) => s.showFurigana)
+  const setShowFurigana = useAppStore((s) => s.setShowFurigana)
+  const showTranslation = useAppStore((s) => s.showTranslation)
+  const setShowTranslation = useAppStore((s) => s.setShowTranslation)
   const resetProgress = useAppStore((s) => s.resetProgress)
   const resetAll = useAppStore((s) => s.resetAll)
 
@@ -216,8 +220,62 @@ export default function SettingsPage() {
           </Card>
         </motion.div>
 
-        {/* ===== Progress ===== */}
+        {/* ===== Learning Preferences ===== */}
         <motion.div custom={1} initial="hidden" animate="visible" variants={sectionVariants}>
+          <Card padding="lg" className="mb-5">
+            <h2 className="text-lg font-semibold text-foreground mb-5 flex items-center gap-2">
+              <span className="text-accent/60">🎓</span>
+              {uiLanguage === 'en' ? 'Learning Preferences' : '学習設定'}
+            </h2>
+
+            {/* Show Furigana toggle */}
+            <div className="flex items-center justify-between p-4 border-b border-black/[0.06]">
+              <div>
+                <p className="font-bold text-sm" style={{ fontFamily: 'Nunito', color: '#1A1A2E' }}>
+                  {uiLanguage === 'en' ? 'Show Furigana' : 'ふりがな表示'}
+                </p>
+                <p className="text-xs" style={{ color: '#9CA3AF' }}>
+                  {uiLanguage === 'en' ? 'Show readings above kanji characters' : '漢字の上に読み方を表示'}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowFurigana(!showFurigana)}
+                className={`w-12 h-7 rounded-full transition-all duration-200 relative ${
+                  showFurigana ? 'bg-[#1B4F8A]' : 'bg-gray-300'
+                }`}
+              >
+                <div className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-all duration-200 ${
+                  showFurigana ? 'left-6' : 'left-1'
+                }`} />
+              </button>
+            </div>
+
+            {/* Show English Translation toggle */}
+            <div className="flex items-center justify-between p-4">
+              <div>
+                <p className="font-bold text-sm" style={{ fontFamily: 'Nunito', color: '#1A1A2E' }}>
+                  {uiLanguage === 'en' ? 'Show English Translation' : '英語翻訳を表示'}
+                </p>
+                <p className="text-xs" style={{ color: '#9CA3AF' }}>
+                  {uiLanguage === 'en' ? 'Show English below Japanese text' : '日本語テキストの下に英語を表示'}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowTranslation(!showTranslation)}
+                className={`w-12 h-7 rounded-full transition-all duration-200 relative ${
+                  showTranslation ? 'bg-[#1B4F8A]' : 'bg-gray-300'
+                }`}
+              >
+                <div className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-all duration-200 ${
+                  showTranslation ? 'left-6' : 'left-1'
+                }`} />
+              </button>
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* ===== Progress ===== */}
+        <motion.div custom={2} initial="hidden" animate="visible" variants={sectionVariants}>
           <Card padding="lg" className="mb-5">
             <h2 className="text-lg font-semibold text-foreground mb-5 flex items-center gap-2">
               <span className="text-accent/60">📊</span>
@@ -273,7 +331,7 @@ export default function SettingsPage() {
         </motion.div>
 
         {/* ===== About ===== */}
-        <motion.div custom={2} initial="hidden" animate="visible" variants={sectionVariants}>
+        <motion.div custom={3} initial="hidden" animate="visible" variants={sectionVariants}>
           <Card padding="lg" className="mb-5">
             <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
               <span className="text-accent/60">ℹ</span>

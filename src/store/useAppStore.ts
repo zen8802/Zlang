@@ -21,6 +21,10 @@ interface AppState {
   humorIQ: number
   dojoSessions: number
 
+  // Learning preferences
+  showFurigana: boolean
+  showTranslation: boolean
+
   // Actions
   setCorridor: (corridor: 'en-to-jp' | 'jp-to-en') => void
   setUiLanguage: (lang: 'en' | 'jp') => void
@@ -31,6 +35,8 @@ interface AppState {
   updateStreak: () => void
   incrementHumorIQ: (amount: number) => void
   incrementDojoSessions: () => void
+  setShowFurigana: (show: boolean) => void
+  setShowTranslation: (show: boolean) => void
   resetProgress: () => void
   resetAll: () => void
 }
@@ -74,6 +80,8 @@ const initialState = {
   } as Record<string, number>,
   humorIQ: 0,
   dojoSessions: 0,
+  showFurigana: true,
+  showTranslation: true,
 }
 
 // ---------------------------------------------------------------------------
@@ -140,6 +148,9 @@ export const useAppStore = create<AppState>()(
 
       incrementDojoSessions: () =>
         set((state) => ({ dojoSessions: state.dojoSessions + 1 })),
+
+      setShowFurigana: (show) => set({ showFurigana: show }),
+      setShowTranslation: (show) => set({ showTranslation: show }),
 
       resetProgress: () =>
         set({
@@ -1027,6 +1038,10 @@ const translations: Record<string, { en: string; jp: string }> = {
   'nav.share': {
     en: 'Share',
     jp: 'シェア',
+  },
+  'nav.studio': {
+    en: 'Studio',
+    jp: 'スタジオ',
   },
   'nav.dojo': {
     en: 'Dojo',
