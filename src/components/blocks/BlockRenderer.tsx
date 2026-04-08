@@ -8,6 +8,10 @@ import FillBlankBlockRenderer from './FillBlankBlockRenderer'
 import MatchingBlockRenderer from './MatchingBlockRenderer'
 import CultureNoteBlockRenderer from './CultureNoteBlockRenderer'
 import ShadowingBlockRenderer from './ShadowingBlockRenderer'
+import { ImageMatchBlockRenderer } from './ImageMatchBlockRenderer'
+import { AudioMatchBlockRenderer } from './AudioMatchBlockRenderer'
+import { DialogueChoiceBlockRenderer } from './DialogueChoiceBlockRenderer'
+import { TraceBlockRenderer } from './TraceBlockRenderer'
 
 interface Props {
   block: LessonBlock
@@ -30,6 +34,14 @@ export default function BlockRenderer({ block, onComplete }: Props) {
       return <CultureNoteBlockRenderer block={block} onComplete={onComplete} />
     case 'shadowing':
       return <ShadowingBlockRenderer block={block} onComplete={onComplete} />
+    case 'image_match':
+      return <ImageMatchBlockRenderer block={block} onComplete={onComplete} />
+    case 'audio_match':
+      return <AudioMatchBlockRenderer block={block} onComplete={onComplete} />
+    case 'dialogue_choice':
+      return <DialogueChoiceBlockRenderer block={block} onComplete={onComplete} />
+    case 'trace':
+      return <TraceBlockRenderer block={block} onComplete={onComplete} />
     case 'video':
     case 'translation':
     case 'reading':

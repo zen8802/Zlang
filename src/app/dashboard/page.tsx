@@ -4,44 +4,15 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAppStore, t } from '@/store/useAppStore'
-import { getNextLessonForCorridor, getLessonsByCorridor } from '@/data/curriculum'
 import Navbar from '@/components/layout/Navbar'
 
-interface SharedMedia {
-  url: string
+interface DbLesson {
+  id: string
   title: string
-  platform: string
-  videoId: string
-  sharedAt: string
-}
-
-function getSharedMedia(): SharedMedia[] {
-  if (typeof window === 'undefined') return []
-  try {
-    return JSON.parse(localStorage.getItem('zlang_shared_media') || '[]')
-  } catch {
-    return []
-  }
-}
-
-function platformIcon(platform: string): string {
-  switch (platform) {
-    case 'youtube': return '▶️'
-    case 'youtube-shorts': return '📱'
-    case 'tiktok': return '🎵'
-    case 'instagram': return '📷'
-    default: return '🔗'
-  }
-}
-
-function platformLabel(platform: string): string {
-  switch (platform) {
-    case 'youtube': return 'YouTube'
-    case 'youtube-shorts': return 'Shorts'
-    case 'tiktok': return 'TikTok'
-    case 'instagram': return 'Instagram'
-    default: return 'Video'
-  }
+  order: number
+  unit: number
+  estimated_minutes: number
+  jlpt_level: string
 }
 
 export default function DashboardPage() {
@@ -53,25 +24,31 @@ export default function DashboardPage() {
   const streak = useAppStore((s) => s.streak)
   const xpToday = useAppStore((s) => s.xpToday)
 
-  const [sharedMedia, setSharedMedia] = useState<SharedMedia[]>([])
+  const [allLessons, setAllLessons] = useState<DbLesson[]>([])
+  const [loadingLessons, setLoadingLessons] = useState(true)
 
   useEffect(() => {
-    if (!corridor) {
-      router.replace('/')
-    }
+    if (!corridor) { router.replace('/'); return }
+    fetch('/api/admin/lessons')
+      .then(r => r.json())
+      .then(data => {
+        const published = ((data.lessons || []) as DbLesson[])
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .filter((l: any) => l.is_published !== false)
+          .sort((a: DbLesson, b: DbLesson) => a.unit - b.unit || a.order - b.order)
+        setAllLessons(published)
+      })
+      .catch(() => setAllLessons([]))
+      .finally(() => setLoadingLessons(false))
   }, [corridor, router])
-
-  useEffect(() => {
-    setSharedMedia(getSharedMedia())
-  }, [])
 
   if (!corridor) return null
 
-  const nextLesson = getNextLessonForCorridor(corridor, lessonsCompleted)
-  const totalLessons = getLessonsByCorridor(corridor).length
-  const completedCount = lessonsCompleted.length
+  const nextLesson = allLessons.find(l => !lessonsCompleted.includes(l.id)) || null
+  const totalLessons = allLessons.length
+  const completedCount = lessonsCompleted.filter(id => allLessons.some(l => l.id === id)).length
   const lessonProgress = totalLessons > 0 ? completedCount / totalLessons : 0
-  const allDone = !nextLesson
+  const allDone = !nextLesson && !loadingLessons
 
   return (
     <div className="min-h-screen pb-24" style={{ backgroundColor: '#F5F0EB' }}>
@@ -147,15 +124,13 @@ export default function DashboardPage() {
           ) : nextLesson ? (
             <div className="mt-4">
               <p className="text-xs mb-1" style={{ color: '#9CA3AF' }}>
-                {t('dashboard.unit', uiLanguage)} {nextLesson.unit}:{' '}
-                {uiLanguage === 'jp' ? nextLesson.unitTitleJP : nextLesson.unitTitle}
+                {t('dashboard.unit', uiLanguage)} {nextLesson.unit} · Lesson {nextLesson.order}
               </p>
               <p
                 className="text-sm font-bold mb-3"
                 style={{ color: '#1A1A2E', fontFamily: 'Nunito' }}
               >
-                {t('dashboard.lesson', uiLanguage)} {nextLesson.lessonNumber}:{' '}
-                {uiLanguage === 'jp' ? nextLesson.titleJP : nextLesson.title}
+                {nextLesson.title}
               </p>
               <Link href={`/lesson/${nextLesson.id}`}>
                 <button
@@ -169,141 +144,22 @@ export default function DashboardPage() {
           ) : null}
         </div>
 
-        {/* Shared Media section */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2
-              className="text-lg font-bold"
-              style={{ fontFamily: 'Nunito', color: '#1A1A2E' }}
-            >
-              Shared Media
-            </h2>
-            <Link
-              href="/share"
-              className="text-xs font-bold"
-              style={{ color: '#1B4F8A' }}
-            >
-              + Share
-            </Link>
-          </div>
-
-          {sharedMedia.length === 0 ? (
-            <Link href="/share">
-              <div
-                className="bg-white rounded-[20px] p-8 text-center cursor-pointer transition-all duration-150 hover:-translate-y-0.5"
-                style={{
-                  boxShadow:
-                    '0 2px 8px rgba(0,0,0,0.06), 0 4px 0 rgba(0,0,0,0.04)',
-                  border: '1px solid rgba(0,0,0,0.04)',
-                }}
-              >
-                <span className="text-4xl block mb-3">🎬</span>
-                <p className="text-sm font-bold" style={{ color: '#6B7280' }}>
-                  No videos shared yet
-                </p>
-                <p className="text-xs mt-1" style={{ color: '#9CA3AF' }}>
-                  Share a Japanese video to learn from it
-                </p>
-              </div>
-            </Link>
-          ) : (
-            <div className="space-y-3">
-              {sharedMedia.slice(0, 5).map((media) => {
-                const isYouTube =
-                  media.platform === 'youtube' ||
-                  media.platform === 'youtube-shorts'
-                return (
-                  <Link
-                    key={media.videoId + media.sharedAt}
-                    href={`/share?url=${encodeURIComponent(media.url)}`}
-                  >
-                    <div
-                      className="bg-white rounded-[16px] p-3 flex items-center gap-3 cursor-pointer transition-all duration-150 hover:-translate-y-0.5"
-                      style={{
-                        boxShadow:
-                          '0 2px 8px rgba(0,0,0,0.06), 0 4px 0 rgba(0,0,0,0.04)',
-                        border: '1px solid rgba(0,0,0,0.04)',
-                      }}
-                    >
-                      {/* Thumbnail */}
-                      {isYouTube ? (
-                        <div className="w-20 h-14 rounded-[10px] overflow-hidden bg-gray-100 flex-shrink-0">
-                          <img
-                            src={`https://img.youtube.com/vi/${media.videoId}/mqdefault.jpg`}
-                            alt=""
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-20 h-14 rounded-[10px] bg-gray-100 flex items-center justify-center flex-shrink-0">
-                          <span className="text-2xl">
-                            {platformIcon(media.platform)}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p
-                          className="text-sm font-bold truncate"
-                          style={{ color: '#1A1A2E', fontFamily: 'Nunito' }}
-                        >
-                          {media.title || 'Shared video'}
-                        </p>
-                        <p className="text-xs mt-0.5" style={{ color: '#9CA3AF' }}>
-                          {platformIcon(media.platform)}{' '}
-                          {platformLabel(media.platform)}
-                        </p>
-                      </div>
-                    </div>
-                  </Link>
-                )
-              })}
-            </div>
-          )}
-        </div>
-
         {/* Quick Actions */}
         <div className="mb-4">
-          <h2
-            className="text-lg font-bold mb-3"
-            style={{ fontFamily: 'Nunito', color: '#1A1A2E' }}
-          >
+          <h2 className="text-lg font-bold mb-3" style={{ fontFamily: 'Nunito', color: '#1A1A2E' }}>
             {t('dashboard.quickActions', uiLanguage)}
           </h2>
           <div className="grid grid-cols-2 gap-3">
-            <Link href="/share">
-              <div
-                className="bg-white rounded-[20px] p-5 text-center cursor-pointer transition-all duration-150 hover:-translate-y-0.5 active:translate-y-[2px]"
-                style={{
-                  boxShadow:
-                    '0 2px 8px rgba(0,0,0,0.06), 0 4px 0 rgba(0,0,0,0.04)',
-                  border: '1px solid rgba(0,0,0,0.04)',
-                }}
-              >
-                <span className="text-3xl block mb-2">🎬</span>
-                <span
-                  className="text-sm font-bold"
-                  style={{ color: '#1A1A2E', fontFamily: 'Nunito' }}
-                >
-                  Share Video
-                </span>
+            <Link href="/studio">
+              <div className="bg-white rounded-[20px] p-5 text-center cursor-pointer transition-all duration-150 hover:-translate-y-0.5 active:translate-y-[2px]" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06), 0 4px 0 rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.04)' }}>
+                <span className="text-3xl block mb-2">🎭</span>
+                <span className="text-sm font-bold" style={{ color: '#1A1A2E', fontFamily: 'Nunito' }}>Scenario Studio</span>
               </div>
             </Link>
-            <Link href="/dojo">
-              <div
-                className="bg-white rounded-[20px] p-5 text-center cursor-pointer transition-all duration-150 hover:-translate-y-0.5 active:translate-y-[2px]"
-                style={{
-                  boxShadow:
-                    '0 2px 8px rgba(0,0,0,0.06), 0 4px 0 rgba(0,0,0,0.04)',
-                  border: '1px solid rgba(0,0,0,0.04)',
-                }}
-              >
-                <span className="text-3xl block mb-2">🥋</span>
-                <span
-                  className="text-sm font-bold"
-                  style={{ color: '#1A1A2E', fontFamily: 'Nunito' }}
-                >
-                  {t('dashboard.conversationDojo', uiLanguage)}
-                </span>
+            <Link href="/lessons">
+              <div className="bg-white rounded-[20px] p-5 text-center cursor-pointer transition-all duration-150 hover:-translate-y-0.5 active:translate-y-[2px]" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06), 0 4px 0 rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.04)' }}>
+                <span className="text-3xl block mb-2">📚</span>
+                <span className="text-sm font-bold" style={{ color: '#1A1A2E', fontFamily: 'Nunito' }}>All Lessons</span>
               </div>
             </Link>
           </div>

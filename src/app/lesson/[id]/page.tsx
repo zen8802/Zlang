@@ -1,273 +1,90 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
 import { useAppStore } from '@/store/useAppStore'
-import { getLessonById } from '@/data/curriculum'
-import ImmersionPhase from '@/components/lesson/ImmersionPhase'
-import DecodePhase from '@/components/lesson/DecodePhase'
-import ShadowingPhase from '@/components/lesson/ShadowingPhase'
-import ResponsePhase from '@/components/lesson/ResponsePhase'
-import CulturalDivePhase from '@/components/lesson/CulturalDivePhase'
-import VocabLockPhase from '@/components/lesson/VocabLockPhase'
-import GuestLessonGate from '@/components/GuestLessonGate'
-
-type Phase = 1 | 2 | 3 | 4 | 5 | 6
-
-const PHASE_LABELS = [
-  'Immersion',
-  'Decode',
-  'Shadowing',
-  'Response',
-  'Culture',
-  'Vocab',
-] as const
+import LessonRunner from '@/components/lesson/LessonRunner'
 
 export default function LessonPage() {
-  const params = useParams()
+  const { id } = useParams()
   const router = useRouter()
-  const lessonId = params.id as string
+  const addXP = useAppStore((s) => s.addXP)
+  const completeLesson = useAppStore((s) => s.completeLesson)
 
-  const [currentPhase, setCurrentPhase] = useState<Phase>(1)
-  const [shadowingStars, setShadowingStars] = useState(0)
-  const [responseGrade, setResponseGrade] = useState('')
-  const [direction, setDirection] = useState(1) // 1 = forward, -1 = back
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [lesson, setLesson] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const uiLanguage = useAppStore((s) => s.uiLanguage)
+  useEffect(() => {
+    if (!id) return
+    fetch(`/api/admin/lessons/${id}`)
+      .then(r => {
+        if (!r.ok) throw new Error('Lesson not found')
+        return r.json()
+      })
+      .then(data => {
+        if (!data.lesson) throw new Error('Lesson not found')
+        const l = data.lesson
+        // Map DB fields to LessonRunner expected shape
+        setLesson({
+          id: l.id,
+          title: l.title,
+          titleJP: l.title_jp || '',
+          description: l.description || '',
+          jlptLevel: l.jlpt_level || 'N5',
+          unit: l.unit || 1,
+          order: l.order || 1,
+          estimatedMinutes: l.estimated_minutes || 10,
+          targetLanguage: l.target_language || 'japanese',
+          blocks: l.blocks || [],
+          totalXP: l.total_xp || 0,
+          tags: l.tags || [],
+          isPublished: l.is_published ?? true,
+          createdAt: l.created_at || '',
+          updatedAt: l.updated_at || '',
+        })
+      })
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false))
+  }, [id])
 
-  const lesson = getLessonById(lessonId)
-
-  // Advance to next phase
-  const advancePhase = useCallback(() => {
-    setDirection(1)
-    setCurrentPhase((prev) => Math.min(6, prev + 1) as Phase)
-  }, [])
-
-  const handleShadowingComplete = useCallback(
-    (stars: number) => {
-      setShadowingStars(stars)
-      advancePhase()
-    },
-    [advancePhase],
-  )
-
-  const handleResponseComplete = useCallback(
-    (grade: string) => {
-      setResponseGrade(grade)
-      advancePhase()
-    },
-    [advancePhase],
-  )
-
-  const handleLessonComplete = useCallback(() => {
-    router.push('/dashboard')
-  }, [router])
-
-  const handleBack = useCallback(() => {
-    if (currentPhase > 1) {
-      setDirection(-1)
-      setCurrentPhase((prev) => Math.max(1, prev - 1) as Phase)
-    } else {
-      router.push('/dashboard')
-    }
-  }, [currentPhase, router])
-
-  // 404 state
-  if (!lesson) {
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <motion.div
-          className="text-center space-y-4"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <p className="text-6xl font-display font-bold text-foreground/20">404</p>
-          <p className="text-foreground/50">Lesson not found</p>
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="text-accent hover:text-accent/80 underline text-sm transition-colors"
-          >
-            Back to Dashboard
-          </button>
-        </motion.div>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F5F0EB' }}>
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[#1B4F8A]/20 border-t-[#1B4F8A] rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-sm font-bold" style={{ fontFamily: 'Nunito', color: '#6B7280' }}>Loading lesson...</p>
+        </div>
       </div>
     )
   }
 
-  // Slide animation variants
-  const slideVariants = {
-    enter: (dir: number) => ({
-      x: dir > 0 ? 80 : -80,
-      opacity: 0,
-    }),
-    center: {
-      x: 0,
-      opacity: 1,
-    },
-    exit: (dir: number) => ({
-      x: dir > 0 ? -80 : 80,
-      opacity: 0,
-    }),
+  if (error || !lesson) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F5F0EB' }}>
+        <div className="text-center max-w-sm">
+          <p className="text-4xl mb-3">😵</p>
+          <p className="font-bold mb-2" style={{ fontFamily: 'Nunito', color: '#1A1A2E' }}>Lesson not found</p>
+          <p className="text-sm mb-4" style={{ color: '#6B7280' }}>{error}</p>
+          <button onClick={() => router.push('/lessons')} className="text-sm font-bold underline" style={{ color: '#1B4F8A' }}>
+            Back to lessons
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-background relative">
-      <GuestLessonGate lessonId={lessonId} />
-      {/* Top bar */}
-      <motion.header
-        className="sticky top-0 z-40 bg-background/80 backdrop-blur-lg border-b border-black/5"
-        initial={{ y: -60 }}
-        animate={{ y: 0 }}
-        transition={{ type: 'spring', stiffness: 200, damping: 25 }}
-      >
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-4">
-          {/* Back button */}
-          <button
-            onClick={handleBack}
-            className="text-foreground/40 hover:text-foreground/70 transition-colors p-1"
-            aria-label="Go back"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M19 12H5M12 19l-7-7 7-7"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-
-          {/* Lesson title */}
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-foreground/30 truncate">
-              Unit {lesson.unit}: {uiLanguage === 'jp' ? lesson.unitTitleJP : lesson.unitTitle}
-            </p>
-            <h1 className="text-sm font-semibold text-foreground truncate">
-              {uiLanguage === 'jp' ? lesson.titleJP : lesson.title}
-            </h1>
-          </div>
-
-          {/* Phase progress indicator */}
-          <div className="flex items-center gap-1.5">
-            {PHASE_LABELS.map((label, i) => {
-              const phaseNum = (i + 1) as Phase
-              const isActive = phaseNum === currentPhase
-              const isCompleted = phaseNum < currentPhase
-
-              return (
-                <div key={label} className="flex flex-col items-center gap-1">
-                  <motion.div
-                    className={`w-2.5 h-2.5 rounded-full transition-all ${
-                      isActive
-                        ? 'bg-accent shadow-[0_0_8px_rgba(27,79,138,0.5)]'
-                        : isCompleted
-                          ? 'bg-accent/40'
-                          : 'bg-black/[0.05]'
-                    }`}
-                    animate={isActive ? { scale: [1, 1.3, 1] } : {}}
-                    transition={isActive ? { duration: 1.5, repeat: Infinity } : {}}
-                  />
-                </div>
-              )
-            })}
-            <span className="text-[10px] text-foreground/30 ml-2 tabular-nums">
-              {currentPhase}/6
-            </span>
-          </div>
-        </div>
-
-        {/* Progress bar */}
-        <div className="h-0.5 bg-black/[0.03]">
-          <motion.div
-            className="h-full bg-accent"
-            initial={{ width: 0 }}
-            animate={{ width: `${((currentPhase - 1) / 5) * 100}%` }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-          />
-        </div>
-      </motion.header>
-
-      {/* Main content */}
-      <main className="max-w-2xl mx-auto px-4 py-8 relative">
-        <AnimatePresence mode="wait" custom={direction}>
-          <motion.div
-            key={currentPhase}
-            custom={direction}
-            variants={slideVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          >
-            {currentPhase === 1 && (
-              <ImmersionPhase
-                lessonId={lessonId}
-                clipId={lesson.clipId}
-                onComplete={advancePhase}
-              />
-            )}
-
-            {currentPhase === 2 && (
-              <DecodePhase
-                lessonId={lessonId}
-                clipId={lesson.clipId}
-                onComplete={advancePhase}
-              />
-            )}
-
-            {currentPhase === 3 && (
-              <ShadowingPhase
-                clipId={lesson.clipId}
-                onComplete={handleShadowingComplete}
-              />
-            )}
-
-            {currentPhase === 4 && (
-              <ResponsePhase
-                lessonId={lessonId}
-                clipId={lesson.clipId}
-                onComplete={handleResponseComplete}
-              />
-            )}
-
-            {currentPhase === 5 && (
-              <CulturalDivePhase
-                lessonId={lessonId}
-                clipId={lesson.clipId}
-                onComplete={advancePhase}
-              />
-            )}
-
-            {currentPhase === 6 && (
-              <VocabLockPhase
-                clipId={lesson.clipId}
-                lessonId={lessonId}
-                shadowingStars={shadowingStars}
-                responseGrade={responseGrade}
-                onComplete={handleLessonComplete}
-              />
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </main>
-
-      {/* Phase label tooltip at bottom */}
-      <motion.div
-        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-      >
-        <div className="glass-card px-4 py-2 text-xs text-foreground/30 flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-          Phase {currentPhase}: {PHASE_LABELS[currentPhase - 1]}
-          <span className="text-foreground/15 ml-1">
-            ~ {lesson.estimatedMinutes} min total
-          </span>
-        </div>
-      </motion.div>
+    <div className="min-h-screen" style={{ backgroundColor: '#F5F0EB' }}>
+      <LessonRunner
+        lesson={lesson}
+        onLessonComplete={(totalXP) => {
+          addXP(totalXP)
+          completeLesson(lesson.id)
+          router.push('/dashboard')
+        }}
+      />
     </div>
   )
 }

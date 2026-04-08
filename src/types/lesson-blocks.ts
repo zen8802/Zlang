@@ -169,7 +169,113 @@ export interface VideoBlock extends BaseBlock {
   instruction: string
 }
 
+// ── Image Match ─────────────────────────────
+
+export interface ImageMatchBlock extends BaseBlock {
+  type: 'image_match'
+  title: string
+  instruction: string
+  mode: 'image_to_word' | 'word_to_image'
+  items: {
+    id: string
+    image: string
+    word: string
+    reading: string
+    romaji: string
+    english: string
+  }[]
+}
+
+// ── Audio Match ─────────────────────────────
+
+export interface AudioMatchBlock extends BaseBlock {
+  type: 'audio_match'
+  title: string
+  instruction: string
+  items: {
+    id: string
+    word: string
+    reading: string
+    romaji: string
+    english: string
+    image?: string
+    options: {
+      id: string
+      text: string
+      isCorrect: boolean
+    }[]
+  }[]
+}
+
+// ── Dialogue Choice ─────────────────────────
+
+export interface DialogueChoiceBlock extends BaseBlock {
+  type: 'dialogue_choice'
+  title: string
+  exchanges: {
+    id: string
+    character: {
+      name: string
+      nameJP: string
+      emoji: string
+      color: string
+      avatar?: string
+    }
+    setting?: string
+    line: string
+    lineReading: string
+    lineRomaji: string
+    lineEN?: string
+    vocab?: {
+      word: string
+      reading: string
+      romaji: string
+      meaning: string
+      pos: string
+    }[]
+    question: string
+    options: {
+      id: string
+      text: string
+      isCorrect: boolean
+    }[]
+    explanation?: string
+    culturalHint?: string
+  }[]
+}
+
+// ── Trace ───────────────────────────────────
+
+export interface TraceBlock extends BaseBlock {
+  type: 'trace'
+  title: string
+  characters: {
+    character: string
+    reading: string
+    romaji: string
+    english: string
+    strokeCount: number
+    memoryHook: string
+  }[]
+}
+
 // ── Union Type ───────────────────────────────
+
+export type BlockType =
+  | 'flashcard'
+  | 'sentence'
+  | 'quiz'
+  | 'fill_blank'
+  | 'translation'
+  | 'reading'
+  | 'matching'
+  | 'culture_note'
+  | 'shadowing'
+  | 'video'
+  | 'image_match'
+  | 'audio_match'
+  | 'dialogue_choice'
+  | 'trace'
 
 export type LessonBlock =
   | FlashcardBlock
@@ -182,6 +288,10 @@ export type LessonBlock =
   | CultureNoteBlock
   | ShadowingBlock
   | VideoBlock
+  | ImageMatchBlock
+  | AudioMatchBlock
+  | DialogueChoiceBlock
+  | TraceBlock
 
 // ── Lesson ───────────────────────────────────
 

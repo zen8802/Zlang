@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(ls /c/dev/Zlang/public/Takeshi*.png)",
-      "Bash(node -e ':*)"
+      "Bash(node -e ':*)",
+      "Bash(npx --prefix c:/dev/Zlang tsc --noEmit)",
+      "Bash(npx tsx:*)"
     ]
   }
 }

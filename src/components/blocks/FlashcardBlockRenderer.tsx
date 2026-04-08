@@ -1,159 +1,183 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import type { FlashcardBlock } from '@/types/lesson-blocks'
 import Button from '@/components/ui/Button'
-import Badge from '@/components/ui/Badge'
-
-type Confidence = 'hard' | 'okay' | 'easy'
 
 interface Props {
   block: FlashcardBlock
   onComplete: (xp: number) => void
 }
 
-export default function FlashcardBlockRenderer({ block, onComplete }: Props) {
-  const [index, setIndex] = useState(0)
-  const [flipped, setFlipped] = useState(false)
-  const [results, setResults] = useState<Map<number, Confidence>>(new Map())
-  const [done, setDone] = useState(false)
+export function FlashcardBlockRenderer({ block, onComplete }: Props) {
+  const [flippedSet, setFlippedSet] = useState<Set<number>>(new Set())
+  const [seenSet, setSeenSet] = useState<Set<number>>(new Set())
 
-  const card = block.cards[index]
+  const allSeen = seenSet.size >= block.cards.length
 
-  const handleConfidence = (level: Confidence) => {
-    const next = new Map(results)
-    next.set(index, level)
-    setResults(next)
+  const speak = useCallback((text: string) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return
+    window.speechSynthesis.cancel()
+    const u = new SpeechSynthesisUtterance(text)
+    u.lang = 'ja-JP'
+    u.rate = 0.7
+    window.speechSynthesis.speak(u)
+  }, [])
 
-    if (index + 1 < block.cards.length) {
-      setFlipped(false)
-      setIndex(index + 1)
+  const handleFlip = (i: number) => {
+    const isCurrentlyFlipped = flippedSet.has(i)
+
+    const nextFlipped = new Set(flippedSet)
+    if (isCurrentlyFlipped) {
+      nextFlipped.delete(i)
     } else {
-      setDone(true)
+      nextFlipped.add(i)
+    }
+    setFlippedSet(nextFlipped)
+
+    // Mark seen and play audio on first flip
+    if (!seenSet.has(i) && !isCurrentlyFlipped) {
+      const nextSeen = new Set(seenSet)
+      nextSeen.add(i)
+      setSeenSet(nextSeen)
+      speak(block.cards[i].word)
     }
   }
 
-  const counts = {
-    hard: Array.from(results.values()).filter((v) => v === 'hard').length,
-    okay: Array.from(results.values()).filter((v) => v === 'okay').length,
-    easy: Array.from(results.values()).filter((v) => v === 'easy').length,
-  }
-
-  if (done) {
-    return (
-      <div className="page-enter flex flex-col items-center gap-6 py-8">
-        <div className="text-4xl bounce-in">&#127881;</div>
-        <h2 className="text-2xl font-extrabold" style={{ fontFamily: 'var(--font-ui)' }}>
-          Cards Complete!
-        </h2>
-
-        <div className="flex gap-4">
-          <div className="flex flex-col items-center gap-1">
-            <span className="text-3xl font-bold text-[#FF4B4B]">{counts.hard}</span>
-            <span className="text-sm text-[#6B7280]">Hard</span>
-          </div>
-          <div className="flex flex-col items-center gap-1">
-            <span className="text-3xl font-bold text-[#FFB800]">{counts.okay}</span>
-            <span className="text-sm text-[#6B7280]">Okay</span>
-          </div>
-          <div className="flex flex-col items-center gap-1">
-            <span className="text-3xl font-bold text-[#58CC02]">{counts.easy}</span>
-            <span className="text-sm text-[#6B7280]">Easy</span>
-          </div>
-        </div>
-
-        <Button onClick={() => onComplete(block.xpReward)} fullWidth>
-          Continue
-        </Button>
-      </div>
-    )
-  }
-
   return (
-    <div className="page-enter flex flex-col items-center gap-6 py-4">
-      {/* Progress indicator */}
-      <p className="text-sm text-[#6B7280] font-semibold" style={{ fontFamily: 'var(--font-ui)' }}>
-        {index + 1} / {block.cards.length}
+    <div className="page-enter flex flex-col gap-5 py-4">
+      {/* Progress dots */}
+      <div className="flex justify-center gap-1.5 flex-wrap">
+        {block.cards.map((_, i) => (
+          <div
+            key={i}
+            className={`w-2.5 h-2.5 rounded-full transition-all ${
+              seenSet.has(i) ? 'bg-[#1B4F8A]' : 'bg-[#B8CBE0]'
+            }`}
+          />
+        ))}
+      </div>
+
+      {/* Status message */}
+      <p
+        className="text-sm text-center font-semibold"
+        style={{
+          fontFamily: 'var(--font-ui)',
+          color: allSeen ? '#58CC02' : '#6B7280',
+        }}
+      >
+        {allSeen
+          ? 'All cards reviewed!'
+          : `Tap all ${block.cards.length} cards to continue`}
       </p>
 
-      {/* Flip card */}
-      <div
-        className="w-full max-w-sm cursor-pointer"
-        style={{ perspective: '1000px' }}
-        onClick={() => setFlipped(!flipped)}
-      >
-        <div
-          className="relative w-full transition-transform duration-500"
-          style={{
-            transformStyle: 'preserve-3d',
-            transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
-            minHeight: '320px',
-          }}
-        >
-          {/* Front */}
-          <div
-            className="absolute inset-0 bg-white rounded-[24px] shadow-[0_8px_0_rgba(27,79,138,0.15)] flex flex-col items-center justify-center p-6 gap-3"
-            style={{ backfaceVisibility: 'hidden' }}
-          >
-            <p className="text-sm text-[#6B7280]" style={{ fontFamily: 'var(--font-jp)' }}>
-              {card.reading}
-            </p>
-            <p className="text-5xl font-bold text-[#1A1A2E]" style={{ fontFamily: 'var(--font-jp)' }}>
-              {card.word}
-            </p>
-            <p className="text-base text-[#9CA3AF]" style={{ fontFamily: 'var(--font-ui)' }}>
-              {card.romaji}
-            </p>
-            <Badge color="blue" size="sm">{card.jlptLevel}</Badge>
-            <p className="text-xs text-[#9CA3AF] mt-4" style={{ fontFamily: 'var(--font-ui)' }}>
-              Tap to flip
-            </p>
-          </div>
+      {/* 2-column grid — tall cards with full info */}
+      <div className="grid grid-cols-2 gap-3">
+        {block.cards.map((card, i) => {
+          const isFlipped = flippedSet.has(i)
+          const isSeen = seenSet.has(i)
 
-          {/* Back */}
-          <div
-            className="absolute inset-0 bg-white rounded-[24px] shadow-[0_8px_0_rgba(27,79,138,0.15)] flex flex-col items-center justify-center p-6 gap-4"
-            style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
-          >
-            <Badge color="gray" size="sm">{card.partOfSpeech}</Badge>
-            <p className="text-3xl font-bold text-[#1A1A2E]" style={{ fontFamily: 'var(--font-ui)' }}>
-              {card.english}
-            </p>
+          return (
+            <div
+              key={i}
+              className="cursor-pointer"
+              style={{ perspective: '800px' }}
+              onClick={() => handleFlip(i)}
+            >
+              <div
+                className="relative w-full transition-transform duration-500"
+                style={{
+                  transformStyle: 'preserve-3d',
+                  transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                  minHeight: '220px',
+                }}
+              >
+                {/* ── FRONT — Japanese word ── */}
+                <div
+                  className="absolute inset-0 rounded-[20px] flex flex-col items-center justify-center p-4"
+                  style={{
+                    backfaceVisibility: 'hidden',
+                    backgroundColor: isSeen && !isFlipped ? '#EBF0F8' : '#ffffff',
+                    boxShadow: '0 4px 0 rgba(27,79,138,0.15)',
+                    border: isSeen && !isFlipped ? '2px solid #1B4F8A33' : '2px solid #f0f0f0',
+                  }}
+                >
+                  {/* Reading above */}
+                  <p className="text-xs mb-1" style={{ fontFamily: 'Noto Sans JP', color: '#1B4F8A' }}>
+                    {card.reading}
+                  </p>
+                  {/* Word */}
+                  <p className="text-4xl font-black text-[#1A1A2E] leading-none" style={{ fontFamily: 'Noto Sans JP' }}>
+                    {card.word}
+                  </p>
+                  {/* Romaji */}
+                  <p className="text-xs mt-1.5" style={{ fontFamily: 'DM Mono, monospace', color: '#9CA3AF' }}>
+                    {card.romaji}
+                  </p>
+                  {/* JLPT badge */}
+                  <span className="mt-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E5F9D0] text-[#2D8800] border border-[#89E219]">
+                    {card.jlptLevel}
+                  </span>
+                  {/* Hint */}
+                  <p className="text-[10px] mt-2" style={{ color: isSeen ? '#1B4F8A' : '#C0C0C0', fontFamily: 'Nunito' }}>
+                    {isSeen && !isFlipped ? 'tap again' : 'tap to reveal'}
+                  </p>
+                </div>
 
-            {/* Example sentence */}
-            <div className="w-full bg-[#EBF0F8] rounded-[16px] p-4 text-left">
-              <p className="text-sm font-semibold text-[#1B4F8A]" style={{ fontFamily: 'var(--font-jp)' }}>
-                {card.exampleJP}
-              </p>
-              <p className="text-xs text-[#6B7280] mt-1" style={{ fontFamily: 'var(--font-ui)' }}>
-                {card.exampleEN}
-              </p>
+                {/* ── BACK — English + full details ── */}
+                <div
+                  className="absolute inset-0 rounded-[20px] flex flex-col items-center justify-between p-4"
+                  style={{
+                    backfaceVisibility: 'hidden',
+                    transform: 'rotateY(180deg)',
+                    backgroundColor: '#1B4F8A',
+                    boxShadow: '0 4px 0 #133970',
+                  }}
+                >
+                  <div className="flex-1 flex flex-col items-center justify-center w-full">
+                    {/* Part of speech */}
+                    <p className="text-[10px] uppercase tracking-wider text-blue-200 font-bold mb-1" style={{ fontFamily: 'Nunito' }}>
+                      {card.partOfSpeech}
+                    </p>
+                    {/* English */}
+                    <p className="text-xl font-black text-white text-center leading-tight" style={{ fontFamily: 'Nunito' }}>
+                      {card.english}
+                    </p>
+                    {/* Example sentence */}
+                    {card.exampleJP && (
+                      <div className="mt-2 bg-white/10 rounded-[10px] px-2.5 py-1.5 w-full">
+                        <p className="text-[11px] text-blue-100 text-center" style={{ fontFamily: 'Noto Sans JP' }}>
+                          {card.exampleJP}
+                        </p>
+                        <p className="text-[10px] text-blue-200/70 text-center mt-0.5" style={{ fontFamily: 'Nunito' }}>
+                          {card.exampleEN}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  {/* Memory hook */}
+                  {card.memoryHook && (
+                    <p className="text-[10px] text-blue-200/80 italic text-center mt-2 leading-snug" style={{ fontFamily: 'Nunito' }}>
+                      💡 {card.memoryHook}
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
-
-            {/* Memory hook */}
-            {card.memoryHook && (
-              <p className="text-sm text-[#6B7280] italic text-center" style={{ fontFamily: 'var(--font-ui)' }}>
-                {card.memoryHook}
-              </p>
-            )}
-          </div>
-        </div>
+          )
+        })}
       </div>
 
-      {/* Confidence buttons (visible when flipped) */}
-      {flipped && (
-        <div className="flex gap-3 w-full max-w-sm page-enter">
-          <Button variant="wrong" size="sm" fullWidth onClick={() => handleConfidence('hard')}>
-            Hard
-          </Button>
-          <Button variant="gold" size="sm" fullWidth onClick={() => handleConfidence('okay')}>
-            Okay
-          </Button>
-          <Button variant="correct" size="sm" fullWidth onClick={() => handleConfidence('easy')}>
-            Easy
+      {/* Continue button */}
+      {allSeen && (
+        <div className="page-enter">
+          <Button onClick={() => onComplete(block.xpReward)} fullWidth>
+            Continue
           </Button>
         </div>
       )}
     </div>
   )
 }
+
+export default FlashcardBlockRenderer
