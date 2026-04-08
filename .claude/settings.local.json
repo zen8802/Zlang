@@ -4,7 +4,12 @@
       "Bash(ls /c/dev/Zlang/public/Takeshi*.png)",
       "Bash(node -e ':*)",
       "Bash(npx --prefix c:/dev/Zlang tsc --noEmit)",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(curl -s http://localhost:3000/api/admin/lessons/lesson-001)",
+      "Bash(curl -s http://localhost:3000 -o /dev/null -w \"%{http_code}\")",
+      "Bash(curl -s http://localhost:3001 -o /dev/null -w \"%{http_code}\")",
+      "Bash(node -e \"const ts = require\\('typescript'\\); const config = ts.readConfigFile\\('tsconfig.json', ts.sys.readFile\\); console.log\\('tsconfig loaded:', !!config.config\\)\")",
+      "Bash(echo \"EXIT: $?\")"
     ]
   }
 }

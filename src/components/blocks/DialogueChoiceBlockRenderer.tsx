@@ -195,6 +195,7 @@ export function DialogueChoiceBlockRenderer({ block, onComplete }: Props) {
   const [done, setDone] = useState(false)
   const [activeVocab, setActiveVocab] = useState<VocabWord | null>(null)
   const [vocabRect, setVocabRect] = useState<DOMRect | null>(null)
+  const [userAnswers, setUserAnswers] = useState<Record<number, string>>({}) // index -> selected option text
 
   useEffect(() => {
     setShowFurigana(globalShowFurigana)
@@ -204,10 +205,11 @@ export function DialogueChoiceBlockRenderer({ block, onComplete }: Props) {
   const current = block.exchanges[currentIndex]
   const isCorrect = current?.options.find(o => o.id === selected)?.isCorrect
 
-  const handleSelect = (optId: string, correct: boolean) => {
+  const handleSelect = (optId: string, optText: string, correct: boolean) => {
     if (revealed) return
     setSelected(optId)
     setRevealed(true)
+    setUserAnswers(prev => ({ ...prev, [currentIndex]: optText }))
     if (correct) { setScore(s => s + 1); playAudio(current.line) }
   }
 
@@ -238,7 +240,6 @@ export function DialogueChoiceBlockRenderer({ block, onComplete }: Props) {
         {[
           { key: 'furigana', label: 'ふりがな', active: showFurigana, toggle: () => setShowFurigana(p => !p) },
           { key: 'romaji', label: 'romaji', active: showRomaji, toggle: () => setShowRomaji(p => !p) },
-          { key: 'english', label: 'EN', active: showTranslation, toggle: () => setShowTranslation(p => !p) },
           { key: 'coach', label: '💡', active: showCoachNotes, toggle: () => setShowCoachNotes(p => !p) },
         ].map(t => (
           <button
@@ -259,87 +260,97 @@ export function DialogueChoiceBlockRenderer({ block, onComplete }: Props) {
         </div>
       )}
 
-      {/* Previous exchanges (greyed) */}
-      {currentIndex > 0 && (
-        <div className="space-y-2 opacity-40">
-          {block.exchanges.slice(0, currentIndex).map((ex, i) => (
-            <div key={i} className="flex items-start gap-2">
+      {/* ── Chat thread — character left, user right ── */}
+      <div className="space-y-3">
+        {/* Previous exchanges as chat bubbles */}
+        {block.exchanges.slice(0, currentIndex).map((ex, i) => (
+          <div key={`prev-${i}`} className="space-y-2 opacity-50">
+            {/* Character bubble — left */}
+            <div className="flex items-end gap-2 max-w-[85%]">
               <CharAvatar character={ex.character} size={28} />
-              <div className="bg-white px-3 py-2 border border-gray-100 max-w-[80%]" style={{ borderRadius: '4px 14px 14px 14px' }}>
+              <div className="bg-white px-3 py-2 border border-gray-100 shadow-sm" style={{ borderRadius: '4px 14px 14px 14px' }}>
                 <p className="text-sm" style={{ fontFamily: 'Noto Sans JP' }}>{stripFurigana(ex.line)}</p>
               </div>
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* ── Current exchange — Scenario Studio style ── */}
-      <div className="flex items-start gap-3">
-        <CharAvatar character={current.character} />
-        <div className="flex-1">
-          <p className="text-xs font-bold mb-1" style={{ fontFamily: 'Nunito', color: '#9CA3AF' }}>
-            {current.character.name} <span style={{ fontFamily: 'Noto Sans JP' }}>({current.character.nameJP})</span>
-          </p>
-
-          {/* Speech bubble */}
-          <div className="bg-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-gray-100 p-4" style={{ borderRadius: '4px 18px 18px 18px' }}>
-            <div className="flex items-start gap-2">
-              <div className="flex-1">
-                {/* Japanese with furigana + vocab underlines */}
-                <p className="text-xl font-bold leading-[2]">
-                  <DialogueText
-                    text={current.line}
-                    vocab={current.vocab}
-                    showFurigana={showFurigana}
-                    onWordClick={(w, r) => { setActiveVocab(activeVocab?.word === w.word ? null : w); setVocabRect(r) }}
-                  />
-                </p>
-                {/* Romaji */}
-                {showRomaji && (
-                  <p className="text-[11px] mt-1" style={{ fontFamily: 'DM Mono, monospace', color: '#B0B0B0' }}>{current.lineRomaji}</p>
-                )}
-                {/* English translation */}
-                {showTranslation && current.lineEN && (
-                  <p className="text-xs mt-1 italic" style={{ color: '#9CA3AF', fontFamily: 'Nunito' }}>{current.lineEN}</p>
-                )}
+            {/* User answer — right */}
+            {userAnswers[i] && (
+              <div className="flex justify-end">
+                <div className="max-w-[75%] px-3 py-2 text-white text-sm font-bold" style={{ backgroundColor: '#1B4F8A', borderRadius: '14px 14px 4px 14px', fontFamily: 'Nunito' }}>
+                  {userAnswers[i]}
+                </div>
               </div>
-              {/* Speaker button */}
-              <button
-                onClick={() => playAudio(current.line)}
-                className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-[#EBF0F8] hover:text-[#1B4F8A] border border-gray-100 transition-colors"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-              </button>
+            )}
+          </div>
+        ))}
+
+        {/* Current character message — left, full detail */}
+        <div className="flex items-end gap-2.5 max-w-[90%]">
+          <CharAvatar character={current.character} size={36} />
+          <div className="flex-1">
+            <p className="text-[10px] font-bold mb-1 ml-1" style={{ fontFamily: 'Nunito', color: '#9CA3AF' }}>
+              {current.character.name}
+            </p>
+            <div className="bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-gray-100 p-4" style={{ borderRadius: '4px 18px 18px 18px' }}>
+              <div className="flex items-start gap-2">
+                <div className="flex-1">
+                  <p className="text-lg font-bold leading-[2]">
+                    <DialogueText
+                      text={current.line}
+                      vocab={current.vocab}
+                      showFurigana={showFurigana}
+                      onWordClick={(w, r) => { setActiveVocab(activeVocab?.word === w.word ? null : w); setVocabRect(r) }}
+                    />
+                  </p>
+                  {showRomaji && (
+                    <p className="text-[11px] mt-1" style={{ fontFamily: 'DM Mono, monospace', color: '#B0B0B0' }}>{current.lineRomaji}</p>
+                  )}
+                  {showTranslation && current.lineEN && (
+                    <p className="text-xs mt-1 italic" style={{ color: '#9CA3AF', fontFamily: 'Nunito' }}>{current.lineEN}</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => playAudio(current.line)}
+                  className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-[#EBF0F8] hover:text-[#1B4F8A] border border-gray-100 transition-colors"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Question */}
-      <p className="text-center font-bold text-sm" style={{ fontFamily: 'Nunito', color: '#6B7280' }}>{current.question}</p>
+      {/* Question — left aligned like Studio */}
+      <p className="text-xs font-bold" style={{ fontFamily: 'Nunito', color: '#9CA3AF' }}>{current.question}</p>
 
-      {/* Options — card style with fade-in */}
+      {/* Options — compact Studio-style cards */}
       <div className="space-y-1.5">
         {current.options.map((opt, idx) => {
           const isSelected = selected === opt.id
-          let style = 'bg-white border-2 border-gray-100 text-gray-700'
-          if (revealed && opt.isCorrect) style = 'bg-[#E5F9D0] border-2 border-[#58CC02] text-[#2D8800]'
-          else if (revealed && isSelected && !opt.isCorrect) style = 'bg-[#FFE5E5] border-2 border-[#FF4B4B] text-[#CC0000]'
+          let cardStyle = 'bg-white border-2 border-gray-100'
+          if (revealed && opt.isCorrect) cardStyle = 'bg-[#E5F9D0] border-2 border-[#58CC02]'
+          else if (revealed && isSelected && !opt.isCorrect) cardStyle = 'bg-[#FFE5E5] border-2 border-[#FF4B4B]'
 
           return (
             <button
               key={opt.id}
-              onClick={() => handleSelect(opt.id, opt.isCorrect)}
-              className={`w-full text-left px-4 py-3 rounded-[14px] font-bold transition-all shadow-[0_2px_0_rgba(0,0,0,0.04)] active:translate-y-[2px] active:shadow-none option-card-enter ${style}`}
-              style={{ animationDelay: `${idx * 100}ms`, fontFamily: 'Nunito' }}
+              onClick={() => handleSelect(opt.id, opt.text, opt.isCorrect)}
+              disabled={revealed}
+              className={`w-full text-left px-3.5 py-2.5 rounded-[14px] transition-all shadow-[0_2px_0_rgba(0,0,0,0.04)] active:translate-y-[2px] active:shadow-none option-card-enter disabled:opacity-60 ${cardStyle} ${isSelected ? 'scale-[0.97]' : ''}`}
+              style={{ animationDelay: `${idx * 120}ms`, fontFamily: 'Nunito' }}
             >
-              {opt.text}
+              <div className="flex items-center gap-2.5">
+                <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: revealed && opt.isCorrect ? '#58CC02' : revealed && isSelected ? '#FF4B4B' : '#B8CBE0' }} />
+                <span className="text-sm font-bold" style={{ color: revealed && opt.isCorrect ? '#2D8800' : revealed && isSelected && !opt.isCorrect ? '#CC0000' : '#1A1A2E' }}>
+                  {opt.text}
+                </span>
+              </div>
             </button>
           )
         })}
       </div>
 
-      {/* Feedback + cultural hint */}
+      {/* Feedback + cultural hint — indented to match chat */}
       {revealed && (
         <div className={`rounded-[16px] p-4 border-2 page-enter ${isCorrect ? 'bg-[#E5F9D0] border-[#89E219]' : 'bg-[#FFE5E5] border-[#FF4B4B]'}`}>
           <p className={`font-black mb-1 ${isCorrect ? 'text-[#2D8800]' : 'text-[#CC0000]'}`} style={{ fontFamily: 'Nunito' }}>

@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+import { useState, useRef, useEffect, useCallback } from 'react'
 import type { FillBlankBlock } from '@/types/lesson-blocks'
-import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 
 interface Props {
@@ -10,109 +11,286 @@ interface Props {
   onComplete: (xp: number) => void
 }
 
+let HanziWriter: any = null
+
+function playAudio(text: string) {
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    speechSynthesis.cancel()
+    const u = new SpeechSynthesisUtterance(text)
+    u.lang = 'ja-JP'
+    u.rate = 0.8
+    speechSynthesis.speak(u)
+  }
+}
+
+// ── Single character quiz box ─────────────────────────────────
+function CharBox({
+  char,
+  index,
+  isActive,
+  isComplete,
+  onComplete: onCharComplete,
+}: {
+  char: string
+  index: number
+  isActive: boolean
+  isComplete: boolean
+  onComplete: () => void
+}) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const writerRef = useRef<any>(null)
+  const [ready, setReady] = useState(false)
+  const [mistakes, setMistakes] = useState(0)
+
+  const initQuiz = useCallback(() => {
+    if (!HanziWriter || !containerRef.current) return
+
+    writerRef.current = null
+    containerRef.current.innerHTML = ''
+
+    try {
+      writerRef.current = HanziWriter.create(containerRef.current, char, {
+        width: 80,
+        height: 80,
+        padding: 5,
+        showOutline: true,
+        showCharacter: false,
+        strokeColor: '#1A1A2E',
+        outlineColor: '#D1D5DB',
+        highlightColor: '#1B4F8A',
+        drawingColor: '#1B4F8A',
+        drawingWidth: 4,
+        charDataLoader: (c: string, onLoad: any) => {
+          fetch(`https://cdn.jsdelivr.net/npm/hanzi-writer-data@2.0/${encodeURIComponent(c)}.json`)
+            .then(r => r.json())
+            .then(onLoad)
+            .catch(() => {
+              // Character not in hanzi-writer-data — show as complete
+              setReady(true)
+              onCharComplete()
+            })
+        },
+        onLoadCharDataSuccess: () => {
+          setReady(true)
+        },
+      })
+    } catch {
+      setReady(true)
+      onCharComplete()
+    }
+  }, [char, onCharComplete])
+
+  // Load HanziWriter
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (HanziWriter) {
+      initQuiz()
+    } else {
+      import('hanzi-writer').then(mod => {
+        HanziWriter = mod.default || mod
+        initQuiz()
+      }).catch(() => {
+        setReady(true)
+        onCharComplete()
+      })
+    }
+  }, [initQuiz])
+
+  // Start quiz when this box becomes active
+  useEffect(() => {
+    if (!isActive || !ready || !writerRef.current || isComplete) return
+
+    writerRef.current.quiz({
+      showHintAfterMisses: 2,
+      leniency: 0.7,
+      onMistake: (data: any) => {
+        setMistakes(data.mistakesOnStroke || 0)
+      },
+      onCorrectStroke: () => {
+        setMistakes(0)
+      },
+      onComplete: () => {
+        writerRef.current?.showCharacter()
+        playAudio(char)
+        onCharComplete()
+      },
+    })
+  }, [isActive, ready, isComplete, char, onCharComplete])
+
+  return (
+    <div className={`relative rounded-[14px] overflow-hidden border-2 transition-all duration-300 ${
+      isComplete ? 'border-[#58CC02] bg-[#F0FFF0]' :
+      isActive ? 'border-[#1B4F8A] bg-white shadow-[0_4px_0_#133970]' :
+      'border-gray-200 bg-gray-50 opacity-60'
+    }`} style={{ width: 80, height: 80 }}>
+      {/* Grid lines */}
+      <svg className="absolute inset-0 pointer-events-none" width={80} height={80}>
+        <line x1={40} y1={2} x2={40} y2={78} stroke="#E5E7EB" strokeWidth={0.5} strokeDasharray="3,3" />
+        <line x1={2} y1={40} x2={78} y2={40} stroke="#E5E7EB" strokeWidth={0.5} strokeDasharray="3,3" />
+      </svg>
+
+      {/* HanziWriter renders here */}
+      <div ref={containerRef} className="absolute inset-0" />
+
+      {/* Loading state */}
+      {!ready && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-2xl animate-pulse" style={{ fontFamily: 'Noto Sans JP', color: '#D1D5DB' }}>{char}</span>
+        </div>
+      )}
+
+      {/* Complete checkmark */}
+      {isComplete && (
+        <div className="absolute top-0.5 right-0.5">
+          <span className="text-xs text-[#58CC02]">✓</span>
+        </div>
+      )}
+
+      {/* Mistake indicator */}
+      {isActive && mistakes > 0 && !isComplete && (
+        <div className="absolute bottom-0.5 left-0 right-0 text-center">
+          <span className="text-[8px] text-[#FF4B4B] font-bold">{mistakes > 1 ? 'hint coming' : 'try again'}</span>
+        </div>
+      )}
+
+      {/* Inactive number */}
+      {!isActive && !isComplete && !ready && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-xs font-bold text-gray-300">{index + 1}</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Main component ────────────────────────────────────────────
 export default function FillBlankBlockRenderer({ block, onComplete }: Props) {
   const [sIndex, setSIndex] = useState(0)
-  const [input, setInput] = useState('')
-  const [checked, setChecked] = useState(false)
-  const [isCorrect, setIsCorrect] = useState(false)
-  const [, setScore] = useState(0)
+  const [completedChars, setCompletedChars] = useState<Set<number>>(new Set())
+  const [activeCharIndex, setActiveCharIndex] = useState(0)
+  const [submitted, setSubmitted] = useState(false)
 
   const sentence = block.sentences[sIndex]
+  const answerChars = sentence.answer.split('')
 
-  const handleCheck = () => {
-    const correct = input.trim().toLowerCase() === sentence.answer.toLowerCase()
-    setIsCorrect(correct)
-    setChecked(true)
-    if (correct) setScore((s) => s + 1)
-  }
+  const handleCharComplete = useCallback((charIdx: number) => {
+    setCompletedChars(prev => {
+      const next = new Set(prev)
+      next.add(charIdx)
+
+      // Check if all chars done
+      if (next.size === answerChars.length) {
+        setSubmitted(true)
+        playAudio(sentence.answer)
+      } else {
+        // Advance to next incomplete char
+        for (let i = 0; i < answerChars.length; i++) {
+          if (!next.has(i)) {
+            setActiveCharIndex(i)
+            break
+          }
+        }
+      }
+
+      return next
+    })
+  }, [answerChars.length, sentence.answer])
 
   const handleNext = () => {
     if (sIndex + 1 < block.sentences.length) {
-      setInput('')
-      setChecked(false)
-      setIsCorrect(false)
       setSIndex(sIndex + 1)
+      setCompletedChars(new Set())
+      setActiveCharIndex(0)
+      setSubmitted(false)
     } else {
       onComplete(block.xpReward)
     }
   }
 
   return (
-    <div className="page-enter flex flex-col gap-5 py-4">
+    <div className="space-y-4">
       {/* Progress */}
-      <p className="text-center text-sm text-[#6B7280] font-semibold" style={{ fontFamily: 'var(--font-ui)' }}>
-        {sIndex + 1} / {block.sentences.length}
+      <div className="flex gap-1.5 justify-center">
+        {block.sentences.map((_, i) => (
+          <div key={i} className={`h-2 rounded-full transition-all duration-300 ${i < sIndex ? 'bg-[#58CC02] w-4' : i === sIndex ? 'bg-[#1B4F8A] w-6' : 'bg-gray-200 w-4'}`} />
+        ))}
+      </div>
+
+      <p className="text-center text-sm font-bold text-gray-400" style={{ fontFamily: 'Nunito' }}>
+        Write the missing word
       </p>
 
-      <Card variant="elevated">
-        {/* Sentence with blank */}
-        <p className="text-xl leading-relaxed" style={{ fontFamily: 'var(--font-jp)' }}>
+      {/* Sentence with blank */}
+      <div className="bg-white rounded-[20px] p-5 shadow-[0_4px_0_rgba(0,0,0,0.06)] border border-gray-100 text-center">
+        <p className="text-xl leading-relaxed" style={{ fontFamily: 'Noto Sans JP' }}>
           {sentence.before}
-          <span className="inline-block mx-1 border-b-2 border-dashed border-[#1B4F8A] min-w-[80px] text-center">
-            {checked ? (
-              <span className={isCorrect ? 'text-[#58CC02] font-bold' : 'text-[#FF4B4B] font-bold'}>
-                {isCorrect ? input : sentence.answer}
-              </span>
-            ) : (
-              <span className="text-[#9CA3AF]">???</span>
-            )}
+          <span className={`inline-block mx-1 px-3 py-1 rounded-[10px] min-w-[60px] border-b-2 font-black ${
+            submitted ? 'bg-[#E5F9D0] border-[#58CC02] text-[#2D8800]' : 'bg-[#EBF0F8] border-[#1B4F8A] text-[#1B4F8A]'
+          }`}>
+            {submitted ? sentence.answer : answerChars.map((_, i) => completedChars.has(i) ? answerChars[i] : '＿').join('')}
           </span>
           {sentence.after}
         </p>
 
         {/* Hint */}
-        {!checked && sentence.hint && (
-          <p className="text-sm text-[#9CA3AF] mt-2" style={{ fontFamily: 'var(--font-ui)' }}>
-            Hint: {sentence.hint}
+        {!submitted && sentence.hint && (
+          <p className="text-xs text-gray-400 mt-2" style={{ fontFamily: 'Nunito' }}>
+            💡 {sentence.hint}
           </p>
         )}
-      </Card>
+      </div>
 
-      {/* Input */}
-      {!checked && (
-        <div className="flex gap-3">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && input.trim() && handleCheck()}
-            placeholder="Type your answer..."
-            className="flex-1 px-4 py-3 rounded-[16px] border-2 border-[#B8CBE0] bg-white text-[#1A1A2E] text-lg focus:outline-none focus:border-[#1B4F8A] transition-colors"
-            style={{ fontFamily: 'var(--font-jp)' }}
-          />
-          <Button onClick={handleCheck} disabled={!input.trim()}>
-            Check
-          </Button>
+      {/* Character writing boxes — one per character */}
+      {!submitted && (
+        <div>
+          <p className="text-xs text-center font-bold text-gray-300 mb-2" style={{ fontFamily: 'Nunito' }}>
+            ✏️ Write each character ({answerChars.length} character{answerChars.length > 1 ? 's' : ''})
+          </p>
+          <div className="flex justify-center gap-2">
+            {answerChars.map((char, i) => (
+              <CharBox
+                key={`${sIndex}-${i}-${char}`}
+                char={char}
+                index={i}
+                isActive={activeCharIndex === i && !completedChars.has(i)}
+                isComplete={completedChars.has(i)}
+                onComplete={() => handleCharComplete(i)}
+              />
+            ))}
+          </div>
+          <p className="text-[10px] text-center text-gray-300 mt-2" style={{ fontFamily: 'Nunito' }}>
+            {completedChars.size} / {answerChars.length} characters
+          </p>
         </div>
       )}
 
       {/* Feedback */}
-      {checked && (
-        <div
-          className={`rounded-[16px] p-4 page-enter ${
-            isCorrect ? 'bg-[#E5F9D0]' : 'bg-[#FFE5E5]'
-          }`}
-        >
-          <p
-            className={`text-sm font-bold ${isCorrect ? 'text-[#2D8800]' : 'text-[#CC0000]'}`}
-            style={{ fontFamily: 'var(--font-ui)' }}
-          >
-            {isCorrect ? 'Correct!' : `The answer was: ${sentence.answer}`}
-          </p>
+      {submitted && (
+        <div className="rounded-[16px] p-4 bg-[#E5F9D0] border-2 border-[#89E219] page-enter">
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-2xl">✓</span>
+            <div>
+              <p className="font-black text-[#2D8800]" style={{ fontFamily: 'Nunito' }}>Correct!</p>
+              <p className="text-3xl font-black text-[#2D8800]" style={{ fontFamily: 'Noto Sans JP' }}>{sentence.answer}</p>
+            </div>
+            <button onClick={() => playAudio(sentence.answer)} className="ml-auto w-9 h-9 rounded-full bg-white/50 flex items-center justify-center text-[#2D8800]">
+              🔊
+            </button>
+          </div>
           {sentence.explanation && (
-            <p className="text-sm text-[#6B7280] mt-1" style={{ fontFamily: 'var(--font-ui)' }}>
-              {sentence.explanation}
-            </p>
+            <p className="text-sm text-[#2D8800]" style={{ fontFamily: 'Nunito' }}>{sentence.explanation}</p>
           )}
         </div>
       )}
 
       {/* Next */}
-      {checked && (
-        <Button onClick={handleNext} fullWidth>
-          {sIndex + 1 < block.sentences.length ? 'Next' : 'Continue'}
+      {submitted && (
+        <Button variant="correct" size="lg" fullWidth onClick={handleNext}>
+          {sIndex + 1 < block.sentences.length ? 'Next →' : `Done +${block.xpReward} XP ⚡`}
         </Button>
       )}
     </div>
   )
 }
+
+export { FillBlankBlockRenderer }

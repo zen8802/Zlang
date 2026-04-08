@@ -66,15 +66,15 @@ export function getBeginnerLessons(): BeginnerLesson[] {
               memoryHook: 'The kanji looks like a stream of water flowing between rocks — the vertical line is the river, the side strokes are splashes.',
             },
             {
-              word: '寿司',
+              word: 'すし',
               reading: 'すし',
               romaji: 'sushi',
               english: 'sushi',
               partOfSpeech: 'noun',
               jlptLevel: 'N5',
-              exampleJP: '寿司が好きです。',
+              exampleJP: 'すしが好きです。',
               exampleEN: 'I like sushi.',
-              memoryHook: 'You already know this word! Fun fact: 寿 means "longevity" and 司 means "to manage" — sushi is the food that manages your long life.',
+              memoryHook: 'You already know this word! Now you can read it in hiragana.',
             },
             {
               word: 'ラーメン',
@@ -112,7 +112,7 @@ export function getBeginnerLessons(): BeginnerLesson[] {
           mode: 'image_to_word',
           items: [
             { id: 'im1-1', image: '💧', word: '水', reading: 'みず', romaji: 'mizu', english: 'water' },
-            { id: 'im1-2', image: '🍣', word: '寿司', reading: 'すし', romaji: 'sushi', english: 'sushi' },
+            { id: 'im1-2', image: '🍣', word: 'すし', reading: 'すし', romaji: 'sushi', english: 'sushi' },
             { id: 'im1-3', image: '🍜', word: 'ラーメン', reading: 'ラーメン', romaji: 'rāmen', english: 'ramen' },
             { id: 'im1-4', image: '🗾', word: '日本', reading: 'にほん', romaji: 'nihon', english: 'Japan' },
           ],
@@ -143,7 +143,7 @@ export function getBeginnerLessons(): BeginnerLesson[] {
             },
             {
               id: 'am1-2',
-              word: '寿司',
+              word: 'すし',
               reading: 'すし',
               romaji: 'sushi',
               english: 'sushi',
@@ -192,29 +192,31 @@ export function getBeginnerLessons(): BeginnerLesson[] {
           type: 'dialogue_choice',
           order: 4,
           xpReward: 20,
-          title: 'At a Sushi Restaurant',
+          title: 'At the Sushi Counter',
           exchanges: [
             {
               id: 'l1-d1',
-              character: { name: 'Yuki', nameJP: 'ゆき', emoji: '🏪', color: '#FF6B9D', avatar: '/Yuki1.png' },
-              setting: 'A cozy sushi bar in Tokyo',
-              line: '寿司好きですか？',
-              lineReading: 'すしすきですか？',
-              lineRomaji: 'Sushi suki desu ka?',
+              character: { name: 'Yuki', nameJP: 'ゆき', emoji: '🌸', color: '#FF6B9D', avatar: '/Yuki1.png' },
+              setting: '🍣 A sushi restaurant in Tokyo',
+              line: 'すしが好(す)きですか？',
+              lineReading: 'すしがすきですか？',
+              lineRomaji: 'Sushi ga suki desu ka?',
+              vocab: [{ word: '好(す)き', reading: 'すき', romaji: 'suki', meaning: 'like / fond of', pos: 'adjective' }],
               question: 'Yuki is asking if you...',
               options: [
                 { id: 'l1-d1a', text: 'like sushi', isCorrect: true },
                 { id: 'l1-d1b', text: 'want ramen', isCorrect: false },
                 { id: 'l1-d1c', text: 'are from Japan', isCorrect: false },
               ],
-              explanation: '好き (suki) means "like" — 寿司好きですか is "Do you like sushi?"',
+              explanation: '好き (suki) means "like" — すしが好きですか is "Do you like sushi?"',
             },
             {
               id: 'l1-d2',
               character: { name: 'Yuki', nameJP: 'ゆき', emoji: '🏪', color: '#FF6B9D', avatar: '/Yuki1.png' },
-              line: '水をどうぞ。',
+              line: '水(みず)をどうぞ。',
               lineReading: 'みずをどうぞ。',
               lineRomaji: 'Mizu wo dōzo.',
+              vocab: [{ word: 'どうぞ', reading: 'どうぞ', romaji: 'dōzo', meaning: 'here you go / please', pos: 'expression' }],
               question: 'Yuki is offering you...',
               options: [
                 { id: 'l1-d2a', text: 'a seat', isCorrect: false },
@@ -246,37 +248,15 @@ export function getBeginnerLessons(): BeginnerLesson[] {
           ],
         } as TraceBlock,
 
-        // Beat 6: Fill Blank
+        // Beat 6: Fill in the Blank (answer input should be a canvas/handwriting box — handled in renderer)
         {
           id: 'l1-fill-blank',
           type: 'fill_blank',
           order: 6,
           xpReward: 20,
           sentences: [
-            {
-              id: 'l1-fb1',
-              before: '',
-              answer: '水',
-              after: 'をください。',
-              hint: 'Something you drink (mizu)',
-              explanation: '水をください means "Water, please." — を (wo) marks the object.',
-            },
-            {
-              id: 'l1-fb2',
-              before: '日本の',
-              answer: '寿司',
-              after: 'が好きです。',
-              hint: 'A famous Japanese dish (sushi)',
-              explanation: '日本の寿司が好きです means "I like Japanese sushi." — の connects "Japan" to "sushi."',
-            },
-            {
-              id: 'l1-fb3',
-              before: '',
-              answer: 'ラーメン',
-              after: 'は美味しいです。',
-              hint: 'Noodle soup (written in katakana)',
-              explanation: 'ラーメンは美味しいです means "Ramen is delicious."',
-            },
+            { id: 'l1-fb1', before: '', answer: '水', after: 'をください。', hint: 'Something you drink', explanation: '水をください = Water, please' },
+            { id: 'l1-fb2', before: '', answer: 'すし', after: 'が好きです。', hint: 'A famous Japanese food (sushi)', explanation: 'すしが好きです = I like sushi' },
           ],
         } as FillBlankBlock,
 
@@ -287,10 +267,10 @@ export function getBeginnerLessons(): BeginnerLesson[] {
           order: 7,
           xpReward: 10,
           emoji: '🍣',
-          headline: 'Sushi Doesn\'t Mean Raw Fish',
-          body: 'The word sushi actually refers to the vinegared rice, not the fish on top. That\'s why you can have cucumber sushi, egg sushi, or even fruit sushi. The rice seasoning — a blend of rice vinegar, sugar, and salt — is what makes sushi "sushi."',
-          neverInTextbook: 'At high-end sushi bars, saying "おまかせ" (omakase, meaning "I leave it up to you") lets the chef choose the freshest fish for you. It shows trust and is considered the ultimate compliment to the chef.',
-          relatedWords: ['おまかせ (omakase) — chef\'s choice', '酢飯 (sumeshi) — vinegared rice', 'ネタ (neta) — the topping on sushi'],
+          headline: 'Sushi Is Not What You Think',
+          body: 'The word すし doesn\'t mean "raw fish" — it actually refers to the vinegared rice. The fish on top is called ネタ (neta). This means a cucumber roll is just as authentically sushi as a tuna roll.\n\nThe sushi you know from home is mostly a Western invention. In Japan, the most prestigious sushi is おまかせ (omakase) — you sit at the counter and the chef decides what you eat based on what\'s freshest that day.',
+          neverInTextbook: 'When sushi chefs say いただきます before eating, they\'re thanking the fish for its life. The word contains the verb "to humbly receive." Also — real wasabi is incredibly expensive. Most restaurants outside Japan use horseradish dyed green.',
+          relatedWords: [{ word: 'ネタ', reading: 'ねた', meaning: 'the topping (fish, etc.)' }, { word: 'シャリ', reading: 'しゃり', meaning: 'the vinegared rice' }, { word: 'おまかせ', reading: 'おまかせ', meaning: "chef's choice" }],
         } as CultureNoteBlock,
       ],
     },
@@ -444,6 +424,7 @@ export function getBeginnerLessons(): BeginnerLesson[] {
               line: 'こんにちは！',
               lineReading: 'こんにちは！',
               lineRomaji: 'Konnichiwa!',
+              vocab: [],
               question: 'Taro just said...',
               options: [
                 { id: 'l2-d1a', text: 'Hello!', isCorrect: true },
@@ -455,9 +436,10 @@ export function getBeginnerLessons(): BeginnerLesson[] {
             {
               id: 'l2-d2',
               character: { name: 'Kenji', nameJP: 'けんじ', emoji: '🍻', color: '#00CED1', avatar: '/Kenji1.png' },
-              line: '私はたろうです。あなたは？',
+              line: '私(わたし)はたろうです。あなたは？',
               lineReading: 'わたしはたろうです。あなたは？',
               lineRomaji: 'Watashi wa Tarō desu. Anata wa?',
+              vocab: [],
               question: 'How should you reply?',
               options: [
                 { id: 'l2-d2a', text: 'こんにちは、私は＿＿です。', isCorrect: true },
@@ -490,28 +472,30 @@ export function getBeginnerLessons(): BeginnerLesson[] {
 
         {
           id: 'l2-fill-blank',
-          type: 'fill_blank',
+          type: 'trace',
           order: 6,
           xpReward: 20,
-          sentences: [
+          freewriteOnly: true,
+          title: 'Write it yourself',
+          characters: [
             {
-              id: 'l2-fb1',
-              before: '',
-              answer: 'こんにちは',
-              after: '、私はサラです。',
-              hint: 'A greeting (konnichiwa)',
-              explanation: 'こんにちは、私はサラです means "Hello, I am Sara."',
+              character: '人',
+              reading: 'ひと',
+              romaji: 'hito',
+              english: 'person',
+              strokeCount: 2,
+              memoryHook: 'Two legs walking — the simplest kanji for person',
             },
             {
-              id: 'l2-fb2',
-              before: 'あの',
-              answer: '人',
-              after: 'は先生です。',
-              hint: 'A general word for someone (hito)',
-              explanation: 'あの人は先生です means "That person is a teacher."',
+              character: '女',
+              reading: 'おんな',
+              romaji: 'onna',
+              english: 'woman',
+              strokeCount: 3,
+              memoryHook: 'A graceful figure with crossed legs',
             },
           ],
-        } as FillBlankBlock,
+        } as TraceBlock,
 
         {
           id: 'l2-culture',
@@ -687,6 +671,7 @@ export function getBeginnerLessons(): BeginnerLesson[] {
               line: 'いらっしゃいませ！いくつですか？',
               lineReading: 'いらっしゃいませ！いくつですか？',
               lineRomaji: 'Irasshaimase! Ikutsu desu ka?',
+              vocab: [],
               question: 'The chef is asking...',
               options: [
                 { id: 'l3-d1a', text: 'How many (pieces)?', isCorrect: true },
@@ -698,9 +683,10 @@ export function getBeginnerLessons(): BeginnerLesson[] {
             {
               id: 'l3-d2',
               character: { name: 'Takeshi', nameJP: 'たけし', emoji: '🍜', color: '#FF6B35', avatar: '/Takeshi1.png' },
-              line: 'はい、三つですね！',
+              line: 'はい、三(みっ)つですね！',
               lineReading: 'はい、みっつですね！',
               lineRomaji: 'Hai, mittsu desu ne!',
+              vocab: [{ word: 'はい', reading: 'はい', romaji: 'hai', meaning: 'yes / right', pos: 'expression' }],
               question: 'You ordered how many pieces?',
               options: [
                 { id: 'l3-d2a', text: 'Two', isCorrect: false },
@@ -903,9 +889,10 @@ export function getBeginnerLessons(): BeginnerLesson[] {
               id: 'l4-d1',
               character: { name: 'Mika', nameJP: 'みか', emoji: '💕', color: '#FF6B9D', avatar: '/characters/mika.png' },
               setting: 'A brightly-lit 7-Eleven at midnight',
-              line: '袋はいりますか？',
+              line: '袋(ふくろ)はいりますか？',
               lineReading: 'ふくろはいりますか？',
               lineRomaji: 'Fukuro wa irimasu ka?',
+              vocab: [{ word: 'いりますか', reading: 'いりますか', romaji: 'irimasu ka', meaning: 'do you need?', pos: 'verb' }],
               question: 'The cashier is asking about...',
               options: [
                 { id: 'l4-d1a', text: 'a bag', isCorrect: true },
@@ -918,9 +905,10 @@ export function getBeginnerLessons(): BeginnerLesson[] {
             {
               id: 'l4-d2',
               character: { name: 'Mika', nameJP: 'みか', emoji: '💕', color: '#FF6B9D', avatar: '/characters/mika.png' },
-              line: '温めますか？',
+              line: '温(あたた)めますか？',
               lineReading: 'あたためますか？',
               lineRomaji: 'Atatamemasu ka?',
+              vocab: [],
               question: 'The cashier is asking if you want to...',
               options: [
                 { id: 'l4-d2a', text: 'heat it up', isCorrect: true },
@@ -932,9 +920,10 @@ export function getBeginnerLessons(): BeginnerLesson[] {
             {
               id: 'l4-d3',
               character: { name: 'Mika', nameJP: 'みか', emoji: '💕', color: '#FF6B9D', avatar: '/characters/mika.png' },
-              line: '三百円です。',
+              line: '三百(さんびゃく)円(えん)です。',
               lineReading: 'さんびゃくえんです。',
               lineRomaji: 'Sanbyaku en desu.',
+              vocab: [],
               question: 'How much is it?',
               options: [
                 { id: 'l4-d3a', text: '200 yen', isCorrect: false },
@@ -966,36 +955,30 @@ export function getBeginnerLessons(): BeginnerLesson[] {
 
         {
           id: 'l4-fill-blank',
-          type: 'fill_blank',
+          type: 'trace',
           order: 6,
           xpReward: 20,
-          sentences: [
+          freewriteOnly: true,
+          title: 'Write it yourself',
+          characters: [
             {
-              id: 'l4-fb1',
-              before: 'これは',
-              answer: 'いくら',
-              after: 'ですか？',
-              hint: 'Asking the price (ikura)',
-              explanation: 'これはいくらですか means "How much is this?"',
+              character: 'あ',
+              reading: 'あ',
+              romaji: 'a',
+              english: 'the letter "a"',
+              strokeCount: 3,
+              memoryHook: 'The first character of hiragana — your foundation',
             },
             {
-              id: 'l4-fb2',
-              before: '水を',
-              answer: 'ください',
-              after: '。',
-              hint: 'Polite way to ask for something (kudasai)',
-              explanation: '水をください means "Water, please."',
-            },
-            {
-              id: 'l4-fb3',
-              before: '',
-              answer: 'ありがとう',
-              after: 'ございます！',
-              hint: 'Expressing gratitude (arigatou)',
-              explanation: 'ありがとうございます is the polite form of "thank you."',
+              character: 'は',
+              reading: 'は',
+              romaji: 'ha/wa',
+              english: 'the particle "wa"',
+              strokeCount: 3,
+              memoryHook: 'This particle marks the topic of a sentence',
             },
           ],
-        } as FillBlankBlock,
+        } as TraceBlock,
 
         {
           id: 'l4-culture',
@@ -1157,9 +1140,10 @@ export function getBeginnerLessons(): BeginnerLesson[] {
               id: 'l5-d1',
               character: { name: 'Yuki', nameJP: 'ゆき', emoji: '🏪', color: '#FF6B9D', avatar: '/Yuki1.png' },
               setting: 'A stationery shop in Harajuku',
-              line: '何色が好き？',
+              line: '何(なに)色(いろ)が好(す)き？',
               lineReading: 'なにいろがすき？',
               lineRomaji: 'Nani-iro ga suki?',
+              vocab: [{ word: '好(す)き', reading: 'すき', romaji: 'suki', meaning: 'like', pos: 'adjective' }],
               question: 'Sakura is asking...',
               options: [
                 { id: 'l5-d1a', text: 'What colour do you like?', isCorrect: true },
@@ -1171,9 +1155,10 @@ export function getBeginnerLessons(): BeginnerLesson[] {
             {
               id: 'l5-d2',
               character: { name: 'Yuki', nameJP: 'ゆき', emoji: '🏪', color: '#FF6B9D', avatar: '/Yuki1.png' },
-              line: '私は赤が好き！赤いペンをどうぞ。',
+              line: '私(わたし)は赤(あか)が好(す)き！赤(あか)いペンをどうぞ。',
               lineReading: 'わたしはあかがすき！あかいぺんをどうぞ。',
               lineRomaji: 'Watashi wa aka ga suki! Akai pen wo dōzo.',
+              vocab: [{ word: 'どうぞ', reading: 'どうぞ', romaji: 'dōzo', meaning: 'here you go', pos: 'expression' }, { word: 'ペン', reading: 'ぺん', romaji: 'pen', meaning: 'pen', pos: 'noun' }],
               question: 'Sakura likes which colour?',
               options: [
                 { id: 'l5-d2a', text: 'Blue', isCorrect: false },
@@ -1205,28 +1190,30 @@ export function getBeginnerLessons(): BeginnerLesson[] {
 
         {
           id: 'l5-fill-blank',
-          type: 'fill_blank',
+          type: 'trace',
           order: 6,
           xpReward: 20,
-          sentences: [
+          freewriteOnly: true,
+          title: 'Write it yourself',
+          characters: [
             {
-              id: 'l5-fb1',
-              before: '',
-              answer: '赤',
-              after: 'い花がきれいです。',
-              hint: 'A warm colour (aka)',
-              explanation: '赤い花がきれいです means "The red flowers are beautiful."',
+              character: '赤',
+              reading: 'あか',
+              romaji: 'aka',
+              english: 'red',
+              strokeCount: 7,
+              memoryHook: 'Fire + earth = red, the color of energy',
             },
             {
-              id: 'l5-fb2',
-              before: '空は',
-              answer: '青',
-              after: 'いです。',
-              hint: 'The colour of the sky (ao)',
-              explanation: '空は青いです means "The sky is blue."',
+              character: '青',
+              reading: 'あお',
+              romaji: 'ao',
+              english: 'blue',
+              strokeCount: 8,
+              memoryHook: 'The kanji for blue also means green — a wider concept than English',
             },
           ],
-        } as FillBlankBlock,
+        } as TraceBlock,
 
         {
           id: 'l5-culture',
@@ -1388,9 +1375,10 @@ export function getBeginnerLessons(): BeginnerLesson[] {
               id: 'l6-d1',
               character: { name: 'Kenji', nameJP: 'けんじ', emoji: '🍻', color: '#00CED1', avatar: '/Kenji1.png' },
               setting: 'A language exchange meetup in a Tokyo cafe',
-              line: 'はじめまして！私ははなです。',
+              line: 'はじめまして！私(わたし)ははなです。',
               lineReading: 'はじめまして！わたしははなです。',
               lineRomaji: 'Hajimemashite! Watashi wa Hana desu.',
+              vocab: [{ word: 'はじめまして', reading: 'はじめまして', romaji: 'hajimemashite', meaning: 'nice to meet you', pos: 'greeting' }],
               question: 'What is Hana doing?',
               options: [
                 { id: 'l6-d1a', text: 'Introducing herself', isCorrect: true },
@@ -1402,9 +1390,10 @@ export function getBeginnerLessons(): BeginnerLesson[] {
             {
               id: 'l6-d2',
               character: { name: 'Kenji', nameJP: 'けんじ', emoji: '🍻', color: '#00CED1', avatar: '/Kenji1.png' },
-              line: 'お母さんは日本人で、お父さんはアメリカ人です。',
+              line: 'お母(かあ)さんは日本人(にほんじん)で、お父(とう)さんはアメリカ人(じん)です。',
               lineReading: 'おかあさんはにほんじんで、おとうさんはあめりかじんです。',
               lineRomaji: 'Okāsan wa nihonjin de, otōsan wa amerikajin desu.',
+              vocab: [{ word: '日本人(にほんじん)', reading: 'にほんじん', romaji: 'nihonjin', meaning: 'Japanese person', pos: 'noun' }],
               question: 'Hana\'s mother is from...',
               options: [
                 { id: 'l6-d2a', text: 'Japan', isCorrect: true },
@@ -1437,36 +1426,22 @@ export function getBeginnerLessons(): BeginnerLesson[] {
 
         {
           id: 'l6-fill-blank',
-          type: 'fill_blank',
+          type: 'trace',
           order: 6,
           xpReward: 20,
-          sentences: [
+          freewriteOnly: true,
+          title: 'Write it yourself',
+          characters: [
             {
-              id: 'l6-fb1',
-              before: '',
-              answer: '私',
-              after: 'はサラです。',
-              hint: 'The word for "I" (watashi)',
-              explanation: '私はサラです means "I am Sara."',
-            },
-            {
-              id: 'l6-fb2',
-              before: '',
-              answer: 'お母さん',
-              after: 'は優しいです。',
-              hint: 'A female parent (okāsan)',
-              explanation: 'お母さんは優しいです means "Mom is kind."',
-            },
-            {
-              id: 'l6-fb3',
-              before: '',
-              answer: '友達',
-              after: 'と映画を見ます。',
-              hint: 'Someone close to you (tomodachi)',
-              explanation: '友達と映画を見ます means "I\'ll watch a movie with a friend."',
+              character: '私',
+              reading: 'わたし',
+              romaji: 'watashi',
+              english: 'I / me',
+              strokeCount: 7,
+              memoryHook: 'The grain radical 禾 on the left — I am a humble grain of rice',
             },
           ],
-        } as FillBlankBlock,
+        } as TraceBlock,
 
         {
           id: 'l6-culture',
@@ -1641,9 +1616,10 @@ export function getBeginnerLessons(): BeginnerLesson[] {
               id: 'l7-d1',
               character: { name: 'Kenji', nameJP: 'けんじ', emoji: '🍻', color: '#00CED1', avatar: '/Kenji1.png' },
               setting: 'After Japanese class',
-              line: '元気ですか？',
+              line: '元気(げんき)ですか？',
               lineReading: 'げんきですか？',
               lineRomaji: 'Genki desu ka?',
+              vocab: [],
               question: 'Ken is asking...',
               options: [
                 { id: 'l7-d1a', text: 'How are you?', isCorrect: true },
@@ -1655,9 +1631,12 @@ export function getBeginnerLessons(): BeginnerLesson[] {
             {
               id: 'l7-d2',
               character: { name: 'Kenji', nameJP: 'けんじ', emoji: '🍻', color: '#00CED1', avatar: '/Kenji1.png' },
-              line: '日本語、好きですか？',
+              line: '日本語(にほんご)、好(す)きですか？',
               lineReading: 'にほんご、すきですか？',
               lineRomaji: 'Nihongo, suki desu ka?',
+              vocab: [
+                { word: '好(す)き', reading: 'すき', romaji: 'suki', meaning: 'like', pos: 'adjective' },
+              ],
               question: 'Ken wants to know if you...',
               options: [
                 { id: 'l7-d2a', text: 'like Japanese', isCorrect: true },
@@ -1690,36 +1669,22 @@ export function getBeginnerLessons(): BeginnerLesson[] {
 
         {
           id: 'l7-fill-blank',
-          type: 'fill_blank',
+          type: 'trace',
           order: 6,
           xpReward: 20,
-          sentences: [
+          freewriteOnly: true,
+          title: 'Write it yourself',
+          characters: [
             {
-              id: 'l7-fb1',
-              before: '日本語が',
-              answer: '好き',
-              after: 'です。',
-              hint: 'A positive feeling (suki)',
-              explanation: '日本語が好きです means "I like Japanese."',
-            },
-            {
-              id: 'l7-fb2',
-              before: '今日は',
-              answer: '疲れた',
-              after: '。',
-              hint: 'After a long day... (tsukareta)',
-              explanation: '今日は疲れた means "I\'m tired today."',
-            },
-            {
-              id: 'l7-fb3',
-              before: 'プレゼント、',
-              answer: '嬉しい',
-              after: '！',
-              hint: 'Feeling joyful (ureshii)',
-              explanation: 'プレゼント、嬉しい means "(A) present — I\'m happy!"',
+              character: '好',
+              reading: 'す',
+              romaji: 'su(ki)',
+              english: 'like / love',
+              strokeCount: 6,
+              memoryHook: 'Woman 女 + child 子 = good/like — what you love',
             },
           ],
-        } as FillBlankBlock,
+        } as TraceBlock,
 
         {
           id: 'l7-culture',
@@ -1879,9 +1844,10 @@ export function getBeginnerLessons(): BeginnerLesson[] {
               id: 'l8-d1',
               character: { name: 'Yuki', nameJP: 'ゆき', emoji: '🏪', color: '#FF6B9D', avatar: '/Yuki1.png' },
               setting: 'Back at the sushi restaurant from Lesson 1',
-              line: 'こんにちは！お元気ですか？',
+              line: 'こんにちは！お元気(げんき)ですか？',
               lineReading: 'こんにちは！おげんきですか？',
               lineRomaji: 'Konnichiwa! O-genki desu ka?',
+              vocab: [{ word: '元気(げんき)', reading: 'げんき', romaji: 'genki', meaning: 'well / healthy', pos: 'adjective' }],
               question: 'How should you respond?',
               options: [
                 { id: 'l8-d1a', text: 'はい、元気です！', isCorrect: true },
@@ -1893,9 +1859,10 @@ export function getBeginnerLessons(): BeginnerLesson[] {
             {
               id: 'l8-d2',
               character: { name: 'Yuki', nameJP: 'ゆき', emoji: '🏪', color: '#FF6B9D', avatar: '/Yuki1.png' },
-              line: '今日の寿司は赤いマグロです。好きですか？',
+              line: '今日(きょう)の寿司(すし)は赤(あか)いマグロです。好(す)きですか？',
               lineReading: 'きょうのすしはあかいまぐろです。すきですか？',
               lineRomaji: 'Kyō no sushi wa akai maguro desu. Suki desu ka?',
+              vocab: [{ word: '今日(きょう)', reading: 'きょう', romaji: 'kyō', meaning: 'today', pos: 'noun' }, { word: '好(す)き', reading: 'すき', romaji: 'suki', meaning: 'like', pos: 'adjective' }],
               question: 'Today\'s sushi is...',
               options: [
                 { id: 'l8-d2a', text: 'red tuna', isCorrect: true },
@@ -1907,9 +1874,10 @@ export function getBeginnerLessons(): BeginnerLesson[] {
             {
               id: 'l8-d3',
               character: { name: 'Yuki', nameJP: 'ゆき', emoji: '🏪', color: '#FF6B9D', avatar: '/Yuki1.png' },
-              line: '水をどうぞ。私のお勧めです！',
+              line: '水(みず)をどうぞ。私(わたし)のお勧(すす)めです！',
               lineReading: 'みずをどうぞ。わたしのおすすめです！',
               lineRomaji: 'Mizu wo dōzo. Watashi no osusume desu!',
+              vocab: [{ word: 'お勧(すす)め', reading: 'おすすめ', romaji: 'osusume', meaning: 'recommendation', pos: 'noun' }, { word: 'どうぞ', reading: 'どうぞ', romaji: 'dōzo', meaning: 'here you go', pos: 'expression' }],
               question: 'What does 私のお勧め mean?',
               options: [
                 { id: 'l8-d3a', text: 'my recommendation', isCorrect: true },
@@ -1926,36 +1894,30 @@ export function getBeginnerLessons(): BeginnerLesson[] {
 
         {
           id: 'l8-fill-blank',
-          type: 'fill_blank',
+          type: 'trace',
           order: 5,
           xpReward: 25,
-          sentences: [
+          freewriteOnly: true,
+          title: 'Write it yourself',
+          characters: [
             {
-              id: 'l8-fb1',
-              before: '私',
-              answer: 'は',
-              after: '学生です。',
-              hint: 'Topic marker (wa)',
-              explanation: '私は学生です — "I am a student." は marks 私 as the topic.',
+              character: 'は',
+              reading: 'は',
+              romaji: 'wa',
+              english: 'topic particle',
+              strokeCount: 3,
+              memoryHook: 'Marks what the sentence is about',
             },
             {
-              id: 'l8-fb2',
-              before: '寿司',
-              answer: 'が',
-              after: '好きです。',
-              hint: 'Subject marker (ga)',
-              explanation: '寿司が好きです — "I like sushi." が marks sushi as the thing you like.',
-            },
-            {
-              id: 'l8-fb3',
-              before: '日本',
-              answer: 'の',
-              after: 'ラーメンは美味しいです。',
-              hint: 'Possessive particle (no)',
-              explanation: '日本のラーメン — "Japan\'s ramen" / "Japanese ramen." の connects the two nouns.',
+              character: 'です',
+              reading: 'です',
+              romaji: 'desu',
+              english: 'to be (polite)',
+              strokeCount: 5,
+              memoryHook: 'The polite sentence ender — makes everything formal',
             },
           ],
-        } as FillBlankBlock,
+        } as TraceBlock,
 
         {
           id: 'l8-culture',

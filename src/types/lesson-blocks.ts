@@ -87,6 +87,8 @@ export interface FillBlankSentence {
 
 export interface FillBlankBlock extends BaseBlock {
   type: 'fill_blank'
+  title?: string
+  instruction?: string
   sentences: FillBlankSentence[]
 }
 
@@ -142,7 +144,7 @@ export interface CultureNoteBlock extends BaseBlock {
   headline: string
   body: string
   neverInTextbook: string
-  relatedWords: string[]
+  relatedWords: (string | { word: string; reading: string; meaning: string })[]
 }
 
 // ── Shadowing ────────────────────────────────

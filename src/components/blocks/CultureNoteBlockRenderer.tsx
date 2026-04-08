@@ -46,11 +46,17 @@ export default function CultureNoteBlockRenderer({ block, onComplete }: Props) {
               Related Words
             </p>
             <div className="flex flex-wrap gap-2">
-              {block.relatedWords.map((word, i) => (
-                <Badge key={i} color="blue" size="sm">
-                  {word}
-                </Badge>
-              ))}
+              {block.relatedWords.map((word, i) => {
+                if (typeof word === 'string') {
+                  return <Badge key={i} color="blue" size="sm">{word}</Badge>
+                }
+                return (
+                  <div key={i} className="bg-[#EBF0F8] border border-[#B8CBE0] rounded-[10px] px-3 py-1.5 text-center">
+                    <p className="text-sm font-bold text-[#1B4F8A]" style={{ fontFamily: 'Noto Sans JP' }}>{word.word}</p>
+                    <p className="text-[10px] text-gray-400">{word.reading} — {word.meaning}</p>
+                  </div>
+                )
+              })}
             </div>
           </div>
         )}

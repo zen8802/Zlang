@@ -107,8 +107,30 @@ export default function LessonRunner({ lesson, onLessonComplete }: Props) {
         </span>
       </div>
 
-      {/* Block content */}
-      <div className="flex-1 px-4 pb-8 max-w-lg mx-auto w-full" key={currentBlock.id}>
+      {/* Navigation helpers */}
+      <div className="flex items-center justify-between text-[10px] mt-1 px-5">
+        <button
+          onClick={() => setBlockIndex(Math.max(0, blockIndex - 1))}
+          disabled={blockIndex === 0}
+          className="text-gray-300 hover:text-gray-500 disabled:opacity-0 font-bold"
+          style={{ fontFamily: 'Nunito' }}
+        >
+          ← Back
+        </button>
+        <button
+          onClick={() => {
+            if (blockIndex < lesson.blocks.length - 1) setBlockIndex(blockIndex + 1)
+          }}
+          disabled={blockIndex >= lesson.blocks.length - 1}
+          className="text-gray-300 hover:text-gray-500 disabled:opacity-0 font-bold"
+          style={{ fontFamily: 'Nunito' }}
+        >
+          Skip →
+        </button>
+      </div>
+
+      {/* Block content — full width for dialogue, constrained for others */}
+      <div className={`flex-1 px-4 pb-8 w-full ${currentBlock.type === 'dialogue_choice' ? '' : 'max-w-lg mx-auto'}`} key={currentBlock.id}>
         <BlockRenderer block={currentBlock} onComplete={handleBlockComplete} />
       </div>
     </div>

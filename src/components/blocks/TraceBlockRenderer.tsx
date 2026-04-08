@@ -2,225 +2,9 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import type { TraceBlock } from '@/types/lesson-blocks'
 import Button from '@/components/ui/Button'
-
-// ── Stroke data ─────────────────────────────────────────────────────────
-// Each character maps to { strokes: { path, num }[], description: string[] }
-// Paths are within a 0–100 viewBox.
-
-interface StrokeEntry {
-  path: string
-  num: number
-}
-
-interface CharStrokeData {
-  strokes: StrokeEntry[]
-  description: string[]
-}
-
-const STROKE_DATA: Record<string, CharStrokeData> = {
-  '一': {
-    strokes: [{ path: 'M 10,50 L 90,50', num: 1 }],
-    description: ['Draw a horizontal line from left to right.'],
-  },
-  '二': {
-    strokes: [
-      { path: 'M 20,35 L 80,35', num: 1 },
-      { path: 'M 10,65 L 90,65', num: 2 },
-    ],
-    description: [
-      'Short horizontal line at top.',
-      'Longer horizontal line at bottom.',
-    ],
-  },
-  '三': {
-    strokes: [
-      { path: 'M 25,25 L 75,25', num: 1 },
-      { path: 'M 20,50 L 80,50', num: 2 },
-      { path: 'M 10,75 L 90,75', num: 3 },
-    ],
-    description: [
-      'Short top horizontal.',
-      'Medium middle horizontal.',
-      'Longest bottom horizontal.',
-    ],
-  },
-  '人': {
-    strokes: [
-      { path: 'M 50,15 L 25,85', num: 1 },
-      { path: 'M 50,15 L 75,85', num: 2 },
-    ],
-    description: [
-      'Left diagonal stroke downward.',
-      'Right diagonal stroke downward.',
-    ],
-  },
-  '日': {
-    strokes: [
-      { path: 'M 30,15 L 30,85', num: 1 },
-      { path: 'M 30,15 L 70,15', num: 2 },
-      { path: 'M 70,15 L 70,85', num: 3 },
-      { path: 'M 30,50 L 70,50', num: 4 },
-    ],
-    description: [
-      'Left vertical downward.',
-      'Top horizontal to right.',
-      'Right vertical downward.',
-      'Middle horizontal bar.',
-    ],
-  },
-  '本': {
-    strokes: [
-      { path: 'M 20,30 L 80,30', num: 1 },
-      { path: 'M 50,10 L 50,90', num: 2 },
-      { path: 'M 50,55 L 20,80', num: 3 },
-      { path: 'M 50,55 L 80,80', num: 4 },
-      { path: 'M 30,55 L 70,55', num: 5 },
-    ],
-    description: [
-      'Horizontal stroke through upper part.',
-      'Vertical stroke through center.',
-      'Left downward diagonal.',
-      'Right downward diagonal.',
-      'Short horizontal at crossing point.',
-    ],
-  },
-  '水': {
-    strokes: [
-      { path: 'M 50,10 L 50,90', num: 1 },
-      { path: 'M 50,35 Q 30,50 15,75', num: 2 },
-      { path: 'M 30,30 L 50,50', num: 3 },
-      { path: 'M 50,50 L 85,75', num: 4 },
-    ],
-    description: [
-      'Central vertical stroke.',
-      'Left curving splash.',
-      'Short left-to-center stroke.',
-      'Right outward splash.',
-    ],
-  },
-  '女': {
-    strokes: [
-      { path: 'M 65,20 Q 40,45 20,75', num: 1 },
-      { path: 'M 20,45 L 80,45', num: 2 },
-      { path: 'M 50,45 Q 55,70 75,85', num: 3 },
-    ],
-    description: [
-      'Sweeping curve from upper right to lower left.',
-      'Horizontal crossing stroke.',
-      'Right leg extending down and out.',
-    ],
-  },
-  '男': {
-    strokes: [
-      { path: 'M 20,10 L 20,45', num: 1 },
-      { path: 'M 20,10 L 80,10', num: 2 },
-      { path: 'M 80,10 L 80,45', num: 3 },
-      { path: 'M 20,28 L 80,28', num: 4 },
-      { path: 'M 20,45 L 80,45', num: 5 },
-      { path: 'M 50,45 L 50,90', num: 6 },
-      { path: 'M 50,60 Q 30,75 15,90', num: 7 },
-    ],
-    description: [
-      'Left side of 田 down.',
-      'Top of 田 across.',
-      'Right side of 田 down.',
-      'Middle horizontal of 田.',
-      'Bottom of 田 across.',
-      'Vertical of 力 down.',
-      'Curved left stroke of 力.',
-    ],
-  },
-  '山': {
-    strokes: [
-      { path: 'M 50,10 L 50,85', num: 1 },
-      { path: 'M 20,35 L 20,85', num: 2 },
-      { path: 'M 80,35 L 80,85', num: 3 },
-    ],
-    description: [
-      'Tall center vertical peak.',
-      'Left vertical side.',
-      'Right vertical side.',
-    ],
-  },
-  '川': {
-    strokes: [
-      { path: 'M 25,15 Q 22,50 25,90', num: 1 },
-      { path: 'M 50,20 L 50,90', num: 2 },
-      { path: 'M 75,15 Q 78,50 75,90', num: 3 },
-    ],
-    description: [
-      'Left flowing stroke.',
-      'Center vertical.',
-      'Right flowing stroke.',
-    ],
-  },
-  '火': {
-    strokes: [
-      { path: 'M 50,10 L 50,55', num: 1 },
-      { path: 'M 25,30 L 15,65', num: 2 },
-      { path: 'M 75,30 L 85,65', num: 3 },
-      { path: 'M 50,55 Q 30,75 15,90', num: 4 },
-      { path: 'M 50,55 Q 70,75 85,90', num: 5 },
-    ],
-    description: [
-      'Center vertical dot-stroke.',
-      'Left spark dot.',
-      'Right spark dot.',
-      'Left spreading leg.',
-      'Right spreading leg.',
-    ],
-  },
-  '土': {
-    strokes: [
-      { path: 'M 20,40 L 80,40', num: 1 },
-      { path: 'M 50,10 L 50,85', num: 2 },
-      { path: 'M 15,85 L 85,85', num: 3 },
-    ],
-    description: [
-      'Middle horizontal bar.',
-      'Vertical through center.',
-      'Bottom wide horizontal.',
-    ],
-  },
-  '木': {
-    strokes: [
-      { path: 'M 15,35 L 85,35', num: 1 },
-      { path: 'M 50,10 L 50,90', num: 2 },
-      { path: 'M 50,50 L 20,85', num: 3 },
-      { path: 'M 50,50 L 80,85', num: 4 },
-    ],
-    description: [
-      'Horizontal branch.',
-      'Vertical trunk.',
-      'Left root diagonal.',
-      'Right root diagonal.',
-    ],
-  },
-}
-
-// Fallback for unknown characters
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function getFallbackData(char: string): CharStrokeData {
-  return {
-    strokes: [
-      { path: 'M 10,50 L 90,50', num: 1 },
-      { path: 'M 50,10 L 50,90', num: 2 },
-    ],
-    description: [
-      'Horizontal guide stroke.',
-      'Vertical guide stroke.',
-    ],
-  }
-}
-
-function getStrokeData(char: string): CharStrokeData {
-  return STROKE_DATA[char] ?? getFallbackData(char)
-}
-
-// ── Props ───────────────────────────────────────────────────────────────
 
 interface Props {
   block: TraceBlock
@@ -228,513 +12,275 @@ interface Props {
   freewriteOnly?: boolean
 }
 
-type Mode = 'guided' | 'freewrite'
+type Phase = 'watch' | 'practice' | 'correct' | 'done'
 
-export function TraceBlockRenderer({ block, onComplete, freewriteOnly = false }: Props) {
-  const characters = block.characters
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [mode, setMode] = useState<Mode>(freewriteOnly ? 'freewrite' : 'guided')
-  const [currentStroke, setCurrentStroke] = useState(0)
-  const [completedStrokes, setCompletedStrokes] = useState<number[]>([])
-  const [done, setDone] = useState(false)
+let HanziWriter: any = null
 
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const isDrawingRef = useRef(false)
-  const pointsRef = useRef<{ x: number; y: number }[]>([])
+export function TraceBlockRenderer({ block, onComplete }: Props) {
+  const [charIndex, setCharIndex] = useState(0)
+  const [phase, setPhase] = useState<Phase>('watch')
+  const [mistakes, setMistakes] = useState(0)
+  const [correctStrokes, setCorrectStrokes] = useState(0)
+  const [totalStrokes, setTotalStrokes] = useState(0)
+  const [allDone, setAllDone] = useState(false)
+  const [ready, setReady] = useState(false)
 
-  const char = characters[currentIndex]
-  const strokeData = getStrokeData(char.character)
-  const totalStrokes = strokeData.strokes.length
+  const writerRef = useRef<any>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const currentChar = block.characters[charIndex]
 
-  const speak = useCallback((text: string) => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return
-    window.speechSynthesis.cancel()
-    const u = new SpeechSynthesisUtterance(text)
-    u.lang = 'ja-JP'
-    u.rate = 0.7
-    window.speechSynthesis.speak(u)
+  const playAudio = useCallback((char: string) => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      speechSynthesis.cancel()
+      const u = new SpeechSynthesisUtterance(char)
+      u.lang = 'ja-JP'
+      u.rate = 0.7
+      speechSynthesis.speak(u)
+    }
   }, [])
 
-  // Speak on character load
+  const initWriter = useCallback(() => {
+    if (!HanziWriter || !containerRef.current) return
+
+    writerRef.current = null
+    containerRef.current.innerHTML = ''
+
+    const char = block.characters[charIndex].character
+
+    try {
+      writerRef.current = HanziWriter.create(containerRef.current, char, {
+        width: 280,
+        height: 280,
+        padding: 20,
+        showOutline: true,
+        showCharacter: false,
+        strokeColor: '#1A1A2E',
+        outlineColor: '#E5E7EB',
+        highlightColor: '#1B4F8A',
+        drawingColor: '#1B4F8A',
+        drawingWidth: 5,
+        strokeAnimationSpeed: 1,
+        delayBetweenStrokes: 400,
+        charDataLoader: (c: string, onLoad: any) => {
+          fetch(`https://cdn.jsdelivr.net/npm/hanzi-writer-data@2.0/${encodeURIComponent(c)}.json`)
+            .then(r => r.json())
+            .then(onLoad)
+            .catch(() => {
+              console.error('Could not load character data for:', c)
+              setReady(true)
+            })
+        },
+        onLoadCharDataSuccess: () => {
+          setReady(true)
+          try {
+            const strokes = writerRef.current?._character?._strokes
+            if (strokes) setTotalStrokes(strokes.length)
+          } catch { /* ignore */ }
+          // Auto-animate
+          writerRef.current?.animateCharacter({
+            strokeAnimationSpeed: 0.8,
+            delayBetweenStrokes: 500,
+          })
+          playAudio(char)
+        },
+      })
+    } catch (e) {
+      console.error('HanziWriter init error:', e)
+      setReady(true)
+    }
+  }, [charIndex, block.characters, playAudio])
+
+  // Load HanziWriter dynamically
   useEffect(() => {
-    speak(char.character)
-  }, [currentIndex, speak, char.character])
+    if (typeof window === 'undefined') return
+    import('hanzi-writer').then(mod => {
+      HanziWriter = mod.default || mod
+      initWriter()
+    }).catch(e => {
+      console.error('Failed to load hanzi-writer:', e)
+      setReady(true)
+    })
+  }, [])
 
-  // Clear canvas when mode/character changes
+  // Re-init on character change
   useEffect(() => {
-    clearCanvas()
-    setCompletedStrokes([])
-    setCurrentStroke(0)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIndex, mode])
+    if (HanziWriter) {
+      setReady(false)
+      setPhase('watch')
+      setCorrectStrokes(0)
+      setMistakes(0)
+      initWriter()
+    }
+  }, [charIndex, initWriter])
 
-  const clearCanvas = () => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height)
+  const watchAgain = () => {
+    if (!writerRef.current) return
+    setPhase('watch')
+    setCorrectStrokes(0)
+    writerRef.current.hideCharacter()
+    writerRef.current.showOutline()
+    writerRef.current.animateCharacter({
+      strokeAnimationSpeed: 0.8,
+      delayBetweenStrokes: 500,
+    })
   }
 
-  // ── Drawing logic ───────────────────────────
+  const startPractice = () => {
+    if (!writerRef.current) return
+    setPhase('practice')
+    setCorrectStrokes(0)
+    setMistakes(0)
 
-  const getPos = (e: any) => {
-    const canvas = canvasRef.current
-    if (!canvas) return { x: 0, y: 0 }
-    const rect = canvas.getBoundingClientRect()
-    if (e.touches && e.touches.length > 0) {
-      return {
-        x: e.touches[0].clientX - rect.left,
-        y: e.touches[0].clientY - rect.top,
-      }
-    }
-    if (e.changedTouches && e.changedTouches.length > 0) {
-      return {
-        x: e.changedTouches[0].clientX - rect.left,
-        y: e.changedTouches[0].clientY - rect.top,
-      }
-    }
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top }
-  }
+    writerRef.current.hideCharacter()
+    writerRef.current.showOutline()
 
-  const startDrawing = (e: any) => {
-    e.preventDefault()
-    isDrawingRef.current = true
-    pointsRef.current = [getPos(e)]
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    const pos = getPos(e)
-    ctx.beginPath()
-    ctx.moveTo(pos.x, pos.y)
-  }
+    writerRef.current.quiz({
+      showHintAfterMisses: 2,
+      leniency: 0.8,
+      onMistake: (data: any) => {
+        setMistakes(data.mistakesOnStroke || 0)
+      },
+      onCorrectStroke: (data: any) => {
+        setCorrectStrokes((data.strokeNum || 0) + 1)
+        setMistakes(0)
+      },
+      onComplete: () => {
+        setPhase('correct')
+        writerRef.current?.showCharacter()
+        playAudio(currentChar.character)
 
-  const draw = (e: any) => {
-    e.preventDefault()
-    if (!isDrawingRef.current) return
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    const pos = getPos(e)
-    pointsRef.current.push(pos)
-
-    // Smooth quadratic bezier drawing
-    const pts = pointsRef.current
-    if (pts.length < 3) {
-      ctx.lineWidth = 6
-      ctx.lineCap = 'round'
-      ctx.lineJoin = 'round'
-      ctx.strokeStyle = '#1B4F8A'
-      ctx.lineTo(pos.x, pos.y)
-      ctx.stroke()
-      return
-    }
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-    ctx.lineWidth = 6
-    ctx.lineCap = 'round'
-    ctx.lineJoin = 'round'
-    ctx.strokeStyle = '#1B4F8A'
-    ctx.beginPath()
-    ctx.moveTo(pts[0].x, pts[0].y)
-
-    for (let i = 1; i < pts.length - 1; i++) {
-      const midX = (pts[i].x + pts[i + 1].x) / 2
-      const midY = (pts[i].y + pts[i + 1].y) / 2
-      ctx.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY)
-    }
-
-    const last = pts[pts.length - 1]
-    ctx.lineTo(last.x, last.y)
-    ctx.stroke()
-  }
-
-  const stopDrawing = (e: any) => {
-    e.preventDefault()
-    if (!isDrawingRef.current) return
-    isDrawingRef.current = false
-    pointsRef.current = []
-
-    if (mode === 'guided') {
-      // Advance to next stroke
-      const nextCompleted = [...completedStrokes, currentStroke]
-      setCompletedStrokes(nextCompleted)
-      clearCanvas()
-
-      if (currentStroke + 1 < totalStrokes) {
-        setCurrentStroke(currentStroke + 1)
-      } else {
-        // All strokes done — transition to freewrite
         setTimeout(() => {
-          setMode('freewrite')
-        }, 400)
-      }
-    }
+          if (charIndex < block.characters.length - 1) {
+            setCharIndex(i => i + 1)
+          } else {
+            setAllDone(true)
+          }
+        }, 1500)
+      },
+    })
   }
 
-  // ── Navigation ──────────────────────────────
-
-  const handleNext = () => {
-    if (currentIndex + 1 < characters.length) {
-      setCurrentIndex(currentIndex + 1)
-      setMode(freewriteOnly ? 'freewrite' : 'guided')
-    } else {
-      setDone(true)
-    }
-  }
-
-  const switchToFreewrite = () => {
-    setMode('freewrite')
-    setCompletedStrokes([])
-    setCurrentStroke(0)
-  }
-
-  const switchToGuided = () => {
-    setMode('guided')
-    setCompletedStrokes([])
-    setCurrentStroke(0)
-  }
-
-  // ── Done screen ─────────────────────────────
-
-  if (done) {
-    return (
-      <div className="page-enter flex flex-col items-center gap-6 py-8">
-        <div className="text-5xl bounce-in">&#9997;&#65039;</div>
-        <h2
-          className="text-2xl font-extrabold text-[#1A1A2E]"
-          style={{ fontFamily: 'var(--font-ui)' }}
-        >
-          All Characters Traced!
-        </h2>
-        <p className="text-[#6B7280]" style={{ fontFamily: 'var(--font-ui)' }}>
-          {characters.length} character{characters.length > 1 ? 's' : ''} practiced
-        </p>
-        <Button onClick={() => onComplete(block.xpReward)} fullWidth>
-          Continue
-        </Button>
-      </div>
-    )
-  }
-
-  // ── Parse path start point for numbered markers ──
-  const parseStart = (path: string) => {
-    const m = path.match(/M\s+([\d.]+)[,\s]+([\d.]+)/)
-    if (!m) return { x: 50, y: 50 }
-    return { x: parseFloat(m[1]), y: parseFloat(m[2]) }
-  }
-
-  // ── Render ──────────────────────────────────
+  // ── DONE ──
+  if (allDone) return (
+    <div className="text-center space-y-5 page-enter">
+      <div className="text-6xl">✍️</div>
+      <p className="font-black text-2xl text-[#1B4F8A]" style={{ fontFamily: 'Nunito' }}>
+        {block.characters.map(c => c.character).join('・')} practiced!
+      </p>
+      <Button variant="primary" size="lg" fullWidth onClick={() => onComplete(block.xpReward)}>
+        Continue +{block.xpReward} XP ⚡
+      </Button>
+    </div>
+  )
 
   return (
-    <div className="page-enter flex flex-col gap-4 py-4">
-      {/* Progress dots */}
-      <div className="flex justify-center gap-2">
-        {characters.map((_, i) => (
-          <div
-            key={i}
-            className={`w-3 h-3 rounded-full transition-all ${
-              i < currentIndex
-                ? 'bg-[#58CC02]'
-                : i === currentIndex
-                ? 'bg-[#1B4F8A] scale-125'
-                : 'bg-[#B8CBE0]'
-            }`}
-          />
-        ))}
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="font-black text-lg text-[#1B4F8A]" style={{ fontFamily: 'Nunito' }}>
+          {phase === 'watch' ? 'Watch the stroke order' : phase === 'correct' ? '✓ Perfect!' : 'Now you try'}
+        </h3>
+        <span className="text-sm text-gray-400 font-bold" style={{ fontFamily: 'Nunito' }}>
+          {charIndex + 1} / {block.characters.length}
+        </span>
       </div>
 
-      {/* Title */}
-      <h3
-        className="text-lg font-extrabold text-[#1A1A2E] text-center"
-        style={{ fontFamily: 'var(--font-ui)' }}
-      >
-        {block.title}
-      </h3>
+      {/* Phase indicator */}
+      <div className={`rounded-[14px] px-4 py-2.5 border transition-all ${
+        phase === 'watch' ? 'bg-[#EBF0F8] border-[#B8CBE0]' :
+        phase === 'correct' ? 'bg-[#E5F9D0] border-[#89E219]' :
+        'bg-[#FFF3CC] border-[#FFB800]'
+      }`}>
+        <p className={`text-sm font-bold ${
+          phase === 'watch' ? 'text-[#1B4F8A]' : phase === 'correct' ? 'text-[#2D8800]' : 'text-[#CC7700]'
+        }`} style={{ fontFamily: 'Nunito' }}>
+          {phase === 'watch' ? '👀 Watch carefully — then try it yourself'
+            : phase === 'correct' ? '🎉 You got it!'
+            : `✏️ Draw each stroke in order${mistakes > 0 ? ` — ${mistakes} miss${mistakes > 1 ? 'es' : ''}, hint coming` : ''}`}
+        </p>
+      </div>
 
-      {/* Info line */}
-      <div className="flex justify-center items-center gap-3">
-        <span
-          className="text-sm text-[#6B7280]"
-          style={{ fontFamily: 'var(--font-ui)' }}
-        >
-          {char.reading} &middot; {char.romaji} &middot; {char.english}
-        </span>
-        <button
-          type="button"
-          onClick={() => speak(char.character)}
-          className="text-lg cursor-pointer hover:opacity-70 transition-opacity"
-        >
-          &#128266;
+      {/* HanziWriter canvas */}
+      <div className="flex justify-center">
+        <div className="relative bg-white rounded-[24px] overflow-hidden shadow-[0_6px_0_rgba(0,0,0,0.06)] border-2 transition-all duration-300" style={{
+          width: 280, height: 280,
+          borderColor: phase === 'correct' ? '#58CC02' : phase === 'practice' ? '#1B4F8A' : '#E5E7EB',
+        }}>
+          {/* Grid lines */}
+          <svg className="absolute inset-0 pointer-events-none" width={280} height={280}>
+            <line x1={140} y1={4} x2={140} y2={276} stroke="#E5E7EB" strokeWidth={1} strokeDasharray="6,4" />
+            <line x1={4} y1={140} x2={276} y2={140} stroke="#E5E7EB" strokeWidth={1} strokeDasharray="6,4" />
+          </svg>
+
+          {/* HanziWriter renders here */}
+          <div ref={containerRef} className="absolute inset-0" />
+
+          {/* Loading */}
+          {!ready && (
+            <div className="absolute inset-0 flex items-center justify-center bg-white/80">
+              <div className="text-4xl animate-pulse" style={{ fontFamily: 'Noto Sans JP' }}>{currentChar.character}</div>
+            </div>
+          )}
+
+          {/* Correct overlay */}
+          {phase === 'correct' && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="text-5xl bounce-in">✓</div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Stroke progress */}
+      {phase === 'practice' && totalStrokes > 0 && (
+        <div>
+          <div className="flex justify-between text-xs text-gray-400 font-bold mb-1" style={{ fontFamily: 'Nunito' }}>
+            <span>Strokes</span>
+            <span>{correctStrokes} / {totalStrokes}</span>
+          </div>
+          <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-full bg-[#1B4F8A] rounded-full transition-all duration-300" style={{ width: `${(correctStrokes / totalStrokes) * 100}%` }} />
+          </div>
+        </div>
+      )}
+
+      {/* Character info */}
+      <div className="flex items-center gap-4 bg-[#EBF0F8] rounded-[16px] p-4">
+        <div className="text-center">
+          <p className="text-4xl font-black text-[#1A1A2E]" style={{ fontFamily: 'Noto Sans JP' }}>{currentChar.character}</p>
+          <p className="text-xs font-mono text-[#1B4F8A] mt-0.5">{currentChar.romaji}</p>
+        </div>
+        <div className="flex-1">
+          <p className="font-bold text-gray-800" style={{ fontFamily: 'Nunito' }}>{currentChar.english}</p>
+          {currentChar.memoryHook && (
+            <p className="text-xs text-gray-500 italic mt-1" style={{ fontFamily: 'Nunito' }}>💡 {currentChar.memoryHook}</p>
+          )}
+        </div>
+        <button onClick={() => playAudio(currentChar.character)} className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-xl shadow-sm hover:bg-[#dbe6f5] transition-colors shrink-0">
+          🔊
         </button>
       </div>
 
-      {/* Mode badge */}
-      <div className="flex justify-center">
-        <span
-          className="text-xs font-bold px-3 py-1 rounded-full"
-          style={{
-            fontFamily: 'var(--font-ui)',
-            backgroundColor: mode === 'guided' ? '#FF6B3522' : '#58CC0222',
-            color: mode === 'guided' ? '#FF6B35' : '#58CC02',
-          }}
-        >
-          {mode === 'guided'
-            ? `Stroke ${currentStroke + 1} of ${totalStrokes}`
-            : 'Free Practice'}
-        </span>
-      </div>
-
-      {/* Stroke instruction (guided mode) */}
-      {mode === 'guided' && strokeData.description[currentStroke] && (
-        <p
-          className="text-center text-sm text-[#1B4F8A] font-semibold"
-          style={{ fontFamily: 'var(--font-ui)' }}
-        >
-          {strokeData.description[currentStroke]}
-        </p>
-      )}
-
-      {/* Canvas area */}
-      <div className="flex justify-center">
-        <div
-          className="relative overflow-hidden"
-          style={{
-            width: 256,
-            height: 256,
-            borderRadius: 20,
-            boxShadow: '0 6px 0 #B8CBE0',
-            backgroundColor: '#ffffff',
-          }}
-        >
-          {/* Grid background for freewrite */}
-          {mode === 'freewrite' && (
-            <svg
-              className="absolute inset-0 pointer-events-none"
-              width="256"
-              height="256"
-              viewBox="0 0 256 256"
-            >
-              {/* Outer solid border */}
-              <rect
-                x="4"
-                y="4"
-                width="248"
-                height="248"
-                fill="none"
-                stroke="#B8CBE0"
-                strokeWidth="2"
-              />
-              {/* Dotted cross center lines */}
-              <line
-                x1="128"
-                y1="4"
-                x2="128"
-                y2="252"
-                stroke="#B8CBE0"
-                strokeWidth="1"
-                strokeDasharray="6,4"
-              />
-              <line
-                x1="4"
-                y1="128"
-                x2="252"
-                y2="128"
-                stroke="#B8CBE0"
-                strokeWidth="1"
-                strokeDasharray="6,4"
-              />
-              {/* Faint quarter guides */}
-              <line
-                x1="64"
-                y1="4"
-                x2="64"
-                y2="252"
-                stroke="#B8CBE022"
-                strokeWidth="1"
-              />
-              <line
-                x1="192"
-                y1="4"
-                x2="192"
-                y2="252"
-                stroke="#B8CBE022"
-                strokeWidth="1"
-              />
-              <line
-                x1="4"
-                y1="64"
-                x2="252"
-                y2="64"
-                stroke="#B8CBE022"
-                strokeWidth="1"
-              />
-              <line
-                x1="4"
-                y1="192"
-                x2="252"
-                y2="192"
-                stroke="#B8CBE022"
-                strokeWidth="1"
-              />
-            </svg>
-          )}
-
-          {/* Ghost character (guided mode only) */}
-          {mode === 'guided' && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
-              <span
-                className="text-[120px] leading-none text-[#E8E8E8]"
-                style={{ fontFamily: 'var(--font-jp)' }}
-              >
-                {char.character}
-              </span>
-            </div>
-          )}
-
-          {/* SVG stroke overlay (guided mode) */}
-          {mode === 'guided' && (
-            <svg
-              className="absolute inset-0 pointer-events-none"
-              width="256"
-              height="256"
-              viewBox="0 0 100 100"
-            >
-              {/* Completed strokes — blue, 40% opacity */}
-              {completedStrokes.map((si) => (
-                <path
-                  key={`done-${si}`}
-                  d={strokeData.strokes[si].path}
-                  fill="none"
-                  stroke="#1B4F8A"
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                  opacity="0.4"
-                />
-              ))}
-
-              {/* Current stroke — orange dashed */}
-              {currentStroke < totalStrokes && (
-                <path
-                  d={strokeData.strokes[currentStroke].path}
-                  fill="none"
-                  stroke="#FF6B35"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeDasharray="5,4"
-                  opacity="0.8"
-                />
-              )}
-
-              {/* Numbered start points */}
-              {strokeData.strokes.map((s, si) => {
-                const start = parseStart(s.path)
-                const isDone = completedStrokes.includes(si)
-                const isCurrent = si === currentStroke
-                if (!isDone && !isCurrent) return null
-                return (
-                  <g key={`num-${si}`}>
-                    <circle
-                      cx={start.x}
-                      cy={start.y}
-                      r="5"
-                      fill={isCurrent ? '#FF6B35' : '#1B4F8A'}
-                      opacity={isCurrent ? 1 : 0.4}
-                    />
-                    <text
-                      x={start.x}
-                      y={start.y + 1.5}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      fill="white"
-                      fontSize="5"
-                      fontWeight="bold"
-                    >
-                      {s.num}
-                    </text>
-                  </g>
-                )
-              })}
-            </svg>
-          )}
-
-          {/* Canvas drawing surface */}
-          <canvas
-            ref={canvasRef}
-            width={256}
-            height={256}
-            className="absolute inset-0 w-full h-full cursor-crosshair touch-none"
-            onMouseDown={startDrawing}
-            onMouseMove={draw}
-            onMouseUp={stopDrawing}
-            onMouseLeave={stopDrawing}
-            onTouchStart={startDrawing}
-            onTouchMove={draw}
-            onTouchEnd={stopDrawing}
-          />
-        </div>
-      </div>
-
-      {/* Memory hook */}
-      {char.memoryHook && (
-        <div className="bg-[#EBF0F8] rounded-[16px] p-4 text-center">
-          <p
-            className="text-xs font-bold text-[#1B4F8A] mb-1"
-            style={{ fontFamily: 'var(--font-ui)' }}
-          >
-            Memory Hook
-          </p>
-          <p
-            className="text-sm text-[#1A1A2E]"
-            style={{ fontFamily: 'var(--font-ui)' }}
-          >
-            {char.memoryHook}
-          </p>
-        </div>
-      )}
-
-      {/* Mode controls */}
-      <div className="flex flex-col items-center gap-2">
-        {mode === 'guided' && (
-          <button
-            type="button"
-            onClick={switchToFreewrite}
-            className="text-sm text-[#1B4F8A] font-semibold cursor-pointer hover:underline"
-            style={{ fontFamily: 'var(--font-ui)' }}
-          >
-            Skip to free practice &rarr;
+      {/* Action buttons */}
+      {phase === 'watch' && ready && (
+        <div className="space-y-2">
+          <Button variant="primary" size="lg" fullWidth onClick={startPractice}>
+            I&apos;m ready to try →
+          </Button>
+          <button onClick={watchAgain} className="w-full text-center text-sm text-[#1B4F8A] font-bold py-2 hover:underline" style={{ fontFamily: 'Nunito' }}>
+            ↺ Watch again
           </button>
-        )}
+        </div>
+      )}
 
-        {mode === 'freewrite' && (
-          <>
-            <div className="flex gap-3 w-full">
-              <Button
-                variant="secondary"
-                size="sm"
-                fullWidth
-                onClick={() => clearCanvas()}
-              >
-                Clear
-              </Button>
-              <Button size="sm" fullWidth onClick={handleNext}>
-                {currentIndex + 1 < characters.length ? 'Done — Next' : 'Done — Finish'}
-              </Button>
-            </div>
-            {!freewriteOnly && (
-              <button
-                type="button"
-                onClick={switchToGuided}
-                className="text-sm text-[#6B7280] font-semibold cursor-pointer hover:underline"
-                style={{ fontFamily: 'var(--font-ui)' }}
-              >
-                &larr; Review stroke order again
-              </button>
-            )}
-          </>
-        )}
-      </div>
+      {phase === 'practice' && (
+        <div className="space-y-2">
+          <p className="text-center text-xs text-gray-400" style={{ fontFamily: 'Nunito' }}>Draw directly on the character above</p>
+          <button onClick={watchAgain} className="w-full text-center text-sm text-gray-400 font-bold py-1.5 hover:text-[#1B4F8A] transition-colors" style={{ fontFamily: 'Nunito' }}>
+            ← Watch stroke order again
+          </button>
+        </div>
+      )}
     </div>
   )
 }

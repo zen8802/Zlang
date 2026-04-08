@@ -41,7 +41,8 @@ export default function BlockRenderer({ block, onComplete }: Props) {
     case 'dialogue_choice':
       return <DialogueChoiceBlockRenderer block={block} onComplete={onComplete} />
     case 'trace':
-      return <TraceBlockRenderer block={block} onComplete={onComplete} />
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return <TraceBlockRenderer block={block} onComplete={onComplete} freewriteOnly={(block as any).freewriteOnly} />
     case 'video':
     case 'translation':
     case 'reading':

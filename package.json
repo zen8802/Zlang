@@ -20,6 +20,7 @@
     "canvas-confetti": "^1.9.4",
     "elevenlabs": "^1.59.0",
     "framer-motion": "^12.38.0",
+    "hanzi-writer": "^3.7.3",
     "next": "14.2.35",
     "play-dl": "^1.9.7",
     "react": "^18",
