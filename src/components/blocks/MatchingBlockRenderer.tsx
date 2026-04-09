@@ -45,8 +45,8 @@ export default function MatchingBlockRenderer({ block, onComplete }: Props) {
   if (allMatched) {
     return (
       <div className="page-enter flex flex-col items-center gap-6 py-8">
-        <div className="text-5xl bounce-in">&#9989;</div>
-        <h2 className="text-2xl font-extrabold" style={{ fontFamily: 'var(--font-ui)' }}>
+        <div className="text-5xl">&#9989;</div>
+        <h2 className="text-2xl font-semibold" style={{ fontFamily: 'var(--font-ui)' }}>
           All Matched!
         </h2>
         <Button onClick={() => onComplete(block.xpReward)} fullWidth>
@@ -58,7 +58,7 @@ export default function MatchingBlockRenderer({ block, onComplete }: Props) {
 
   return (
     <div className="page-enter flex flex-col gap-5 py-4">
-      <p className="text-center text-sm text-[#6B7280] font-semibold" style={{ fontFamily: 'var(--font-ui)' }}>
+      <p className="text-center text-sm text-[#6B6560] font-semibold" style={{ fontFamily: 'var(--font-ui)' }}>
         Match Japanese to English
       </p>
 
@@ -75,13 +75,13 @@ export default function MatchingBlockRenderer({ block, onComplete }: Props) {
                 onClick={() => handleLeftClick(p.id)}
                 disabled={isMatched}
                 className={`
-                  p-3 rounded-[16px] text-left font-bold transition-all duration-150
+                  p-3 rounded-[8px] text-left font-semibold transition-all duration-150
                   ${
                     isMatched
-                      ? 'bg-[#E5F9D0] border-2 border-[#89E219] text-[#2D8800] opacity-70'
+                      ? 'bg-[#EFF5F0] border border-[#B8D4C0] text-[#3D6B4F] opacity-70'
                       : isSelected
-                      ? 'bg-[#1B4F8A] text-white shadow-[0_4px_0_#133970] border-2 border-[#1B4F8A]'
-                      : 'bg-white border-2 border-[#B8CBE0] text-[#1A1A2E] shadow-[0_4px_0_#B8CBE0]'
+                      ? 'bg-[#1B4F8A] text-white border border-[#1B4F8A]'
+                      : 'bg-[#FDFBF8] border border-[#E0DAD2] text-[#1A1814]'
                   }
                 `}
                 style={{ fontFamily: 'var(--font-jp)' }}
@@ -104,13 +104,13 @@ export default function MatchingBlockRenderer({ block, onComplete }: Props) {
                 onClick={() => handleRightClick(p)}
                 disabled={isMatched}
                 className={`
-                  p-3 rounded-[16px] text-left font-bold transition-all duration-150
+                  p-3 rounded-[8px] text-left font-semibold transition-all duration-150
                   ${
                     isMatched
-                      ? 'bg-[#E5F9D0] border-2 border-[#89E219] text-[#2D8800] opacity-70'
+                      ? 'bg-[#EFF5F0] border border-[#B8D4C0] text-[#3D6B4F] opacity-70'
                       : isWrong
-                      ? 'bg-[#FFE5E5] border-2 border-[#FF4B4B] text-[#CC0000]'
-                      : 'bg-white border-2 border-[#B8CBE0] text-[#1A1A2E] shadow-[0_4px_0_#B8CBE0]'
+                      ? 'bg-[#F5EEEE] border border-[#D4BABA] text-[#8B3A3A]'
+                      : 'bg-[#FDFBF8] border border-[#E0DAD2] text-[#1A1814]'
                   }
                 `}
                 style={{ fontFamily: 'var(--font-ui)' }}

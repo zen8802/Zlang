@@ -17,20 +17,20 @@ export default function CultureNoteBlockRenderer({ block, onComplete }: Props) {
         {/* Emoji + Headline */}
         <div className="flex items-center gap-3 mb-4">
           <span className="text-4xl">{block.emoji}</span>
-          <h2 className="text-xl font-extrabold text-[#1A1A2E]" style={{ fontFamily: 'var(--font-ui)' }}>
+          <h2 className="text-xl font-semibold text-[#1A1814]" style={{ fontFamily: 'var(--font-ui)' }}>
             {block.headline}
           </h2>
         </div>
 
         {/* Body */}
-        <p className="text-base text-[#1A1A2E] leading-relaxed" style={{ fontFamily: 'var(--font-ui)' }}>
+        <p className="text-base text-[#1A1814] leading-relaxed" style={{ fontFamily: 'var(--font-ui)' }}>
           {block.body}
         </p>
 
         {/* Not in any textbook */}
         {block.neverInTextbook && (
-          <div className="bg-[#EBF0F8] rounded-[16px] p-4 mt-4">
-            <p className="text-sm font-bold text-[#1B4F8A] mb-1" style={{ fontFamily: 'var(--font-ui)' }}>
+          <div className="bg-[#EBF0F8] rounded-[6px] p-4 mt-4">
+            <p className="text-sm font-semibold text-[#1B4F8A] mb-1" style={{ fontFamily: 'var(--font-ui)' }}>
               Not in any textbook:
             </p>
             <p className="text-sm text-[#1B4F8A]" style={{ fontFamily: 'var(--font-ui)' }}>
@@ -42,7 +42,7 @@ export default function CultureNoteBlockRenderer({ block, onComplete }: Props) {
         {/* Related words */}
         {block.relatedWords.length > 0 && (
           <div className="mt-4">
-            <p className="text-xs text-[#6B7280] font-semibold mb-2" style={{ fontFamily: 'var(--font-ui)' }}>
+            <p className="text-xs text-[#6B6560] font-semibold mb-2" style={{ fontFamily: 'var(--font-ui)' }}>
               Related Words
             </p>
             <div className="flex flex-wrap gap-2">
@@ -51,9 +51,9 @@ export default function CultureNoteBlockRenderer({ block, onComplete }: Props) {
                   return <Badge key={i} color="blue" size="sm">{word}</Badge>
                 }
                 return (
-                  <div key={i} className="bg-[#EBF0F8] border border-[#B8CBE0] rounded-[10px] px-3 py-1.5 text-center">
-                    <p className="text-sm font-bold text-[#1B4F8A]" style={{ fontFamily: 'Noto Sans JP' }}>{word.word}</p>
-                    <p className="text-[10px] text-gray-400">{word.reading} — {word.meaning}</p>
+                  <div key={i} className="bg-[#EBF0F8] border border-[#B8CBE0] rounded-[6px] px-3 py-1.5 text-center">
+                    <p className="text-sm font-semibold text-[#1B4F8A]" style={{ fontFamily: 'Noto Sans JP' }}>{word.word}</p>
+                    <p className="text-[10px] text-[#9E9892]">{word.reading} — {word.meaning}</p>
                   </div>
                 )
               })}

@@ -69,11 +69,11 @@ export function AudioMatchBlockRenderer({ block, onComplete }: Props) {
     const pct = Math.round((score / total) * 100)
     return (
       <div className="page-enter flex flex-col items-center gap-6 py-8">
-        <div className="text-5xl bounce-in">{pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '💪'}</div>
-        <h2 className="text-2xl font-extrabold text-[#1A1A2E]" style={{ fontFamily: 'var(--font-ui)' }}>
+        <div className="text-5xl">{pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '💪'}</div>
+        <h2 className="text-2xl font-semibold text-[#1A1814]" style={{ fontFamily: 'var(--font-ui)' }}>
           {score} / {total} Correct
         </h2>
-        <p className="text-[#6B7280]" style={{ fontFamily: 'var(--font-ui)' }}>
+        <p className="text-[#6B6560]" style={{ fontFamily: 'var(--font-ui)' }}>
           {pct}% accuracy
         </p>
         <Button onClick={() => onComplete(block.xpReward)} fullWidth>
@@ -92,7 +92,7 @@ export function AudioMatchBlockRenderer({ block, onComplete }: Props) {
             key={i}
             className={`w-3 h-3 rounded-full transition-all ${
               i < currentIndex
-                ? 'bg-[#58CC02]'
+                ? 'bg-[#3D6B4F]'
                 : i === currentIndex
                 ? 'bg-[#1B4F8A] scale-125'
                 : 'bg-[#B8CBE0]'
@@ -102,7 +102,7 @@ export function AudioMatchBlockRenderer({ block, onComplete }: Props) {
       </div>
 
       {/* Instruction */}
-      <p className="text-center text-sm font-semibold text-[#6B7280]" style={{ fontFamily: 'var(--font-ui)' }}>
+      <p className="text-center text-sm font-semibold text-[#6B6560]" style={{ fontFamily: 'var(--font-ui)' }}>
         {block.instruction}
       </p>
 
@@ -111,7 +111,7 @@ export function AudioMatchBlockRenderer({ block, onComplete }: Props) {
         <button
           type="button"
           onClick={handleReplay}
-          className="bg-[#1B4F8A] text-white rounded-full w-28 h-28 flex items-center justify-center shadow-[0_6px_0_#133970] hover:brightness-110 active:shadow-none active:translate-y-[6px] transition-all duration-100 cursor-pointer select-none"
+          className="bg-[#1B4F8A] text-white rounded-full w-28 h-28 flex items-center justify-center hover:brightness-110 active:translate-y-px transition-all duration-100 cursor-pointer select-none"
         >
           <span className="text-5xl">🔊</span>
         </button>
@@ -138,7 +138,6 @@ export function AudioMatchBlockRenderer({ block, onComplete }: Props) {
               fullWidth
               onClick={() => handleSelect(opt.id, opt.isCorrect)}
               disabled={!played || (answered && opt.id !== selected && !opt.isCorrect)}
-              className="shadow-[0_3px_0]"
             >
               <span style={{ fontFamily: 'var(--font-ui)' }}>{opt.text}</span>
             </Button>
@@ -148,11 +147,11 @@ export function AudioMatchBlockRenderer({ block, onComplete }: Props) {
 
       {/* Reveal word after answering */}
       {answered && (
-        <div className="bg-[#EBF0F8] rounded-[16px] p-4 page-enter text-center">
-          <p className="text-2xl font-bold text-[#1A1A2E]" style={{ fontFamily: 'var(--font-jp)' }}>
+        <div className="bg-[#FDFBF8] border border-[#E0DAD2] rounded-[8px] p-4 page-enter text-center">
+          <p className="text-2xl font-normal text-[#1A1814]" style={{ fontFamily: 'var(--font-jp)' }}>
             {item.word}
           </p>
-          <p className="text-sm text-[#6B7280]" style={{ fontFamily: 'var(--font-ui)' }}>
+          <p className="text-sm text-[#6B6560]" style={{ fontFamily: 'var(--font-ui)' }}>
             {item.reading} &middot; {item.romaji} &middot; {item.english}
           </p>
         </div>

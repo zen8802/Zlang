@@ -42,14 +42,14 @@ interface Message {
 
 const POS_COLORS: Record<string, { underline: string; bg: string; text: string; label: string }> = {
   noun:       { underline: '#1B4F8A', bg: '#EBF0F8', text: '#1B4F8A', label: '名詞' },
-  verb:       { underline: '#E63946', bg: '#FFE5E5', text: '#CC0000', label: '動詞' },
-  adjective:  { underline: '#8B5CF6', bg: '#F3E8FF', text: '#7C3AED', label: '形容詞' },
-  adverb:     { underline: '#059669', bg: '#D1FAE5', text: '#047857', label: '副詞' },
-  particle:   { underline: '#F59E0B', bg: '#FFF3CC', text: '#D97706', label: '助詞' },
-  phrase:     { underline: '#EC4899', bg: '#FCE7F3', text: '#DB2777', label: '表現' },
-  greeting:   { underline: '#14B8A6', bg: '#CCFBF1', text: '#0D9488', label: '挨拶' },
-  counter:    { underline: '#6366F1', bg: '#EEF2FF', text: '#4F46E5', label: '助数詞' },
-  expression: { underline: '#F97316', bg: '#FFF7ED', text: '#EA580C', label: '表現' },
+  verb:       { underline: '#8B3A3A', bg: '#F5EEEE', text: '#8B3A3A', label: '動詞' },
+  adjective:  { underline: '#6B5B8D', bg: '#F0EDF5', text: '#6B5B8D', label: '形容詞' },
+  adverb:     { underline: '#3D6B4F', bg: '#EFF5F0', text: '#3D6B4F', label: '副詞' },
+  particle:   { underline: '#7A5C2E', bg: '#F5F0E8', text: '#7A5C2E', label: '助詞' },
+  phrase:     { underline: '#8B5A6B', bg: '#F5EEF0', text: '#8B5A6B', label: '表現' },
+  greeting:   { underline: '#3D6B5A', bg: '#EFF5F2', text: '#3D6B5A', label: '挨拶' },
+  counter:    { underline: '#4F5B8D', bg: '#EEF0F5', text: '#4F5B8D', label: '助数詞' },
+  expression: { underline: '#7A5C2E', bg: '#F5F0E8', text: '#7A5C2E', label: '表現' },
 }
 
 interface SessionData {
@@ -82,9 +82,9 @@ const DIFFICULTY_STYLES: Record<
   ResponseOption['difficulty'],
   { color: 'green' | 'blue' | 'gold' | 'purple'; emoji: string; bg: string; border: string }
 > = {
-  safe: { color: 'green', emoji: '🟢', bg: '#E5F9D0', border: '#58CC02' },
+  safe: { color: 'green', emoji: '🟢', bg: '#EFF5F0', border: '#3D6B4F' },
   natural: { color: 'blue', emoji: '🔵', bg: '#EBF0F8', border: '#1B4F8A' },
-  bold: { color: 'gold', emoji: '🟡', bg: '#FFF3CC', border: '#FFB800' },
+  bold: { color: 'gold', emoji: '🟡', bg: '#F5F0E8', border: '#7A5C2E' },
   funny: { color: 'purple', emoji: '😂', bg: '#F3E8FF', border: '#8B5CF6' },
 }
 
@@ -220,7 +220,7 @@ function renderWithFurigana(text: string, showFurigana: boolean) {
       <ruby key={match.index}>
         {match[1]}
         <rp>(</rp>
-        <rt className="text-[10px]" style={{ color: '#9CA3AF' }}>{match[2]}</rt>
+        <rt className="text-[10px]" style={{ color: '#9E9892' }}>{match[2]}</rt>
         <rp>)</rp>
       </ruby>,
     )
@@ -800,11 +800,11 @@ export default function StudioSessionPage() {
     return (
       <div
         className="h-screen flex items-center justify-center"
-        style={{ backgroundColor: '#F5F0EB' }}
+        style={{ backgroundColor: '#FDFBF8' }}
       >
-        <div className="text-center page-enter">
+        <div className="text-center ink-in">
           <div className="w-12 h-12 border-4 border-[#1B4F8A]/20 border-t-[#1B4F8A] rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-sm font-bold" style={{ fontFamily: 'Nunito', color: '#6B7280' }}>
+          <p className="text-sm font-bold" style={{ color: '#6B6560' }}>
             Loading conversation...
           </p>
         </div>
@@ -817,14 +817,14 @@ export default function StudioSessionPage() {
     return (
       <div
         className="h-screen flex items-center justify-center px-4"
-        style={{ backgroundColor: '#F5F0EB' }}
+        style={{ backgroundColor: '#FDFBF8' }}
       >
         <Card variant="elevated" padding="lg" className="max-w-sm w-full text-center">
           <p className="text-4xl mb-3">😵</p>
-          <p className="font-bold mb-2" style={{ fontFamily: 'Nunito', color: '#1A1A2E' }}>
+          <p className="font-bold mb-2" style={{ color: '#1A1814' }}>
             Something went wrong
           </p>
-          <p className="text-sm mb-4" style={{ fontFamily: 'Nunito', color: '#6B7280' }}>
+          <p className="text-sm mb-4" style={{ color: '#6B6560' }}>
             {error}
           </p>
           <Button variant="primary" onClick={() => window.location.reload()}>
@@ -845,9 +845,9 @@ export default function StudioSessionPage() {
     messages[messages.length - 1]?.role === 'character'
 
   return (
-    <div className="h-screen flex flex-col" style={{ backgroundColor: '#F5F0EB' }}>
+    <div className="h-screen flex flex-col" style={{ backgroundColor: '#FDFBF8' }}>
       {/* ---- Top Bar -------------------------------------------------------- */}
-      <div className="shrink-0 bg-white/80 backdrop-blur-md border-b border-black/5 safe-top z-30">
+      <div className="shrink-0 bg-[#FDFBF8]/80 backdrop-blur-md border-b border-[#E0DAD2]/50 safe-top z-30">
         <div className="px-4 py-2.5 flex items-center justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-10 h-10 rounded-full shrink-0 overflow-hidden border-2 border-white shadow-sm">
@@ -858,10 +858,10 @@ export default function StudioSessionPage() {
               )}
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-black leading-tight truncate" style={{ fontFamily: 'Nunito', color: '#1A1A2E' }}>
+              <p className="text-sm font-semibold leading-tight truncate" style={{ color: '#1A1814' }}>
                 {session?.characterName || 'Character'}
               </p>
-              <p className="text-[10px] truncate" style={{ fontFamily: 'Nunito', color: '#9CA3AF' }}>
+              <p className="text-[10px] truncate" style={{ color: '#9E9892' }}>
                 {session?.scenarioEmoji} {session?.scenarioTitle}
               </p>
             </div>
@@ -870,8 +870,7 @@ export default function StudioSessionPage() {
           <button
             onClick={endSession}
             disabled={isEnding || messages.length < 2}
-            className="px-3 py-1.5 rounded-[10px] text-xs font-bold bg-[#FFE5E5] text-[#CC0000] border border-[#FF4B4B]/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0"
-            style={{ fontFamily: 'Nunito' }}
+            className="px-3 py-1.5 rounded-[6px] text-xs font-semibold bg-[#F5EEEE] text-[#8B3A3A] border border-[#D4BABA] disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0"
           >
             {isEnding ? '...' : 'End'}
           </button>
@@ -889,12 +888,12 @@ export default function StudioSessionPage() {
             <button
               key={t.key}
               onClick={t.toggle}
-              className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all ${
+              className={`px-2.5 py-1 rounded-full text-[10px] font-semibold border transition-all ${
                 t.active
-                  ? 'bg-[#1B4F8A] text-white'
-                  : 'bg-gray-100 text-gray-400'
+                  ? 'bg-[#EBF0F8] border-[#1B4F8A] text-[#1B4F8A]'
+                  : 'bg-transparent border-[#E0DAD2] text-[#9E9892]'
               }`}
-              style={{ fontFamily: t.key === 'furigana' ? 'Noto Sans JP' : 'Nunito' }}
+              style={{ fontFamily: t.key === 'furigana' ? 'Noto Sans JP' : undefined }}
             >
               {t.label}
             </button>
@@ -909,15 +908,15 @@ export default function StudioSessionPage() {
       >
         {/* Opening context */}
         {session && messages.length === 0 && !isStreaming && (
-          <div className="text-center py-6 page-enter">
+          <div className="text-center py-6 ink-in">
             <span className="text-5xl block mb-3">{session.scenarioEmoji}</span>
-            <p className="text-base font-black" style={{ fontFamily: 'Nunito', color: '#1A1A2E' }}>
+            <p className="text-base font-semibold" style={{ color: '#1A1814' }}>
               {session.scenarioTitle}
             </p>
-            <p className="text-sm mt-0.5" style={{ fontFamily: 'Noto Sans JP', color: '#9CA3AF' }}>
+            <p className="text-sm mt-0.5" style={{ fontFamily: 'Noto Sans JP', color: '#9E9892' }}>
               {session.scenarioTitleJP}
             </p>
-            <p className="text-sm mt-3 max-w-xs mx-auto" style={{ fontFamily: 'Nunito', color: '#6B7280' }}>
+            <p className="text-sm mt-3 max-w-xs mx-auto" style={{ color: '#6B6560' }}>
               Pick a response below to start the conversation. Don&apos;t worry about mistakes — your coach will help!
             </p>
           </div>
@@ -938,7 +937,7 @@ export default function StudioSessionPage() {
                   )}
                 </div>
                 <div className="space-y-1.5">
-                  <div className="bg-white px-4 py-3 rounded-[20px_20px_20px_4px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-gray-100">
+                  <div className="bg-[#FDFBF8] px-4 py-3 border border-[#E0DAD2]" style={{ borderRadius: '2px 12px 12px 12px' }}>
                     {/* Japanese dialogue with furigana + clickable vocab + speaker */}
                     <div className="flex items-start gap-2">
                       <div className="flex-1">
@@ -962,7 +961,7 @@ export default function StudioSessionPage() {
                         )}
                         {/* English translation */}
                         {showTranslation && msg.english && (
-                          <p className="text-xs mt-1 italic leading-relaxed" style={{ color: '#9CA3AF', fontFamily: 'Nunito' }}>
+                          <p className="text-xs mt-1 italic leading-relaxed" style={{ color: '#9E9892' }}>
                             {msg.english}
                           </p>
                         )}
@@ -972,8 +971,8 @@ export default function StudioSessionPage() {
                         onClick={() => speakJapanese(msg.content, msg.id)}
                         className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all mt-0.5 ${
                           speakingMsgId === msg.id
-                            ? 'bg-[#1B4F8A] text-white shadow-[0_2px_0_#133970]'
-                            : 'bg-gray-50 text-gray-400 hover:bg-[#EBF0F8] hover:text-[#1B4F8A] border border-gray-100'
+                            ? 'bg-[#1B4F8A] text-white'
+                            : 'bg-[#FDFBF8] text-[#9E9892] hover:bg-[#EBF0F8] hover:text-[#1B4F8A] border border-[#E0DAD2]'
                         }`}
                       >
                         {speakingMsgId === msg.id ? (
@@ -987,12 +986,9 @@ export default function StudioSessionPage() {
 
                   {/* Cultural insight */}
                   {showCoachNotes && msg.coachNote && (
-                    <div className="px-3.5 py-2 rounded-[12px] bg-[#FFFBEB] border-l-[3px] border-[#FFB800]">
-                      <p className="text-xs font-bold mb-0.5 flex items-center gap-1" style={{ fontFamily: 'Nunito', color: '#CC7700' }}>
-                        <span>💡</span>
-                      </p>
-                      <p className="text-[13px] leading-relaxed" style={{ color: '#92600A' }}>
-                        {renderWithFurigana(msg.coachNote, showFurigana)}
+                    <div className="px-3.5 py-2 rounded-[6px] bg-transparent border-l-[2px] border-[#1B4F8A]/30">
+                      <p className="text-[13px] leading-relaxed italic" style={{ color: '#6B6560' }}>
+                        ↳ {renderWithFurigana(msg.coachNote, showFurigana)}
                       </p>
                     </div>
                   )}
@@ -1002,8 +998,8 @@ export default function StudioSessionPage() {
               /* User message */
               <div className="flex justify-end">
                 <div
-                  className="max-w-[85%] px-4 py-3 rounded-[20px_20px_4px_20px] text-white"
-                  style={{ backgroundColor: '#1B4F8A', boxShadow: '0 2px 8px rgba(27,79,138,0.25)' }}
+                  className="max-w-[85%] px-4 py-3 text-white"
+                  style={{ backgroundColor: '#1B4F8A', borderRadius: '12px 2px 12px 12px' }}
                 >
                   <p
                     className="text-[15px] leading-relaxed whitespace-pre-wrap"
@@ -1027,11 +1023,11 @@ export default function StudioSessionPage() {
                 <div className="w-full h-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: session?.characterColor || '#1B4F8A' }}>{session?.characterName?.[0] || '?'}</div>
               )}
             </div>
-            <div className="bg-white px-5 py-3.5 rounded-[20px_20px_20px_4px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-gray-100">
+            <div className="bg-[#FDFBF8] px-5 py-3.5 border border-[#E0DAD2]" style={{ borderRadius: '2px 12px 12px 12px' }}>
               <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-gray-300 animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-2 h-2 rounded-full bg-gray-300 animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-2 h-2 rounded-full bg-gray-300 animate-bounce" style={{ animationDelay: '300ms' }} />
+                <span className="w-2 h-2 rounded-full bg-[#E0DAD2] animate-pulse" style={{ animationDelay: '0ms' }} />
+                <span className="w-2 h-2 rounded-full bg-[#E0DAD2] animate-pulse" style={{ animationDelay: '150ms' }} />
+                <span className="w-2 h-2 rounded-full bg-[#E0DAD2] animate-pulse" style={{ animationDelay: '300ms' }} />
               </div>
             </div>
           </div>
@@ -1058,8 +1054,8 @@ export default function StudioSessionPage() {
                 )}
               </div>
               <div className="space-y-1.5">
-                <div className="bg-white px-4 py-3 rounded-[20px_20px_20px_4px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-gray-100">
-                  <p className="text-[15px] leading-[2] whitespace-pre-wrap" style={{ fontFamily: 'Noto Sans JP', color: '#1A1A2E' }}>
+                <div className="bg-[#FDFBF8] px-4 py-3 border border-[#E0DAD2]" style={{ borderRadius: '2px 12px 12px 12px' }}>
+                  <p className="text-[15px] leading-[2] whitespace-pre-wrap" style={{ fontFamily: 'Noto Sans JP', color: '#1A1814' }}>
                     {visibleText}
                     {!isDone && <span className="inline-block w-1.5 h-4 bg-[#1B4F8A] rounded-sm animate-pulse ml-0.5 align-middle" />}
                   </p>
@@ -1069,7 +1065,7 @@ export default function StudioSessionPage() {
                     </p>
                   )}
                   {showTranslation && visibleEn && (
-                    <p className="text-xs mt-1 italic leading-relaxed" style={{ color: '#9CA3AF', fontFamily: 'Nunito' }}>
+                    <p className="text-xs mt-1 italic leading-relaxed" style={{ color: '#9E9892' }}>
                       {visibleEn}
                     </p>
                   )}
@@ -1082,13 +1078,12 @@ export default function StudioSessionPage() {
         {/* Inline error */}
         {error && session && (
           <div className="text-center py-2">
-            <p className="text-sm text-[#CC0000] font-bold" style={{ fontFamily: 'Nunito' }}>
+            <p className="text-sm text-[#8B3A3A] font-semibold">
               {error}
             </p>
             <button
               onClick={() => setError(null)}
-              className="text-xs text-[#6B7280] underline mt-1"
-              style={{ fontFamily: 'Nunito' }}
+              className="text-xs text-[#6B6560] underline mt-1"
             >
               Dismiss
             </button>
@@ -1099,7 +1094,7 @@ export default function StudioSessionPage() {
         {showOptions && !showTypeOwn && (
           <div className="space-y-1.5 pt-2">
             {voiceReplyMode && (
-              <p className="text-[10px] text-center font-bold mb-1" style={{ color: '#9CA3AF', fontFamily: 'Nunito' }}>
+              <p className="text-[10px] text-center font-bold mb-1" style={{ color: '#9E9892' }}>
                 🎤 Say one of these out loud
               </p>
             )}
@@ -1109,9 +1104,9 @@ export default function StudioSessionPage() {
               return (
                 <div
                   key={option.id}
-                  className={`w-full text-left px-3.5 py-2.5 bg-white rounded-[14px] border-2 shadow-[0_2px_0_rgba(0,0,0,0.04)] transition-all option-card-enter ${
-                    isSelected ? 'scale-[0.97] border-[#58CC02]' : 'border-gray-100'
-                  } ${!voiceReplyMode ? 'cursor-pointer active:translate-y-[2px] active:shadow-none' : ''}`}
+                  className={`w-full text-left px-3.5 py-2.5 bg-[#FDFBF8] rounded-[8px] border transition-all ${
+                    isSelected ? 'scale-[0.97] border-[#3D6B4F]' : 'border-[#E0DAD2]'
+                  } ${!voiceReplyMode ? 'cursor-pointer active:translate-y-px' : ''}`}
                   style={{
                     animationDelay: `${idx * 150}ms`,
                   }}
@@ -1123,7 +1118,7 @@ export default function StudioSessionPage() {
 
                     <div className="flex-1 min-w-0">
                       {/* Japanese */}
-                      <p className="text-sm font-bold leading-snug" style={{ fontFamily: 'Noto Sans JP', color: '#1A1A2E' }}>
+                      <p className="text-sm font-bold leading-snug" style={{ fontFamily: 'Noto Sans JP', color: '#1A1814' }}>
                         {renderWithFurigana(option.japanese, showFurigana)}
                       </p>
                       {/* Romaji */}
@@ -1134,7 +1129,7 @@ export default function StudioSessionPage() {
                       )}
                       {/* English */}
                       {showTranslation && (
-                        <p className="text-xs mt-0.5 italic" style={{ color: '#9CA3AF' }}>
+                        <p className="text-xs mt-0.5 italic" style={{ color: '#9E9892' }}>
                           {option.english}
                         </p>
                       )}
@@ -1165,7 +1160,7 @@ export default function StudioSessionPage() {
               <button
                 onClick={() => setShowTypeOwn(true)}
                 className="text-[10px] font-bold transition-colors hover:text-[#1B4F8A]"
-                style={{ fontFamily: 'Nunito', color: '#B0B0B0' }}
+                style={{ color: '#9E9892' }}
               >
                 ✏️ Type my own
               </button>
@@ -1184,8 +1179,8 @@ export default function StudioSessionPage() {
                 onKeyDown={handleKeyDown}
                 placeholder="Type in Japanese..."
                 rows={1}
-                className="flex-1 px-4 py-3 rounded-[16px] border-2 border-gray-200 bg-white text-[15px] resize-none leading-relaxed focus:outline-none focus:border-[#1B4F8A] transition-colors placeholder:text-gray-300"
-                style={{ fontFamily: 'Noto Sans JP', color: '#1A1A2E', maxHeight: '160px' }}
+                className="flex-1 px-4 py-3 rounded-[8px] border border-[#E0DAD2] bg-[#FDFBF8] text-[15px] resize-none leading-relaxed focus:outline-none focus:border-[#1B4F8A] transition-colors placeholder:text-[#9E9892]"
+                style={{ fontFamily: 'Noto Sans JP', color: '#1A1814', maxHeight: '160px' }}
               />
               <button
                 onClick={() => sendText(inputText)}
@@ -1193,7 +1188,7 @@ export default function StudioSessionPage() {
                 className="w-11 h-11 rounded-full flex items-center justify-center text-white shrink-0 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 active:scale-95"
                 style={{
                   backgroundColor: inputText.trim() ? '#1B4F8A' : '#B8CBE0',
-                  boxShadow: inputText.trim() ? '0 3px 0 #133970' : 'none',
+                  /* no cartoon shadow */
                 }}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1206,7 +1201,7 @@ export default function StudioSessionPage() {
               <button
                 onClick={() => setShowTypeOwn(false)}
                 className="text-xs font-bold underline transition-colors hover:text-[#1B4F8A]"
-                style={{ fontFamily: 'Nunito', color: '#9CA3AF' }}
+                style={{ color: '#9E9892' }}
               >
                 Back to options
               </button>
@@ -1225,8 +1220,8 @@ export default function StudioSessionPage() {
                 onKeyDown={handleKeyDown}
                 placeholder="Type in Japanese..."
                 rows={1}
-                className="flex-1 px-4 py-3 rounded-[16px] border-2 border-gray-200 bg-white text-[15px] resize-none leading-relaxed focus:outline-none focus:border-[#1B4F8A] transition-colors placeholder:text-gray-300"
-                style={{ fontFamily: 'Noto Sans JP', color: '#1A1A2E', maxHeight: '160px' }}
+                className="flex-1 px-4 py-3 rounded-[8px] border border-[#E0DAD2] bg-[#FDFBF8] text-[15px] resize-none leading-relaxed focus:outline-none focus:border-[#1B4F8A] transition-colors placeholder:text-[#9E9892]"
+                style={{ fontFamily: 'Noto Sans JP', color: '#1A1814', maxHeight: '160px' }}
               />
               <button
                 onClick={() => sendText(inputText)}
@@ -1234,7 +1229,7 @@ export default function StudioSessionPage() {
                 className="w-11 h-11 rounded-full flex items-center justify-center text-white shrink-0 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 active:scale-95"
                 style={{
                   backgroundColor: inputText.trim() ? '#1B4F8A' : '#B8CBE0',
-                  boxShadow: inputText.trim() ? '0 3px 0 #133970' : 'none',
+                  /* no cartoon shadow */
                 }}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1248,13 +1243,13 @@ export default function StudioSessionPage() {
 
         {/* Lesson Results */}
         {lessonBlocks && (
-          <div className="pt-4 space-y-4 page-enter">
+          <div className="pt-4 space-y-4 ink-in">
             <div className="text-center py-4">
               <span className="text-4xl block mb-2">🎉</span>
-              <p className="text-lg font-black" style={{ fontFamily: 'Nunito', color: '#1A1A2E' }}>
+              <p className="text-lg font-semibold" style={{ color: '#1A1814' }}>
                 Great conversation!
               </p>
-              <p className="text-sm mt-1" style={{ fontFamily: 'Nunito', color: '#6B7280' }}>
+              <p className="text-sm mt-1" style={{ color: '#6B6560' }}>
                 Here&apos;s what you practiced:
               </p>
             </div>
@@ -1265,7 +1260,7 @@ export default function StudioSessionPage() {
                   <span className="text-xl">
                     {block.type === 'vocab' ? '📝' : block.type === 'grammar' ? '📐' : '🏮'}
                   </span>
-                  <h3 className="font-black text-base" style={{ fontFamily: 'Nunito', color: '#1A1A2E' }}>
+                  <h3 className="font-semibold text-base" style={{ color: '#1A1814' }}>
                     {block.title}
                   </h3>
                   <Badge
@@ -1280,19 +1275,19 @@ export default function StudioSessionPage() {
                   {block.items.map(
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     (item: any, itemIdx: number) => (
-                      <div key={itemIdx} className="p-3 rounded-[12px] bg-[#F5F0EB] border border-gray-100">
+                      <div key={itemIdx} className="p-3 rounded-[6px] bg-[#FDFBF8] border border-[#E0DAD2]">
                         {item.word && (
                           <p className="font-bold text-sm" style={{ fontFamily: 'Noto Sans JP', color: '#1B4F8A' }}>
                             {item.word}
                             {item.reading && (
-                              <span className="font-normal ml-2 text-xs" style={{ color: '#9CA3AF' }}>
+                              <span className="font-normal ml-2 text-xs" style={{ color: '#9E9892' }}>
                                 {item.reading}
                               </span>
                             )}
                           </p>
                         )}
                         {item.meaning && (
-                          <p className="text-sm mt-0.5" style={{ fontFamily: 'Nunito', color: '#4B5563' }}>
+                          <p className="text-sm mt-0.5" style={{ color: '#6B6560' }}>
                             {item.meaning}
                           </p>
                         )}
@@ -1302,17 +1297,17 @@ export default function StudioSessionPage() {
                           </p>
                         )}
                         {item.explanation && (
-                          <p className="text-sm mt-0.5" style={{ fontFamily: 'Nunito', color: '#4B5563' }}>
+                          <p className="text-sm mt-0.5" style={{ color: '#6B6560' }}>
                             {item.explanation}
                           </p>
                         )}
                         {item.example && (
-                          <p className="text-xs mt-1 italic" style={{ fontFamily: 'Noto Sans JP', color: '#9CA3AF' }}>
+                          <p className="text-xs mt-1 italic" style={{ fontFamily: 'Noto Sans JP', color: '#9E9892' }}>
                             {item.example}
                           </p>
                         )}
                         {item.note && (
-                          <p className="text-sm" style={{ fontFamily: 'Nunito', color: '#4B5563' }}>
+                          <p className="text-sm" style={{ color: '#6B6560' }}>
                             {item.note}
                           </p>
                         )}
@@ -1412,11 +1407,11 @@ function VocabPopup({ word, rect, onClose }: { word: VocabWord; rect: DOMRect; o
   return (
     <div
       ref={ref}
-      className="fixed z-50 w-64 bg-white rounded-[18px] overflow-hidden border border-gray-100"
+      className="fixed z-50 w-64 bg-[#FDFBF8] rounded-[8px] overflow-hidden border border-[#E0DAD2]"
       style={{
         top,
         left,
-        boxShadow: '0 12px 40px rgba(0,0,0,0.15), 0 4px 0 rgba(0,0,0,0.04)',
+        boxShadow: '0 4px 20px rgba(26,24,20,0.10)',
       }}
     >
       {/* POS color bar */}
@@ -1426,7 +1421,7 @@ function VocabPopup({ word, rect, onClose }: { word: VocabWord; rect: DOMRect; o
         {/* Word + reading */}
         <div className="flex items-start justify-between mb-2">
           <div>
-            <p className="text-2xl font-black" style={{ fontFamily: 'Noto Sans JP', color: '#1A1A2E' }}>
+            <p className="text-2xl font-semibold" style={{ fontFamily: 'Noto Sans JP', color: '#1A1814' }}>
               {stripFurigana(word.word)}
             </p>
             <p className="text-xs mt-0.5" style={{ fontFamily: 'Noto Sans JP', color: '#1B4F8A' }}>
@@ -1438,7 +1433,7 @@ function VocabPopup({ word, rect, onClose }: { word: VocabWord; rect: DOMRect; o
           </div>
           {/* POS badge */}
           <span
-            className="text-[10px] font-black px-2 py-0.5 rounded-full"
+            className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
             style={{ backgroundColor: posStyle.bg, color: posStyle.text }}
           >
             {posStyle.label} · {word.pos}
@@ -1446,15 +1441,15 @@ function VocabPopup({ word, rect, onClose }: { word: VocabWord; rect: DOMRect; o
         </div>
 
         {/* Meaning */}
-        <p className="text-sm font-bold mb-2.5" style={{ fontFamily: 'Nunito', color: '#1A1A2E' }}>
+        <p className="text-sm font-semibold mb-2.5" style={{ color: '#1A1814' }}>
           {word.meaning}
         </p>
 
         {/* Add to deck */}
         <button
           onClick={addToSRS}
-          className="w-full py-2 rounded-[10px] text-xs font-bold text-white transition-all hover:brightness-110 active:translate-y-[2px]"
-          style={{ backgroundColor: '#1B4F8A', boxShadow: '0 2px 0 #133970', fontFamily: 'Nunito' }}
+          className="w-full py-2 rounded-[6px] text-xs font-semibold text-white transition-all hover:brightness-110 active:translate-y-px"
+          style={{ backgroundColor: '#1B4F8A' }}
         >
           + Add to vocab deck
         </button>

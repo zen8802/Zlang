@@ -20,40 +20,40 @@ interface ButtonProps {
 const VARIANTS: Record<Variant, { base: string; shadow: string; hover: string }> = {
   primary: {
     base: 'bg-[#1B4F8A] text-white',
-    shadow: 'shadow-[0_4px_0_#133970]',
-    hover: 'hover:brightness-110 active:shadow-none active:translate-y-[4px]',
+    shadow: '',
+    hover: 'hover:bg-[#4A7AB5] active:translate-y-px',
   },
   secondary: {
-    base: 'bg-white text-[#1B4F8A] border-2 border-[#B8CBE0]',
-    shadow: 'shadow-[0_4px_0_#B8CBE0]',
-    hover: 'hover:bg-[#EBF0F8] active:shadow-none active:translate-y-[4px]',
+    base: 'bg-transparent text-[#1B4F8A] border border-[#E0DAD2]',
+    shadow: '',
+    hover: 'hover:border-[#1B4F8A] hover:bg-[#EBF0F8] active:translate-y-px',
   },
   ghost: {
-    base: 'bg-transparent text-[#6B7280]',
+    base: 'bg-transparent text-[#6B6560] underline decoration-[#E0DAD2] underline-offset-2',
     shadow: '',
-    hover: 'hover:bg-black/5',
+    hover: 'hover:text-[#1A1814] hover:decoration-[#6B6560]',
   },
   correct: {
-    base: 'bg-[#58CC02] text-white',
-    shadow: 'shadow-[0_4px_0_#46A302]',
-    hover: 'hover:brightness-105 active:shadow-none active:translate-y-[4px]',
+    base: 'bg-[#EFF5F0] text-[#3D6B4F] border border-[#B8D4C0]',
+    shadow: '',
+    hover: 'hover:bg-[#E0EDE4] active:translate-y-px',
   },
   wrong: {
-    base: 'bg-[#FF4B4B] text-white',
-    shadow: 'shadow-[0_4px_0_#CC0000]',
-    hover: 'hover:brightness-105 active:shadow-none active:translate-y-[4px]',
+    base: 'bg-[#F5EEEE] text-[#8B3A3A] border border-[#D4BABA]',
+    shadow: '',
+    hover: 'hover:bg-[#EDE4E4] active:translate-y-px',
   },
   gold: {
-    base: 'bg-[#FFB800] text-white',
-    shadow: 'shadow-[0_4px_0_#CC9200]',
-    hover: 'hover:brightness-105 active:shadow-none active:translate-y-[4px]',
+    base: 'bg-[#F5F0E8] text-[#7A5C2E] border border-[#D4C4A8]',
+    shadow: '',
+    hover: 'hover:bg-[#EDE8DC] active:translate-y-px',
   },
 }
 
 const SIZES: Record<Size, string> = {
-  sm: 'px-4 py-2 text-sm rounded-[12px]',
-  md: 'px-6 py-3.5 text-base rounded-[16px]',
-  lg: 'px-8 py-4 text-lg rounded-[20px]',
+  sm: 'px-4 py-2 text-sm rounded-[6px]',
+  md: 'px-6 py-3 text-sm rounded-[8px]',
+  lg: 'px-8 py-3.5 text-base rounded-[8px]',
 }
 
 export default function Button({

@@ -89,7 +89,7 @@ export default function EnJpLessonsPage() {
         </div>
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-black text-[#1B4F8A]" style={{ fontFamily: 'Nunito' }}>
+            <h1 className="text-2xl font-semibold text-[#1B4F8A]" style={{ fontFamily: 'var(--font-ui)' }}>
               🇺🇸→🇯🇵 English → Japanese
             </h1>
             <p className="text-sm text-[#6B7280] mt-0.5">{lessons.length} lessons</p>
@@ -104,7 +104,7 @@ export default function EnJpLessonsPage() {
               key={f}
               onClick={() => setFilter(f)}
               className={`px-4 py-2 rounded-full text-sm font-bold transition-all capitalize ${
-                filter === f ? 'bg-[#1B4F8A] text-white shadow-[0_3px_0_#133970]' : 'bg-white text-[#6B7280] border border-gray-200'
+                filter === f ? 'bg-[#1B4F8A] text-white ' : 'bg-white text-[#6B7280] border border-gray-200'
               }`}
             >
               {f}
@@ -124,18 +124,18 @@ export default function EnJpLessonsPage() {
         {/* Lessons grouped by unit */}
         {Object.entries(units).sort(([a], [b]) => Number(a) - Number(b)).map(([unit, unitLessons]) => (
           <div key={unit} className="mb-6">
-            <h2 className="text-xs font-black text-[#9CA3AF] uppercase tracking-widest mb-3 px-1">
+            <h2 className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-widest mb-3 px-1">
               Unit {unit}
             </h2>
             <div className="flex flex-col gap-2">
               {unitLessons.map(lesson => (
                 <Card key={lesson.id} variant="elevated" onClick={() => router.push(`/admin/editor/${lesson.id}`)} padding="md">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-[10px] bg-[#EBF0F8] text-[#1B4F8A] flex items-center justify-center font-black text-sm shrink-0">
+                    <div className="w-9 h-9 rounded-[10px] bg-[#EBF0F8] text-[#1B4F8A] flex items-center justify-center font-semibold text-sm shrink-0">
                       {lesson.order}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-[#1A1A2E] truncate" style={{ fontFamily: 'Nunito' }}>{lesson.title}</p>
+                      <p className="font-bold text-[#1A1A2E] truncate" style={{ fontFamily: 'var(--font-ui)' }}>{lesson.title}</p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <Badge color={jlptColor(lesson.jlpt_level)} size="sm">{lesson.jlpt_level}</Badge>
                         <Badge color={lesson.is_published ? 'green' : 'gray'} size="sm">{lesson.is_published ? 'Live' : 'Draft'}</Badge>

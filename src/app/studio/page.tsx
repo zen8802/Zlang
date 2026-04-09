@@ -63,14 +63,14 @@ export default function StudioPage() {
             <span className="text-3xl">🎬</span>
             <div>
               <h1
-                className="text-2xl font-black"
-                style={{ fontFamily: 'Nunito', color: '#1A1A2E' }}
+                className="text-2xl font-semibold"
+                style={{ fontFamily: 'var(--font-ui)', color: '#1A1A2E' }}
               >
                 Scenario Studio
               </h1>
               <p
                 className="text-sm"
-                style={{ fontFamily: 'Nunito', color: '#6B7280' }}
+                style={{ fontFamily: 'var(--font-ui)', color: '#6B6560' }}
               >
                 Practice real Japanese conversations
               </p>
@@ -90,11 +90,11 @@ export default function StudioPage() {
                     whitespace-nowrap transition-all duration-150 shrink-0
                     ${
                       isActive
-                        ? 'bg-[#1B4F8A] text-white shadow-[0_3px_0_#133970]'
+                        ? 'bg-[#1B4F8A] text-white '
                         : 'bg-white text-[#6B7280] border border-gray-200 hover:border-gray-300'
                     }
                   `}
-                  style={{ fontFamily: 'Nunito' }}
+                  style={{ fontFamily: 'var(--font-ui)' }}
                 >
                   <span>{cat.emoji}</span>
                   {cat.label}
@@ -111,7 +111,7 @@ export default function StudioPage() {
           <div key={category} className="page-enter">
             <h2
               className="text-lg font-bold mb-3 flex items-center gap-2"
-              style={{ fontFamily: 'Nunito', color: '#1A1A2E' }}
+              style={{ fontFamily: 'var(--font-ui)', color: '#1A1A2E' }}
             >
               <span>
                 {SCENARIO_CATEGORIES.find((c) => c.id === category)?.emoji}
@@ -127,13 +127,13 @@ export default function StudioPage() {
                     key={scenario.id}
                     onClick={() => setSelectedScenario(scenario)}
                     className="
-                      bg-white rounded-[20px] overflow-hidden
+                      bg-white rounded-[10px] overflow-hidden
                       cursor-pointer transition-all duration-150
                       hover:-translate-y-0.5
                       active:translate-y-[2px] active:shadow-none
                     "
                     style={{
-                      boxShadow: '0 6px 0 rgba(0,0,0,0.06)',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                       borderLeft: `5px solid ${scenario.color}`,
                     }}
                   >
@@ -150,8 +150,8 @@ export default function StudioPage() {
                           )}
                           <div className="min-w-0">
                             <h3
-                              className="text-lg font-black leading-tight"
-                              style={{ fontFamily: 'Nunito', color: '#1A1A2E' }}
+                              className="text-lg font-semibold leading-tight"
+                              style={{ fontFamily: 'var(--font-ui)', color: '#1A1A2E' }}
                             >
                               {scenario.title}
                             </h3>
@@ -171,7 +171,7 @@ export default function StudioPage() {
                       {/* Description */}
                       <p
                         className="text-sm mt-2 leading-relaxed"
-                        style={{ fontFamily: 'Nunito', color: '#6B7280' }}
+                        style={{ fontFamily: 'var(--font-ui)', color: '#6B6560' }}
                       >
                         {scenario.description}
                       </p>
@@ -181,7 +181,7 @@ export default function StudioPage() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span
                             className="text-xs font-bold"
-                            style={{ fontFamily: 'Nunito', color: '#9CA3AF' }}
+                            style={{ fontFamily: 'var(--font-ui)', color: '#9CA3AF' }}
                           >
                             ~{scenario.estimatedMinutes} min
                           </span>
@@ -190,7 +190,7 @@ export default function StudioPage() {
                             <span
                               key={tag}
                               className="text-xs px-2 py-0.5 rounded-full bg-[#F5F0EB] font-semibold"
-                              style={{ fontFamily: 'Nunito', color: '#9CA3AF' }}
+                              style={{ fontFamily: 'var(--font-ui)', color: '#9CA3AF' }}
                             >
                               {tag}
                             </span>
@@ -207,7 +207,7 @@ export default function StudioPage() {
                                 {scenario.character.name[0]}
                               </div>
                             )}
-                            <span className="text-xs font-bold" style={{ fontFamily: 'Nunito', color: '#6B7280' }}>
+                            <span className="text-xs font-bold" style={{ fontFamily: 'var(--font-ui)', color: '#6B6560' }}>
                               {scenario.character.name}
                             </span>
                           </div>

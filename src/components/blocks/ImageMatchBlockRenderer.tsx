@@ -65,11 +65,11 @@ export function ImageMatchBlockRenderer({ block, onComplete }: Props) {
     const pct = Math.round((score / total) * 100)
     return (
       <div className="page-enter flex flex-col items-center gap-6 py-8">
-        <div className="text-5xl bounce-in">{pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '💪'}</div>
-        <h2 className="text-2xl font-extrabold text-[#1A1A2E]" style={{ fontFamily: 'var(--font-ui)' }}>
+        <div className="text-5xl">{pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '💪'}</div>
+        <h2 className="text-2xl font-semibold text-[#1A1814]" style={{ fontFamily: 'var(--font-ui)' }}>
           {score} / {total} Correct
         </h2>
-        <p className="text-[#6B7280]" style={{ fontFamily: 'var(--font-ui)' }}>
+        <p className="text-[#6B6560]" style={{ fontFamily: 'var(--font-ui)' }}>
           {pct}% accuracy
         </p>
         <Button onClick={() => onComplete(block.xpReward)} fullWidth>
@@ -90,7 +90,7 @@ export function ImageMatchBlockRenderer({ block, onComplete }: Props) {
             key={i}
             className={`w-3 h-3 rounded-full transition-all ${
               i < currentIndex
-                ? 'bg-[#58CC02]'
+                ? 'bg-[#3D6B4F]'
                 : i === currentIndex
                 ? 'bg-[#1B4F8A] scale-125'
                 : 'bg-[#B8CBE0]'
@@ -100,20 +100,20 @@ export function ImageMatchBlockRenderer({ block, onComplete }: Props) {
       </div>
 
       {/* Instruction */}
-      <p className="text-center text-sm font-semibold text-[#6B7280]" style={{ fontFamily: 'var(--font-ui)' }}>
+      <p className="text-center text-sm font-semibold text-[#6B6560]" style={{ fontFamily: 'var(--font-ui)' }}>
         {block.instruction}
       </p>
 
       {/* Prompt card */}
       <div className="flex justify-center">
         <div
-          className="bg-white rounded-[20px] shadow-[0_6px_0_#B8CBE0] flex items-center justify-center w-48 h-48"
+          className="bg-[#FDFBF8] rounded-[8px] border border-[#E0DAD2] flex items-center justify-center w-48 h-48"
         >
           {isImageToWord ? (
             <span className="text-7xl select-none">{prompt}</span>
           ) : (
             <span
-              className="text-5xl font-bold text-[#1A1A2E]"
+              className="text-5xl font-normal text-[#1A1814]"
               style={{ fontFamily: 'var(--font-jp)' }}
             >
               {prompt}
@@ -123,7 +123,7 @@ export function ImageMatchBlockRenderer({ block, onComplete }: Props) {
       </div>
 
       {/* Reading hint */}
-      <p className="text-center text-sm text-[#6B7280]" style={{ fontFamily: 'var(--font-ui)' }}>
+      <p className="text-center text-sm text-[#6B6560]" style={{ fontFamily: 'var(--font-ui)' }}>
         {item.romaji} &mdash; {item.english}
       </p>
 
@@ -143,7 +143,7 @@ export function ImageMatchBlockRenderer({ block, onComplete }: Props) {
               fullWidth
               onClick={() => handleSelect(opt.id, opt.isCorrect)}
               disabled={answered && opt.id !== selected && !opt.isCorrect}
-              className="shadow-[0_3px_0] min-h-[56px]"
+              className="min-h-[56px]"
             >
               {isImageToWord ? (
                 <span style={{ fontFamily: 'var(--font-jp)' }}>{opt.label}</span>

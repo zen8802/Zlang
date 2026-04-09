@@ -244,7 +244,7 @@ export default function LessonEditorPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F5F0EB] flex items-center justify-center">
-        <p className="text-[#6B7280]" style={{ fontFamily: 'Nunito, sans-serif' }}>Loading...</p>
+        <p className="text-[#6B7280]">Loading...</p>
       </div>
     )
   }
@@ -252,7 +252,7 @@ export default function LessonEditorPage() {
   if (!lesson) {
     return (
       <div className="min-h-screen bg-[#F5F0EB] flex flex-col items-center justify-center gap-4">
-        <p className="text-[#6B7280]" style={{ fontFamily: 'Nunito, sans-serif' }}>Lesson not found</p>
+        <p className="text-[#6B7280]">Lesson not found</p>
         <Button variant="secondary" size="sm" onClick={() => router.push('/admin/lessons')}>
           Back to lessons
         </Button>
@@ -268,7 +268,7 @@ export default function LessonEditorPage() {
           <button
             onClick={() => router.push('/admin/lessons')}
             className="text-[#1B4F8A] font-bold text-lg hover:opacity-70 transition-opacity"
-            style={{ fontFamily: 'Nunito, sans-serif' }}
+           
           >
             &larr;
           </button>
@@ -278,7 +278,6 @@ export default function LessonEditorPage() {
             value={lesson.title}
             onChange={e => set('title', e.target.value)}
             className="flex-1 text-lg font-bold text-[#1B1B1B] bg-transparent border-none outline-none focus:ring-0"
-            style={{ fontFamily: 'Nunito, sans-serif' }}
             placeholder="Lesson title"
           />
 
@@ -289,10 +288,9 @@ export default function LessonEditorPage() {
               className={`
                 px-3 py-1.5 rounded-full text-xs font-bold transition-all
                 ${lesson.is_published
-                  ? 'bg-[#58CC02] text-white'
-                  : 'bg-gray-200 text-gray-500'}
+                  ? 'bg-[#3D6B4F] text-white'
+                  : 'bg-gray-200 text-[#6B6560]'}
               `}
-              style={{ fontFamily: 'Nunito, sans-serif' }}
             >
               {lesson.is_published ? 'Published' : 'Draft'}
             </button>
@@ -304,8 +302,7 @@ export default function LessonEditorPage() {
 
             {saveMsg && (
               <span
-                className={`text-xs font-bold ${saveMsg === 'Saved!' ? 'text-[#58CC02]' : 'text-[#FF4B4B]'}`}
-                style={{ fontFamily: 'Nunito, sans-serif' }}
+                className={`text-xs font-bold ${saveMsg === 'Saved!' ? 'text-[#3D6B4F]' : 'text-[#8B3A3A]'}`}
               >
                 {saveMsg}
               </span>
@@ -321,7 +318,7 @@ export default function LessonEditorPage() {
             onClick={() => setMetaOpen(!metaOpen)}
             className="w-full flex items-center justify-between"
           >
-            <h2 className="font-bold text-[#1B4F8A]" style={{ fontFamily: 'Nunito, sans-serif' }}>
+            <h2 className="font-bold text-[#1B4F8A]">
               Lesson Metadata
             </h2>
             <span className="text-[#6B7280] text-sm">{metaOpen ? '\u25B2' : '\u25BC'}</span>
@@ -331,48 +328,48 @@ export default function LessonEditorPage() {
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Title */}
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-bold text-[#6B7280] uppercase" style={{ fontFamily: 'Nunito, sans-serif' }}>Title</span>
+                <span className="text-xs font-bold text-[#6B7280] uppercase">Title</span>
                 <input
                   type="text"
                   value={lesson.title}
                   onChange={e => set('title', e.target.value)}
-                  className="border border-gray-200 rounded-[12px] px-3 py-2 text-sm focus:outline-none focus:border-[#1B4F8A]"
-                  style={{ fontFamily: 'Nunito, sans-serif' }}
+                  className="border border-gray-200 rounded-[6px] px-3 py-2 text-sm focus:outline-none focus:border-[#1B4F8A]"
+                 
                 />
               </label>
 
               {/* Title JP */}
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-bold text-[#6B7280] uppercase" style={{ fontFamily: 'Nunito, sans-serif' }}>Title JP</span>
+                <span className="text-xs font-bold text-[#6B7280] uppercase">Title JP</span>
                 <input
                   type="text"
                   value={lesson.title_jp}
                   onChange={e => set('title_jp', e.target.value)}
-                  className="border border-gray-200 rounded-[12px] px-3 py-2 text-sm focus:outline-none focus:border-[#1B4F8A]"
+                  className="border border-gray-200 rounded-[6px] px-3 py-2 text-sm focus:outline-none focus:border-[#1B4F8A]"
                   style={{ fontFamily: "'Noto Sans JP', sans-serif" }}
                 />
               </label>
 
               {/* Description */}
               <label className="flex flex-col gap-1 sm:col-span-2">
-                <span className="text-xs font-bold text-[#6B7280] uppercase" style={{ fontFamily: 'Nunito, sans-serif' }}>Description</span>
+                <span className="text-xs font-bold text-[#6B7280] uppercase">Description</span>
                 <textarea
                   value={lesson.description}
                   onChange={e => set('description', e.target.value)}
                   rows={2}
-                  className="border border-gray-200 rounded-[12px] px-3 py-2 text-sm focus:outline-none focus:border-[#1B4F8A] resize-none"
-                  style={{ fontFamily: 'Nunito, sans-serif' }}
+                  className="border border-gray-200 rounded-[6px] px-3 py-2 text-sm focus:outline-none focus:border-[#1B4F8A] resize-none"
+                 
                 />
               </label>
 
               {/* JLPT Level */}
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-bold text-[#6B7280] uppercase" style={{ fontFamily: 'Nunito, sans-serif' }}>JLPT Level</span>
+                <span className="text-xs font-bold text-[#6B7280] uppercase">JLPT Level</span>
                 <select
                   value={lesson.jlpt_level}
                   onChange={e => set('jlpt_level', e.target.value)}
-                  className="border border-gray-200 rounded-[12px] px-3 py-2 text-sm focus:outline-none focus:border-[#1B4F8A] bg-white"
-                  style={{ fontFamily: 'Nunito, sans-serif' }}
+                  className="border border-gray-200 rounded-[6px] px-3 py-2 text-sm focus:outline-none focus:border-[#1B4F8A] bg-white"
+                 
                 >
                   {JLPT_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
                 </select>
@@ -380,44 +377,44 @@ export default function LessonEditorPage() {
 
               {/* Unit */}
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-bold text-[#6B7280] uppercase" style={{ fontFamily: 'Nunito, sans-serif' }}>Unit</span>
+                <span className="text-xs font-bold text-[#6B7280] uppercase">Unit</span>
                 <input
                   type="number"
                   value={lesson.unit}
                   onChange={e => set('unit', parseInt(e.target.value) || 1)}
-                  className="border border-gray-200 rounded-[12px] px-3 py-2 text-sm focus:outline-none focus:border-[#1B4F8A]"
-                  style={{ fontFamily: 'Nunito, sans-serif' }}
+                  className="border border-gray-200 rounded-[6px] px-3 py-2 text-sm focus:outline-none focus:border-[#1B4F8A]"
+                 
                 />
               </label>
 
               {/* Order */}
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-bold text-[#6B7280] uppercase" style={{ fontFamily: 'Nunito, sans-serif' }}>Order</span>
+                <span className="text-xs font-bold text-[#6B7280] uppercase">Order</span>
                 <input
                   type="number"
                   value={lesson.order}
                   onChange={e => set('order', parseInt(e.target.value) || 0)}
-                  className="border border-gray-200 rounded-[12px] px-3 py-2 text-sm focus:outline-none focus:border-[#1B4F8A]"
-                  style={{ fontFamily: 'Nunito, sans-serif' }}
+                  className="border border-gray-200 rounded-[6px] px-3 py-2 text-sm focus:outline-none focus:border-[#1B4F8A]"
+                 
                 />
               </label>
 
               {/* Estimated Minutes */}
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-bold text-[#6B7280] uppercase" style={{ fontFamily: 'Nunito, sans-serif' }}>Est. Minutes</span>
+                <span className="text-xs font-bold text-[#6B7280] uppercase">Est. Minutes</span>
                 <input
                   type="number"
                   value={lesson.estimated_minutes}
                   onChange={e => set('estimated_minutes', parseInt(e.target.value) || 10)}
-                  className="border border-gray-200 rounded-[12px] px-3 py-2 text-sm focus:outline-none focus:border-[#1B4F8A]"
-                  style={{ fontFamily: 'Nunito, sans-serif' }}
+                  className="border border-gray-200 rounded-[6px] px-3 py-2 text-sm focus:outline-none focus:border-[#1B4F8A]"
+                 
                 />
               </label>
 
               {/* Total XP (computed) */}
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-bold text-[#6B7280] uppercase" style={{ fontFamily: 'Nunito, sans-serif' }}>Total XP (auto)</span>
-                <div className="border border-gray-100 bg-gray-50 rounded-[12px] px-3 py-2 text-sm font-bold text-[#1B4F8A]" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                <span className="text-xs font-bold text-[#6B7280] uppercase">Total XP (auto)</span>
+                <div className="border border-gray-100 bg-gray-50 rounded-[6px] px-3 py-2 text-sm font-bold text-[#1B4F8A]">
                   {totalXP} XP
                 </div>
               </div>
@@ -427,7 +424,7 @@ export default function LessonEditorPage() {
 
         {/* ── Blocks list ── */}
         <div>
-          <h2 className="font-bold text-[#1B4F8A] mb-3" style={{ fontFamily: 'Nunito, sans-serif' }}>
+          <h2 className="font-bold text-[#1B4F8A] mb-3">
             Blocks ({lesson.blocks?.length || 0})
           </h2>
 
@@ -441,7 +438,7 @@ export default function LessonEditorPage() {
                 >
                   <span className="text-xl">{BLOCK_ICONS[block.type as string] || '?'}</span>
                   <div className="flex-1 min-w-0">
-                    <span className="font-bold text-[#1B1B1B] text-sm" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                    <span className="font-bold text-[#1B1B1B] text-sm">
                       {(block.title as string) || (block.headline as string) || (block.type as string)}
                     </span>
                   </div>
@@ -468,7 +465,7 @@ export default function LessonEditorPage() {
                   {/* Delete */}
                   <button
                     onClick={e => { e.stopPropagation(); deleteBlock(index) }}
-                    className="w-7 h-7 rounded-[8px] bg-[#FFE5E5] text-[#FF4B4B] hover:bg-[#FFCCCC] flex items-center justify-center text-xs font-bold transition-colors"
+                    className="w-7 h-7 rounded-[8px] bg-[#F5EEEE] text-[#8B3A3A] hover:bg-[#EDE4E4] flex items-center justify-center text-xs font-bold transition-colors"
                     title="Delete block"
                   >
                     &times;
@@ -484,14 +481,14 @@ export default function LessonEditorPage() {
                       defaultValue={JSON.stringify(block, null, 2)}
                       onBlur={e => updateBlockFromJSON(index, e.target.value)}
                       className={`
-                        w-full mt-3 p-3 rounded-[12px] text-xs font-mono
+                        w-full mt-3 p-3 rounded-[6px] text-xs font-mono
                         border focus:outline-none resize-y min-h-[200px]
-                        ${blockErrors[index] ? 'border-[#FF4B4B] bg-[#FFF5F5]' : 'border-gray-200 bg-[#FAFAFA] focus:border-[#1B4F8A]'}
+                        ${blockErrors[index] ? 'border-[#8B3A3A] bg-[#FFF5F5]' : 'border-gray-200 bg-[#FAFAFA] focus:border-[#1B4F8A]'}
                       `}
                       rows={12}
                     />
                     {blockErrors[index] && (
-                      <p className="text-xs text-[#FF4B4B] mt-1 font-bold" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                      <p className="text-xs text-[#8B3A3A] mt-1 font-bold">
                         {blockErrors[index]}
                       </p>
                     )}
@@ -506,14 +503,14 @@ export default function LessonEditorPage() {
             {addingType === null ? (
               <button
                 onClick={() => setAddingType('')}
-                className="w-full py-3 rounded-[16px] border-2 border-dashed border-[#B8CBE0] text-[#1B4F8A] font-bold hover:bg-white hover:border-[#1B4F8A] transition-all"
-                style={{ fontFamily: 'Nunito, sans-serif' }}
+                className="w-full py-3 rounded-[8px] border-2 border-dashed border-[#E0DAD2] text-[#1B4F8A] font-bold hover:bg-white hover:border-[#1B4F8A] transition-all"
+               
               >
                 + Add Block
               </button>
             ) : (
               <Card variant="bordered" padding="md">
-                <p className="text-sm font-bold text-[#1B4F8A] mb-3" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                <p className="text-sm font-bold text-[#1B4F8A] mb-3">
                   Choose block type:
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -521,8 +518,8 @@ export default function LessonEditorPage() {
                     <button
                       key={type}
                       onClick={() => addBlock(type)}
-                      className="flex items-center gap-2 px-4 py-2 rounded-[12px] bg-white border border-gray-200 hover:border-[#1B4F8A] hover:bg-[#EBF0F8] text-sm font-bold text-[#1B1B1B] transition-all"
-                      style={{ fontFamily: 'Nunito, sans-serif' }}
+                      className="flex items-center gap-2 px-4 py-2 rounded-[6px] bg-white border border-gray-200 hover:border-[#1B4F8A] hover:bg-[#EBF0F8] text-sm font-bold text-[#1B1B1B] transition-all"
+                     
                     >
                       <span>{BLOCK_ICONS[type]}</span>
                       <span className="capitalize">{type.replace('_', ' ')}</span>
@@ -532,7 +529,7 @@ export default function LessonEditorPage() {
                 <button
                   onClick={() => setAddingType(null)}
                   className="mt-3 text-xs text-[#6B7280] hover:text-[#1B1B1B] font-bold"
-                  style={{ fontFamily: 'Nunito, sans-serif' }}
+                 
                 >
                   Cancel
                 </button>

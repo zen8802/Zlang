@@ -51,16 +51,16 @@ export default function ShadowingBlockRenderer({ block, onComplete }: Props) {
     <div className="page-enter flex flex-col items-center gap-6 py-4">
       {/* Target sentence */}
       <Card variant="elevated" className="w-full text-center">
-        <p className="text-3xl font-bold leading-relaxed" style={{ fontFamily: 'var(--font-jp)' }}>
+        <p className="text-3xl font-normal leading-relaxed" style={{ fontFamily: 'var(--font-jp)' }}>
           {block.targetSentence}
         </p>
         {block.targetRomaji && (
-          <p className="text-sm text-[#9CA3AF] mt-2" style={{ fontFamily: 'var(--font-ui)' }}>
+          <p className="text-sm text-[#9E9892] mt-2" style={{ fontFamily: 'var(--font-ui)' }}>
             {block.targetRomaji}
           </p>
         )}
         {block.targetEnglish && (
-          <p className="text-base text-[#6B7280] mt-1" style={{ fontFamily: 'var(--font-ui)' }}>
+          <p className="text-base text-[#6B6560] mt-1" style={{ fontFamily: 'var(--font-ui)' }}>
             {block.targetEnglish}
           </p>
         )}
@@ -72,11 +72,11 @@ export default function ShadowingBlockRenderer({ block, onComplete }: Props) {
           {block.breakdown.map((chunk, i) => (
             <div
               key={i}
-              className="bg-[#EBF0F8] text-[#1B4F8A] px-3 py-1.5 rounded-full text-sm font-bold"
+              className="bg-[#EBF0F8] text-[#1B4F8A] px-3 py-1.5 rounded-full text-sm font-semibold"
               style={{ fontFamily: 'var(--font-jp)' }}
             >
               {chunk.japanese}
-              <span className="text-[#9CA3AF] ml-1 text-xs" style={{ fontFamily: 'var(--font-ui)' }}>
+              <span className="text-[#9E9892] ml-1 text-xs" style={{ fontFamily: 'var(--font-ui)' }}>
                 {chunk.english}
               </span>
             </div>
@@ -93,8 +93,8 @@ export default function ShadowingBlockRenderer({ block, onComplete }: Props) {
           transition-all duration-200 cursor-pointer
           ${
             listening
-              ? 'bg-[#FF4B4B] shadow-[0_4px_0_#CC0000] animate-pulse'
-              : 'bg-[#1B4F8A] shadow-[0_4px_0_#133970] hover:brightness-110 active:shadow-none active:translate-y-[4px]'
+              ? 'bg-[#8B3A3A]'
+              : 'bg-[#1B4F8A] hover:brightness-110 active:translate-y-px'
           }
         `}
       >
@@ -106,17 +106,17 @@ export default function ShadowingBlockRenderer({ block, onComplete }: Props) {
         </svg>
       </button>
 
-      <p className="text-sm text-[#9CA3AF]" style={{ fontFamily: 'var(--font-ui)' }}>
+      <p className="text-sm text-[#9E9892]" style={{ fontFamily: 'var(--font-ui)' }}>
         {listening ? 'Listening...' : 'Tap the mic and speak'}
       </p>
 
       {/* Transcript */}
       {transcript && (
         <Card variant="flat" className="w-full page-enter">
-          <p className="text-sm text-[#6B7280] font-semibold mb-1" style={{ fontFamily: 'var(--font-ui)' }}>
+          <p className="text-sm text-[#6B6560] font-semibold mb-1" style={{ fontFamily: 'var(--font-ui)' }}>
             You said:
           </p>
-          <p className="text-lg text-[#1A1A2E]" style={{ fontFamily: 'var(--font-jp)' }}>
+          <p className="text-lg text-[#1A1814]" style={{ fontFamily: 'var(--font-jp)' }}>
             {transcript}
           </p>
         </Card>

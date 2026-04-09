@@ -64,16 +64,16 @@ export default function BuildingLesson({ parsed, step = 'meta' }: { parsed: Pars
           <div className="flex items-center justify-between mb-2">
             {STEPS.map((s, i) => (
               <div key={s.key} className="flex items-center">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black transition-all duration-500 ${
-                  i < currentStepIdx ? 'bg-[#58CC02] text-white' :
-                  i === currentStepIdx ? 'bg-[#1B4F8A] text-white shadow-[0_3px_0_#133970]' :
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-500 ${
+                  i < currentStepIdx ? 'bg-[#3D6B4F] text-white' :
+                  i === currentStepIdx ? 'bg-[#1B4F8A] text-white ' :
                   'bg-gray-200 text-gray-400'
                 }`}>
                   {i < currentStepIdx ? '✓' : i + 1}
                 </div>
                 {i < STEPS.length - 1 && (
                   <div className={`w-8 h-1 mx-1 rounded-full transition-all duration-500 ${
-                    i < currentStepIdx ? 'bg-[#58CC02]' : 'bg-gray-200'
+                    i < currentStepIdx ? 'bg-[#3D6B4F]' : 'bg-gray-200'
                   }`} />
                 )}
               </div>
@@ -101,7 +101,7 @@ export default function BuildingLesson({ parsed, step = 'meta' }: { parsed: Pars
 
         {/* Current step label */}
         <div className="text-center mb-4">
-          <p className="text-base font-black text-[#1A1A2E]" style={{ fontFamily: 'Nunito' }}>
+          <p className="text-base font-semibold text-[#1A1A2E]" style={{ fontFamily: 'var(--font-ui)' }}>
             {currentStep.label}
           </p>
           <p className="text-sm text-[#1B4F8A] mt-0.5" style={{ fontFamily: 'Noto Sans JP' }}>
@@ -110,7 +110,7 @@ export default function BuildingLesson({ parsed, step = 'meta' }: { parsed: Pars
         </div>
 
         {/* Tip — rotates every 5s */}
-        <p className="text-xs text-[#9CA3AF] text-center max-w-xs transition-opacity duration-500" style={{ fontFamily: 'Nunito' }}>
+        <p className="text-xs text-[#9CA3AF] text-center max-w-xs transition-opacity duration-500" style={{ fontFamily: 'var(--font-ui)' }}>
           {TIPS[tipIdx]}
         </p>
       </div>

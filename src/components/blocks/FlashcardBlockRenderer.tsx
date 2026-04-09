@@ -62,8 +62,7 @@ export function FlashcardBlockRenderer({ block, onComplete }: Props) {
       <p
         className="text-sm text-center font-semibold"
         style={{
-          fontFamily: 'var(--font-ui)',
-          color: allSeen ? '#58CC02' : '#6B7280',
+          color: allSeen ? '#3D6B4F' : '#6B6560',
         }}
       >
         {allSeen
@@ -94,12 +93,11 @@ export function FlashcardBlockRenderer({ block, onComplete }: Props) {
               >
                 {/* ── FRONT — Japanese word ── */}
                 <div
-                  className="absolute inset-0 rounded-[20px] flex flex-col items-center justify-center p-4"
+                  className="absolute inset-0 rounded-[8px] flex flex-col items-center justify-center p-4"
                   style={{
                     backfaceVisibility: 'hidden',
-                    backgroundColor: isSeen && !isFlipped ? '#EBF0F8' : '#ffffff',
-                    boxShadow: '0 4px 0 rgba(27,79,138,0.15)',
-                    border: isSeen && !isFlipped ? '2px solid #1B4F8A33' : '2px solid #f0f0f0',
+                    backgroundColor: isSeen && !isFlipped ? '#EBF0F8' : '#FDFBF8',
+                    border: isSeen && !isFlipped ? '1px solid rgba(27,79,138,0.2)' : '1px solid #E0DAD2',
                   }}
                 >
                   {/* Reading above */}
@@ -107,49 +105,48 @@ export function FlashcardBlockRenderer({ block, onComplete }: Props) {
                     {card.reading}
                   </p>
                   {/* Word */}
-                  <p className="text-4xl font-black text-[#1A1A2E] leading-none" style={{ fontFamily: 'Noto Sans JP' }}>
+                  <p className="text-4xl font-normal text-[#1A1814] leading-none" style={{ fontFamily: 'Noto Sans JP' }}>
                     {card.word}
                   </p>
                   {/* Romaji */}
-                  <p className="text-xs mt-1.5" style={{ fontFamily: 'DM Mono, monospace', color: '#9CA3AF' }}>
+                  <p className="text-xs mt-1.5 font-mono" style={{ color: '#9E9892' }}>
                     {card.romaji}
                   </p>
                   {/* JLPT badge */}
-                  <span className="mt-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E5F9D0] text-[#2D8800] border border-[#89E219]">
+                  <span className="mt-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#EFF5F0] text-[#3D6B4F] border border-[#B8D4C0]">
                     {card.jlptLevel}
                   </span>
                   {/* Hint */}
-                  <p className="text-[10px] mt-2" style={{ color: isSeen ? '#1B4F8A' : '#C0C0C0', fontFamily: 'Nunito' }}>
+                  <p className="text-[10px] mt-2" style={{ color: isSeen ? '#1B4F8A' : '#9E9892' }}>
                     {isSeen && !isFlipped ? 'tap again' : 'tap to reveal'}
                   </p>
                 </div>
 
                 {/* ── BACK — English + full details ── */}
                 <div
-                  className="absolute inset-0 rounded-[20px] flex flex-col items-center justify-between p-4"
+                  className="absolute inset-0 rounded-[8px] flex flex-col items-center justify-between p-4"
                   style={{
                     backfaceVisibility: 'hidden',
                     transform: 'rotateY(180deg)',
-                    backgroundColor: '#1B4F8A',
-                    boxShadow: '0 4px 0 #133970',
+                    backgroundColor: '#EBF0F8',
                   }}
                 >
                   <div className="flex-1 flex flex-col items-center justify-center w-full">
                     {/* Part of speech */}
-                    <p className="text-[10px] uppercase tracking-wider text-blue-200 font-bold mb-1" style={{ fontFamily: 'Nunito' }}>
+                    <p className="text-[10px] uppercase tracking-wider text-[#6B6560] font-semibold mb-1">
                       {card.partOfSpeech}
                     </p>
                     {/* English */}
-                    <p className="text-xl font-black text-white text-center leading-tight" style={{ fontFamily: 'Nunito' }}>
+                    <p className="text-xl font-semibold text-[#1A1814] text-center leading-tight font-serif">
                       {card.english}
                     </p>
                     {/* Example sentence */}
                     {card.exampleJP && (
-                      <div className="mt-2 bg-white/10 rounded-[10px] px-2.5 py-1.5 w-full">
-                        <p className="text-[11px] text-blue-100 text-center" style={{ fontFamily: 'Noto Sans JP' }}>
+                      <div className="mt-2 bg-[#FDFBF8] rounded-[6px] px-2.5 py-1.5 w-full border border-[#E0DAD2]">
+                        <p className="text-[11px] text-[#1A1814] text-center" style={{ fontFamily: 'Noto Sans JP' }}>
                           {card.exampleJP}
                         </p>
-                        <p className="text-[10px] text-blue-200/70 text-center mt-0.5" style={{ fontFamily: 'Nunito' }}>
+                        <p className="text-[10px] text-[#6B6560] text-center mt-0.5">
                           {card.exampleEN}
                         </p>
                       </div>
@@ -157,7 +154,7 @@ export function FlashcardBlockRenderer({ block, onComplete }: Props) {
                   </div>
                   {/* Memory hook */}
                   {card.memoryHook && (
-                    <p className="text-[10px] text-blue-200/80 italic text-center mt-2 leading-snug" style={{ fontFamily: 'Nunito' }}>
+                    <p className="text-[10px] text-[#6B6560] italic text-center mt-2 leading-snug">
                       💡 {card.memoryHook}
                     </p>
                   )}

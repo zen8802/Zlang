@@ -41,11 +41,11 @@ export default function QuizBlockRenderer({ block, onComplete }: Props) {
     const pct = Math.round((score / total) * 100)
     return (
       <div className="page-enter flex flex-col items-center gap-6 py-8">
-        <div className="text-5xl bounce-in">{pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '💪'}</div>
-        <h2 className="text-2xl font-extrabold" style={{ fontFamily: 'var(--font-ui)' }}>
+        <div className="text-5xl">{pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '💪'}</div>
+        <h2 className="text-2xl font-semibold" style={{ fontFamily: 'var(--font-ui)' }}>
           {score} / {total} Correct
         </h2>
-        <p className="text-[#6B7280]" style={{ fontFamily: 'var(--font-ui)' }}>
+        <p className="text-[#6B6560]" style={{ fontFamily: 'var(--font-ui)' }}>
           {pct}% accuracy
         </p>
         <Button onClick={() => onComplete(block.xpReward)} fullWidth>
@@ -64,7 +64,7 @@ export default function QuizBlockRenderer({ block, onComplete }: Props) {
             key={i}
             className={`w-3 h-3 rounded-full transition-all ${
               i < qIndex
-                ? 'bg-[#58CC02]'
+                ? 'bg-[#3D6B4F]'
                 : i === qIndex
                 ? 'bg-[#1B4F8A] scale-125'
                 : 'bg-[#B8CBE0]'
@@ -75,7 +75,7 @@ export default function QuizBlockRenderer({ block, onComplete }: Props) {
 
       {/* Question */}
       <Card variant="elevated">
-        <p className="text-lg font-bold text-[#1A1A2E]" style={{ fontFamily: 'var(--font-ui)' }}>
+        <p className="text-lg font-semibold text-[#1A1814]" style={{ fontFamily: 'var(--font-ui)' }}>
           {question.prompt}
         </p>
       </Card>
@@ -105,7 +105,7 @@ export default function QuizBlockRenderer({ block, onComplete }: Props) {
 
       {/* Explanation */}
       {answered && (
-        <div className="bg-[#EBF0F8] rounded-[16px] p-4 page-enter">
+        <div className="bg-[#EBF0F8] rounded-[8px] p-4 page-enter">
           <p className="text-sm font-semibold text-[#1B4F8A]" style={{ fontFamily: 'var(--font-ui)' }}>
             {question.explanation}
           </p>

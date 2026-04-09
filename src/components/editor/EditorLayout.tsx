@@ -195,7 +195,7 @@ export default function EditorLayout({
 
           {/* Lesson dropdown */}
           {showLessonDropdown && (
-            <div className="absolute top-full left-0 mt-1 w-80 bg-[#1A1A2E] border border-white/10 rounded-[12px] shadow-2xl z-50 max-h-96 overflow-y-auto">
+            <div className="absolute top-full left-0 mt-1 w-80 bg-[#1A1A2E] border border-white/10 rounded-[6px] shadow-2xl z-50 max-h-96 overflow-y-auto">
               <div className="p-2">
                 {Object.entries(lessonsByUnit)
                   .sort(([a], [b]) => Number(a) - Number(b))
@@ -292,7 +292,7 @@ export default function EditorLayout({
         <button
           onClick={onSave}
           disabled={saving}
-          className="bg-[#1B4F8A] hover:bg-[#133970] disabled:opacity-50 text-white text-sm px-4 py-1.5 rounded-lg font-bold transition-colors shadow-[0_3px_0_#0d2848] active:shadow-none active:translate-y-[3px]"
+          className="bg-[#1B4F8A] hover:bg-[#133970] disabled:opacity-50 text-white text-sm px-4 py-1.5 rounded-lg font-bold transition-colors active:translate-y-px"
         >
           Save
         </button>

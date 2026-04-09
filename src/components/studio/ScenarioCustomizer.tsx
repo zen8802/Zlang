@@ -76,8 +76,8 @@ export function ScenarioCustomizer({
             <span className="text-5xl">{scenario.emoji}</span>
             <div>
               <h2
-                className="text-xl font-black"
-                style={{ fontFamily: 'Nunito', color: '#1A1A2E' }}
+                className="text-xl font-semibold"
+                style={{ fontFamily: 'var(--font-ui)', color: '#1A1A2E' }}
               >
                 {scenario.title}
               </h2>
@@ -93,7 +93,7 @@ export function ScenarioCustomizer({
                 </Badge>
                 <span
                   className="text-xs font-bold"
-                  style={{ fontFamily: 'Nunito', color: '#9CA3AF' }}
+                  style={{ fontFamily: 'var(--font-ui)', color: '#9CA3AF' }}
                 >
                   ~{scenario.estimatedMinutes} min
                 </span>
@@ -111,13 +111,13 @@ export function ScenarioCustomizer({
                 <div>
                   <p
                     className="text-xs font-bold uppercase tracking-wider mb-1"
-                    style={{ fontFamily: 'Nunito', color: '#9CA3AF' }}
+                    style={{ fontFamily: 'var(--font-ui)', color: '#9CA3AF' }}
                   >
                     Setting
                   </p>
                   <p
                     className="text-sm leading-relaxed"
-                    style={{ fontFamily: 'Nunito', color: '#4B5563' }}
+                    style={{ fontFamily: 'var(--font-ui)', color: '#4B5563' }}
                   >
                     {scenario.setting}
                   </p>
@@ -141,20 +141,20 @@ export function ScenarioCustomizer({
                     <Image src={scenario.character.avatar} alt={scenario.character.name} width={56} height={56} className="w-full h-full object-cover" quality={90} />
                   </div>
                 ) : (
-                  <div className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold shrink-0 text-lg" style={{ backgroundColor: scenario.color, fontFamily: 'Nunito' }}>
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold shrink-0 text-lg" style={{ backgroundColor: scenario.color, fontFamily: 'var(--font-ui)' }}>
                     {scenario.character.name[0]}
                   </div>
                 )}
                 <div className="min-w-0">
                   <p
                     className="text-xs font-bold uppercase tracking-wider mb-1"
-                    style={{ fontFamily: 'Nunito', color: '#9CA3AF' }}
+                    style={{ fontFamily: 'var(--font-ui)', color: '#9CA3AF' }}
                   >
                     Character
                   </p>
                   <p
                     className="font-bold text-sm"
-                    style={{ fontFamily: 'Nunito', color: '#1A1A2E' }}
+                    style={{ fontFamily: 'var(--font-ui)', color: '#1A1A2E' }}
                   >
                     {scenario.character.name}{' '}
                     <span
@@ -166,13 +166,13 @@ export function ScenarioCustomizer({
                   </p>
                   <p
                     className="text-sm mt-1 leading-relaxed"
-                    style={{ fontFamily: 'Nunito', color: '#6B7280' }}
+                    style={{ fontFamily: 'var(--font-ui)', color: '#6B6560' }}
                   >
                     {scenario.character.description}
                   </p>
                   <p
                     className="text-xs mt-1.5"
-                    style={{ fontFamily: 'Nunito', color: '#9CA3AF' }}
+                    style={{ fontFamily: 'var(--font-ui)', color: '#9CA3AF' }}
                   >
                     Speech: {scenario.character.speechStyle}
                   </p>
@@ -186,13 +186,13 @@ export function ScenarioCustomizer({
             <div>
               <p
                 className="text-xs font-bold uppercase tracking-wider mb-1.5 flex items-center gap-1.5"
-                style={{ fontFamily: 'Nunito', color: '#9CA3AF' }}
+                style={{ fontFamily: 'var(--font-ui)', color: '#9CA3AF' }}
               >
                 <span>🎯</span> Your Goal
               </p>
               <p
                 className="text-sm leading-relaxed"
-                style={{ fontFamily: 'Nunito', color: '#4B5563' }}
+                style={{ fontFamily: 'var(--font-ui)', color: '#4B5563' }}
               >
                 {scenario.userGoal}
               </p>
@@ -204,7 +204,7 @@ export function ScenarioCustomizer({
             <div>
               <p
                 className="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5"
-                style={{ fontFamily: 'Nunito', color: '#9CA3AF' }}
+                style={{ fontFamily: 'var(--font-ui)', color: '#9CA3AF' }}
               >
                 <span>🏮</span> Cultural Tips
               </p>
@@ -213,9 +213,9 @@ export function ScenarioCustomizer({
                   <div
                     key={i}
                     className="flex items-start gap-2 text-sm"
-                    style={{ fontFamily: 'Nunito', color: '#6B7280' }}
+                    style={{ fontFamily: 'var(--font-ui)', color: '#6B6560' }}
                   >
-                    <span className="text-[#FFB800] mt-0.5 shrink-0">&#9679;</span>
+                    <span className="text-[#7A5C2E] mt-0.5 shrink-0">&#9679;</span>
                     <span className="leading-relaxed">{note}</span>
                   </div>
                 ))}
@@ -228,7 +228,7 @@ export function ScenarioCustomizer({
             <div>
               <p
                 className="text-xs font-bold uppercase tracking-wider mb-3 flex items-center gap-1.5"
-                style={{ fontFamily: 'Nunito', color: '#9CA3AF' }}
+                style={{ fontFamily: 'var(--font-ui)', color: '#9CA3AF' }}
               >
                 <span>🎛️</span> Customize
               </p>
@@ -247,13 +247,13 @@ export function ScenarioCustomizer({
           )}
 
           {/* Mode toggles */}
-          <div className="bg-white rounded-[20px] p-4 mb-3" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06), 0 4px 0 rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.04)' }}>
-            <p className="text-xs font-black text-[#9CA3AF] uppercase tracking-widest mb-3" style={{ fontFamily: 'Nunito' }}>Mode</p>
+          <div className="bg-white rounded-[10px] p-4 mb-3" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.04)' }}>
+            <p className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-widest mb-3" style={{ fontFamily: 'var(--font-ui)' }}>Mode</p>
 
             {/* Voice Reply */}
             <div className="flex items-center justify-between py-2">
               <div>
-                <p className="text-sm font-bold" style={{ fontFamily: 'Nunito', color: '#1A1A2E' }}>🎤 Voice Reply</p>
+                <p className="text-sm font-bold" style={{ fontFamily: 'var(--font-ui)', color: '#1A1A2E' }}>🎤 Voice Reply</p>
                 <p className="text-[10px]" style={{ color: '#9CA3AF' }}>Speak your answer instead of tapping</p>
               </div>
               <button
@@ -308,7 +308,7 @@ function TweakControl({ tweak, value, onChange, accentColor }: TweakControlProps
       <div className="flex items-center justify-between">
         <p
           className="text-sm font-bold"
-          style={{ fontFamily: 'Nunito', color: '#4B5563' }}
+          style={{ fontFamily: 'var(--font-ui)', color: '#4B5563' }}
         >
           {tweak.label}
         </p>
@@ -336,7 +336,7 @@ function TweakControl({ tweak, value, onChange, accentColor }: TweakControlProps
       <div>
         <p
           className="text-sm font-bold mb-2"
-          style={{ fontFamily: 'Nunito', color: '#4B5563' }}
+          style={{ fontFamily: 'var(--font-ui)', color: '#4B5563' }}
         >
           {tweak.label}
         </p>
@@ -345,12 +345,12 @@ function TweakControl({ tweak, value, onChange, accentColor }: TweakControlProps
           onChange={(e) => onChange(e.target.value)}
           placeholder={`Describe ${tweak.label.toLowerCase()}...`}
           className="
-            w-full p-3 rounded-[16px] border-2 border-gray-200
+            w-full p-3 rounded-[8px] border-2 border-gray-200
             bg-white text-sm resize-none
             focus:outline-none focus:border-[#1B4F8A]
             transition-colors placeholder:text-gray-300
           "
-          style={{ fontFamily: 'Nunito', color: '#1A1A2E', minHeight: '80px' }}
+          style={{ fontFamily: 'var(--font-ui)', color: '#1A1A2E', minHeight: '80px' }}
         />
       </div>
     )
@@ -362,7 +362,7 @@ function TweakControl({ tweak, value, onChange, accentColor }: TweakControlProps
       <div>
         <p
           className="text-sm font-bold mb-2"
-          style={{ fontFamily: 'Nunito', color: '#4B5563' }}
+          style={{ fontFamily: 'var(--font-ui)', color: '#4B5563' }}
         >
           {tweak.label}
         </p>
@@ -374,11 +374,11 @@ function TweakControl({ tweak, value, onChange, accentColor }: TweakControlProps
                 key={option}
                 onClick={() => onChange(option)}
                 className={`
-                  relative bg-white rounded-[14px] px-4 py-3 cursor-pointer
+                  relative bg-white rounded-[8px] px-4 py-3 cursor-pointer
                   transition-all duration-150 text-sm font-semibold
                   ${
                     isSelected
-                      ? 'shadow-[0_3px_0_#B8CBE0]'
+                      ? ''
                       : 'hover:bg-gray-50'
                   }
                 `}
@@ -386,7 +386,7 @@ function TweakControl({ tweak, value, onChange, accentColor }: TweakControlProps
                   border: isSelected
                     ? '2px solid #1B4F8A'
                     : '2px solid #e5e7eb',
-                  fontFamily: 'Nunito',
+                  fontFamily: 'var(--font-ui)',
                   color: isSelected ? '#1B4F8A' : '#6B7280',
                   backgroundColor: isSelected ? '#EBF0F8' : undefined,
                 }}

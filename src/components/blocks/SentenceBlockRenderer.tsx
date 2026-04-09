@@ -106,20 +106,20 @@ export default function SentenceBlockRenderer({ block, onComplete }: Props) {
           </p>
 
           {/* Romaji */}
-          <p className="text-sm text-[#9CA3AF] mt-1" style={{ fontFamily: 'var(--font-ui)' }}>
+          <p className="text-sm text-[#9E9892] mt-1" style={{ fontFamily: 'var(--font-ui)' }}>
             {s.romaji}
           </p>
 
           {/* English (togglable) */}
           {showEN && (
-            <p className="text-base text-[#6B7280] mt-2" style={{ fontFamily: 'var(--font-ui)' }}>
+            <p className="text-base text-[#6B6560] mt-2" style={{ fontFamily: 'var(--font-ui)' }}>
               {s.english}
             </p>
           )}
 
           {/* Grammar note */}
           {s.grammarNote && (
-            <div className="bg-[#EBF0F8] rounded-[12px] p-3 mt-3">
+            <div className="bg-[#EBF0F8] rounded-[6px] p-3 mt-3">
               <p className="text-sm text-[#1B4F8A] font-semibold" style={{ fontFamily: 'var(--font-ui)' }}>
                 {s.grammarNote}
               </p>
@@ -132,28 +132,29 @@ export default function SentenceBlockRenderer({ block, onComplete }: Props) {
       {activeKeyword && (
         <div
           ref={popupRef}
-          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-white rounded-[20px] shadow-[0_8px_24px_rgba(0,0,0,0.15)] p-5 w-[300px] page-enter"
+          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-[#FDFBF8] rounded-[10px] p-5 w-[300px] page-enter border border-[#E0DAD2]"
+          style={{ boxShadow: '0 1px 4px rgba(26,24,20,0.08)' }}
         >
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-2xl font-bold" style={{ fontFamily: 'var(--font-jp)' }}>
+            <span className="text-2xl font-normal" style={{ fontFamily: 'var(--font-jp)' }}>
               {activeKeyword.word}
             </span>
-            <span className="text-sm text-[#9CA3AF]" style={{ fontFamily: 'var(--font-jp)' }}>
+            <span className="text-sm text-[#9E9892]" style={{ fontFamily: 'var(--font-jp)' }}>
               {activeKeyword.reading}
             </span>
             <Badge color="blue" size="sm">{activeKeyword.jlptLevel}</Badge>
           </div>
-          <p className="text-base font-semibold text-[#1A1A2E]" style={{ fontFamily: 'var(--font-ui)' }}>
+          <p className="text-base font-semibold text-[#1A1814]" style={{ fontFamily: 'var(--font-ui)' }}>
             {activeKeyword.meaning}
           </p>
           {activeKeyword.example && (
-            <p className="text-sm text-[#6B7280] mt-2 italic" style={{ fontFamily: 'var(--font-jp)' }}>
+            <p className="text-sm text-[#6B6560] mt-2 italic" style={{ fontFamily: 'var(--font-jp)' }}>
               {activeKeyword.example}
             </p>
           )}
           <button
             onClick={() => setActiveKeyword(null)}
-            className="mt-3 text-sm text-[#1B4F8A] font-bold"
+            className="mt-3 text-sm text-[#1B4F8A] font-semibold"
           >
             Close
           </button>

@@ -200,7 +200,7 @@ export function getBeginnerLessons(): BeginnerLesson[] {
               setting: '🍣 A sushi restaurant in Tokyo',
               line: 'すしが好(す)きですか？',
               lineReading: 'すしがすきですか？',
-              lineRomaji: 'Sushi ga suki desu ka?',
+              lineRomaji: '______ ga suki desu ka?',
               vocab: [{ word: '好(す)き', reading: 'すき', romaji: 'suki', meaning: 'like / fond of', pos: 'adjective' }],
               question: 'Yuki is asking if you...',
               options: [
@@ -215,7 +215,7 @@ export function getBeginnerLessons(): BeginnerLesson[] {
               character: { name: 'Yuki', nameJP: 'ゆき', emoji: '🏪', color: '#FF6B9D', avatar: '/Yuki1.png' },
               line: '水(みず)をどうぞ。',
               lineReading: 'みずをどうぞ。',
-              lineRomaji: 'Mizu wo dōzo.',
+              lineRomaji: '______ wo dōzo.',
               vocab: [{ word: 'どうぞ', reading: 'どうぞ', romaji: 'dōzo', meaning: 'here you go / please', pos: 'expression' }],
               question: 'Yuki is offering you...',
               options: [
@@ -423,7 +423,7 @@ export function getBeginnerLessons(): BeginnerLesson[] {
               setting: 'A park in Osaka',
               line: 'こんにちは！',
               lineReading: 'こんにちは！',
-              lineRomaji: 'Konnichiwa!',
+              lineRomaji: '______!',
               vocab: [],
               question: 'Taro just said...',
               options: [
@@ -438,7 +438,7 @@ export function getBeginnerLessons(): BeginnerLesson[] {
               character: { name: 'Kenji', nameJP: 'けんじ', emoji: '🍻', color: '#00CED1', avatar: '/Kenji1.png' },
               line: '私(わたし)はたろうです。あなたは？',
               lineReading: 'わたしはたろうです。あなたは？',
-              lineRomaji: 'Watashi wa Tarō desu. Anata wa?',
+              lineRomaji: '______ wa Tarō desu. ______ wa?',
               vocab: [],
               question: 'How should you reply?',
               options: [
@@ -670,7 +670,7 @@ export function getBeginnerLessons(): BeginnerLesson[] {
               setting: 'A conveyor belt sushi restaurant',
               line: 'いらっしゃいませ！いくつですか？',
               lineReading: 'いらっしゃいませ！いくつですか？',
-              lineRomaji: 'Irasshaimase! Ikutsu desu ka?',
+              lineRomaji: '______! ______ desu ka?',
               vocab: [],
               question: 'The chef is asking...',
               options: [
@@ -685,7 +685,7 @@ export function getBeginnerLessons(): BeginnerLesson[] {
               character: { name: 'Takeshi', nameJP: 'たけし', emoji: '🍜', color: '#FF6B35', avatar: '/Takeshi1.png' },
               line: 'はい、三(みっ)つですね！',
               lineReading: 'はい、みっつですね！',
-              lineRomaji: 'Hai, mittsu desu ne!',
+              lineRomaji: 'Hai, ______ desu ne!',
               vocab: [{ word: 'はい', reading: 'はい', romaji: 'hai', meaning: 'yes / right', pos: 'expression' }],
               question: 'You ordered how many pieces?',
               options: [
@@ -891,7 +891,7 @@ export function getBeginnerLessons(): BeginnerLesson[] {
               setting: 'A brightly-lit 7-Eleven at midnight',
               line: '袋(ふくろ)はいりますか？',
               lineReading: 'ふくろはいりますか？',
-              lineRomaji: 'Fukuro wa irimasu ka?',
+              lineRomaji: '______ wa irimasu ka?',
               vocab: [{ word: 'いりますか', reading: 'いりますか', romaji: 'irimasu ka', meaning: 'do you need?', pos: 'verb' }],
               question: 'The cashier is asking about...',
               options: [
@@ -907,7 +907,7 @@ export function getBeginnerLessons(): BeginnerLesson[] {
               character: { name: 'Mika', nameJP: 'みか', emoji: '💕', color: '#FF6B9D', avatar: '/characters/mika.png' },
               line: '温(あたた)めますか？',
               lineReading: 'あたためますか？',
-              lineRomaji: 'Atatamemasu ka?',
+              lineRomaji: '______ ka?',
               vocab: [],
               question: 'The cashier is asking if you want to...',
               options: [
@@ -922,7 +922,7 @@ export function getBeginnerLessons(): BeginnerLesson[] {
               character: { name: 'Mika', nameJP: 'みか', emoji: '💕', color: '#FF6B9D', avatar: '/characters/mika.png' },
               line: '三百(さんびゃく)円(えん)です。',
               lineReading: 'さんびゃくえんです。',
-              lineRomaji: 'Sanbyaku en desu.',
+              lineRomaji: 'Sanbyaku ______ desu.',
               vocab: [],
               question: 'How much is it?',
               options: [
@@ -1142,7 +1142,7 @@ export function getBeginnerLessons(): BeginnerLesson[] {
               setting: 'A stationery shop in Harajuku',
               line: '何(なに)色(いろ)が好(す)き？',
               lineReading: 'なにいろがすき？',
-              lineRomaji: 'Nani-iro ga suki?',
+              lineRomaji: '______ ga suki?',
               vocab: [{ word: '好(す)き', reading: 'すき', romaji: 'suki', meaning: 'like', pos: 'adjective' }],
               question: 'Sakura is asking...',
               options: [
@@ -1157,7 +1157,7 @@ export function getBeginnerLessons(): BeginnerLesson[] {
               character: { name: 'Yuki', nameJP: 'ゆき', emoji: '🏪', color: '#FF6B9D', avatar: '/Yuki1.png' },
               line: '私(わたし)は赤(あか)が好(す)き！赤(あか)いペンをどうぞ。',
               lineReading: 'わたしはあかがすき！あかいぺんをどうぞ。',
-              lineRomaji: 'Watashi wa aka ga suki! Akai pen wo dōzo.',
+              lineRomaji: 'Watashi wa ______ ga suki! ______ pen wo dōzo.',
               vocab: [{ word: 'どうぞ', reading: 'どうぞ', romaji: 'dōzo', meaning: 'here you go', pos: 'expression' }, { word: 'ペン', reading: 'ぺん', romaji: 'pen', meaning: 'pen', pos: 'noun' }],
               question: 'Sakura likes which colour?',
               options: [
@@ -1377,7 +1377,7 @@ export function getBeginnerLessons(): BeginnerLesson[] {
               setting: 'A language exchange meetup in a Tokyo cafe',
               line: 'はじめまして！私(わたし)ははなです。',
               lineReading: 'はじめまして！わたしははなです。',
-              lineRomaji: 'Hajimemashite! Watashi wa Hana desu.',
+              lineRomaji: '______! ______ wa Hana desu.',
               vocab: [{ word: 'はじめまして', reading: 'はじめまして', romaji: 'hajimemashite', meaning: 'nice to meet you', pos: 'greeting' }],
               question: 'What is Hana doing?',
               options: [
@@ -1392,7 +1392,7 @@ export function getBeginnerLessons(): BeginnerLesson[] {
               character: { name: 'Kenji', nameJP: 'けんじ', emoji: '🍻', color: '#00CED1', avatar: '/Kenji1.png' },
               line: 'お母(かあ)さんは日本人(にほんじん)で、お父(とう)さんはアメリカ人(じん)です。',
               lineReading: 'おかあさんはにほんじんで、おとうさんはあめりかじんです。',
-              lineRomaji: 'Okāsan wa nihonjin de, otōsan wa amerikajin desu.',
+              lineRomaji: '______ wa nihonjin de, ______ wa amerikajin desu.',
               vocab: [{ word: '日本人(にほんじん)', reading: 'にほんじん', romaji: 'nihonjin', meaning: 'Japanese person', pos: 'noun' }],
               question: 'Hana\'s mother is from...',
               options: [
@@ -1618,7 +1618,7 @@ export function getBeginnerLessons(): BeginnerLesson[] {
               setting: 'After Japanese class',
               line: '元気(げんき)ですか？',
               lineReading: 'げんきですか？',
-              lineRomaji: 'Genki desu ka?',
+              lineRomaji: '______ desu ka?',
               vocab: [],
               question: 'Ken is asking...',
               options: [
@@ -1633,7 +1633,7 @@ export function getBeginnerLessons(): BeginnerLesson[] {
               character: { name: 'Kenji', nameJP: 'けんじ', emoji: '🍻', color: '#00CED1', avatar: '/Kenji1.png' },
               line: '日本語(にほんご)、好(す)きですか？',
               lineReading: 'にほんご、すきですか？',
-              lineRomaji: 'Nihongo, suki desu ka?',
+              lineRomaji: '______, suki desu ka?',
               vocab: [
                 { word: '好(す)き', reading: 'すき', romaji: 'suki', meaning: 'like', pos: 'adjective' },
               ],

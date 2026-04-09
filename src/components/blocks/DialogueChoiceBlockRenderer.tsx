@@ -19,16 +19,16 @@ interface VocabWord {
   pos: string
 }
 
-// ── POS colors (same as Scenario Studio) ──────────────────────
+// ── POS colors (muted stationery palette) ──────────────────────
 const POS_COLORS: Record<string, { underline: string; bg: string; text: string; label: string }> = {
   noun:       { underline: '#1B4F8A', bg: '#EBF0F8', text: '#1B4F8A', label: '名詞' },
-  verb:       { underline: '#E63946', bg: '#FFE5E5', text: '#CC0000', label: '動詞' },
-  adjective:  { underline: '#8B5CF6', bg: '#F3E8FF', text: '#7C3AED', label: '形容詞' },
-  adverb:     { underline: '#059669', bg: '#D1FAE5', text: '#047857', label: '副詞' },
-  particle:   { underline: '#F59E0B', bg: '#FFF3CC', text: '#D97706', label: '助詞' },
-  phrase:     { underline: '#EC4899', bg: '#FCE7F3', text: '#DB2777', label: '表現' },
-  greeting:   { underline: '#14B8A6', bg: '#CCFBF1', text: '#0D9488', label: '挨拶' },
-  expression: { underline: '#F97316', bg: '#FFF7ED', text: '#EA580C', label: '表現' },
+  verb:       { underline: '#8B3A3A', bg: '#F5EEEE', text: '#8B3A3A', label: '動詞' },
+  adjective:  { underline: '#6B5B8D', bg: '#F0EDF5', text: '#6B5B8D', label: '形容詞' },
+  adverb:     { underline: '#3D6B4F', bg: '#EFF5F0', text: '#3D6B4F', label: '副詞' },
+  particle:   { underline: '#7A5C2E', bg: '#F5F0E8', text: '#7A5C2E', label: '助詞' },
+  phrase:     { underline: '#8B5A6B', bg: '#F5EEF0', text: '#8B5A6B', label: '表現' },
+  greeting:   { underline: '#3D6B5A', bg: '#EFF5F2', text: '#3D6B5A', label: '挨拶' },
+  expression: { underline: '#7A5C2E', bg: '#F5F0E8', text: '#7A5C2E', label: '表現' },
 }
 
 // ── Furigana helpers ──────────────────────────────────────────
@@ -46,7 +46,7 @@ function renderWithFurigana(text: string, showFurigana: boolean) {
     if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index))
     parts.push(
       <ruby key={match.index}>
-        {match[1]}<rp>(</rp><rt className="text-[10px]" style={{ color: '#9CA3AF' }}>{match[2]}</rt><rp>)</rp>
+        {match[1]}<rp>(</rp><rt className="text-[10px]" style={{ color: '#9E9892' }}>{match[2]}</rt><rp>)</rp>
       </ruby>
     )
     lastIndex = regex.lastIndex
@@ -83,20 +83,20 @@ function VocabPopup({ word, rect, onClose }: { word: VocabWord; rect: DOMRect; o
   const left = Math.max(8, Math.min(rect.left, (typeof window !== 'undefined' ? window.innerWidth : 400) - 268))
 
   return (
-    <div ref={ref} className="fixed z-50 w-64 bg-white rounded-[18px] overflow-hidden border border-gray-100" style={{ top, left, boxShadow: '0 12px 40px rgba(0,0,0,0.15), 0 4px 0 rgba(0,0,0,0.04)' }}>
-      <div className="h-1.5 w-full" style={{ backgroundColor: posStyle.underline }} />
+    <div ref={ref} className="fixed z-50 w-64 bg-[#FDFBF8] rounded-[8px] overflow-hidden border border-[#E0DAD2]" style={{ top, left, boxShadow: '0 1px 4px rgba(26,24,20,0.08)' }}>
+      <div className="h-1 w-full" style={{ backgroundColor: posStyle.underline }} />
       <div className="p-3.5">
         <div className="flex items-start justify-between mb-2">
           <div>
-            <p className="text-2xl font-black" style={{ fontFamily: 'Noto Sans JP', color: '#1A1A2E' }}>{stripFurigana(word.word)}</p>
+            <p className="text-2xl font-normal" style={{ fontFamily: 'Noto Sans JP', color: '#1A1814' }}>{stripFurigana(word.word)}</p>
             <p className="text-xs mt-0.5" style={{ fontFamily: 'Noto Sans JP', color: '#1B4F8A' }}>{word.reading}</p>
-            <p className="text-[10px]" style={{ fontFamily: 'DM Mono, monospace', color: '#B0B0B0' }}>{word.romaji}</p>
+            <p className="text-[10px] font-mono" style={{ color: '#9E9892' }}>{word.romaji}</p>
           </div>
-          <span className="text-[10px] font-black px-2 py-0.5 rounded-full" style={{ backgroundColor: posStyle.bg, color: posStyle.text }}>
+          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: posStyle.bg, color: posStyle.text }}>
             {posStyle.label}
           </span>
         </div>
-        <p className="text-sm font-bold" style={{ fontFamily: 'Nunito', color: '#1A1A2E' }}>{word.meaning}</p>
+        <p className="text-sm font-semibold" style={{ color: '#1A1814' }}>{word.meaning}</p>
       </div>
     </div>
   )
@@ -166,13 +166,13 @@ function findOriginal(originalText: string, plainChunk: string): string {
 function CharAvatar({ character, size = 40 }: { character: { avatar?: string; emoji: string; color: string; name: string }; size?: number }) {
   if (character.avatar) {
     return (
-      <div className="rounded-full overflow-hidden shrink-0 border-2 border-white shadow-md" style={{ width: size, height: size }}>
+      <div className="rounded-full overflow-hidden shrink-0 border border-[#E0DAD2]" style={{ width: size, height: size }}>
         <Image src={character.avatar} alt={character.name} width={size} height={size} className="w-full h-full object-cover" quality={90} />
       </div>
     )
   }
   return (
-    <div className="rounded-full flex items-center justify-center text-xl shrink-0 shadow-[0_3px_0_rgba(0,0,0,0.1)]" style={{ width: size, height: size, backgroundColor: character.color + '33', border: `2px solid ${character.color}` }}>
+    <div className="rounded-full flex items-center justify-center text-xl shrink-0" style={{ width: size, height: size, backgroundColor: character.color + '1A', border: `1px solid ${character.color}44` }}>
       {character.emoji}
     </div>
   )
@@ -226,16 +226,16 @@ export function DialogueChoiceBlockRenderer({ block, onComplete }: Props) {
   if (done) return (
     <div className="text-center space-y-4 page-enter">
       <div className="text-5xl">{score === block.exchanges.length ? '⭐' : '👍'}</div>
-      <p className="font-black text-2xl text-[#1B4F8A]" style={{ fontFamily: 'Nunito' }}>{score}/{block.exchanges.length} understood</p>
+      <p className="font-semibold text-2xl text-[#1B4F8A]">{score}/{block.exchanges.length} understood</p>
       <Button variant="primary" size="lg" fullWidth onClick={() => onComplete(block.xpReward)}>
-        Continue +{block.xpReward} XP ⚡
+        Continue +{block.xpReward} XP
       </Button>
     </div>
   )
 
   return (
     <div className="space-y-4">
-      {/* ── Toggle pills (same as Scenario Studio) ── */}
+      {/* ── Toggle pills ── */}
       <div className="flex items-center gap-1.5 justify-center">
         {[
           { key: 'furigana', label: 'ふりがな', active: showFurigana, toggle: () => setShowFurigana(p => !p) },
@@ -245,8 +245,8 @@ export function DialogueChoiceBlockRenderer({ block, onComplete }: Props) {
           <button
             key={t.key}
             onClick={t.toggle}
-            className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all ${t.active ? 'bg-[#1B4F8A] text-white' : 'bg-gray-100 text-gray-400'}`}
-            style={{ fontFamily: t.key === 'furigana' ? 'Noto Sans JP' : 'Nunito' }}
+            className={`px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all border ${t.active ? 'bg-[#EBF0F8] border-[#1B4F8A] text-[#1B4F8A]' : 'bg-transparent border-[#E0DAD2] text-[#9E9892]'}`}
+            style={{ fontFamily: t.key === 'furigana' ? 'Noto Sans JP' : undefined }}
           >
             {t.label}
           </button>
@@ -255,8 +255,8 @@ export function DialogueChoiceBlockRenderer({ block, onComplete }: Props) {
 
       {/* Setting */}
       {currentIndex === 0 && current.setting && (
-        <div className="bg-[#1B4F8A]/5 border border-[#1B4F8A]/10 rounded-[14px] p-3 text-center">
-          <p className="text-xs font-bold text-[#1B4F8A]" style={{ fontFamily: 'Nunito' }}>📍 {current.setting}</p>
+        <div className="bg-[#FDFBF8] border border-[#E0DAD2] rounded-[8px] p-3 text-center">
+          <p className="text-xs font-semibold text-[#6B6560]">📍 {current.setting}</p>
         </div>
       )}
 
@@ -268,14 +268,14 @@ export function DialogueChoiceBlockRenderer({ block, onComplete }: Props) {
             {/* Character bubble — left */}
             <div className="flex items-end gap-2 max-w-[85%]">
               <CharAvatar character={ex.character} size={28} />
-              <div className="bg-white px-3 py-2 border border-gray-100 shadow-sm" style={{ borderRadius: '4px 14px 14px 14px' }}>
+              <div className="bg-[#FDFBF8] px-3 py-2 border border-[#E0DAD2]" style={{ borderRadius: '2px 12px 12px 12px' }}>
                 <p className="text-sm" style={{ fontFamily: 'Noto Sans JP' }}>{stripFurigana(ex.line)}</p>
               </div>
             </div>
             {/* User answer — right */}
             {userAnswers[i] && (
               <div className="flex justify-end">
-                <div className="max-w-[75%] px-3 py-2 text-white text-sm font-bold" style={{ backgroundColor: '#1B4F8A', borderRadius: '14px 14px 4px 14px', fontFamily: 'Nunito' }}>
+                <div className="max-w-[75%] px-3 py-2 text-white text-sm font-semibold" style={{ backgroundColor: '#1B4F8A', borderRadius: '12px 2px 12px 12px' }}>
                   {userAnswers[i]}
                 </div>
               </div>
@@ -287,13 +287,13 @@ export function DialogueChoiceBlockRenderer({ block, onComplete }: Props) {
         <div className="flex items-end gap-2.5 max-w-[90%]">
           <CharAvatar character={current.character} size={36} />
           <div className="flex-1">
-            <p className="text-[10px] font-bold mb-1 ml-1" style={{ fontFamily: 'Nunito', color: '#9CA3AF' }}>
+            <p className="text-[11px] font-semibold mb-1 ml-1 uppercase tracking-[0.08em]" style={{ color: '#9E9892' }}>
               {current.character.name}
             </p>
-            <div className="bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-gray-100 p-4" style={{ borderRadius: '4px 18px 18px 18px' }}>
+            <div className="bg-[#FDFBF8] border border-[#E0DAD2] p-4" style={{ borderRadius: '2px 12px 12px 12px' }}>
               <div className="flex items-start gap-2">
                 <div className="flex-1">
-                  <p className="text-lg font-bold leading-[2]">
+                  <p className="text-lg font-normal leading-[2]">
                     <DialogueText
                       text={current.line}
                       vocab={current.vocab}
@@ -302,15 +302,15 @@ export function DialogueChoiceBlockRenderer({ block, onComplete }: Props) {
                     />
                   </p>
                   {showRomaji && (
-                    <p className="text-[11px] mt-1" style={{ fontFamily: 'DM Mono, monospace', color: '#B0B0B0' }}>{current.lineRomaji}</p>
+                    <p className="text-[11px] mt-1 font-mono" style={{ color: '#9E9892' }}>{current.lineRomaji}</p>
                   )}
                   {showTranslation && current.lineEN && (
-                    <p className="text-xs mt-1 italic" style={{ color: '#9CA3AF', fontFamily: 'Nunito' }}>{current.lineEN}</p>
+                    <p className="text-xs mt-1 italic" style={{ color: '#9E9892' }}>{current.lineEN}</p>
                   )}
                 </div>
                 <button
                   onClick={() => playAudio(current.line)}
-                  className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-[#EBF0F8] hover:text-[#1B4F8A] border border-gray-100 transition-colors"
+                  className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center bg-[#FDFBF8] text-[#9E9892] hover:bg-[#EBF0F8] hover:text-[#1B4F8A] border border-[#E0DAD2] transition-colors"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
                 </button>
@@ -320,28 +320,28 @@ export function DialogueChoiceBlockRenderer({ block, onComplete }: Props) {
         </div>
       </div>
 
-      {/* Question — left aligned like Studio */}
-      <p className="text-xs font-bold" style={{ fontFamily: 'Nunito', color: '#9CA3AF' }}>{current.question}</p>
+      {/* Question — left aligned */}
+      <p className="text-xs font-semibold" style={{ color: '#9E9892' }}>{current.question}</p>
 
-      {/* Options — compact Studio-style cards */}
+      {/* Options — compact cards */}
       <div className="space-y-1.5">
         {current.options.map((opt, idx) => {
           const isSelected = selected === opt.id
-          let cardStyle = 'bg-white border-2 border-gray-100'
-          if (revealed && opt.isCorrect) cardStyle = 'bg-[#E5F9D0] border-2 border-[#58CC02]'
-          else if (revealed && isSelected && !opt.isCorrect) cardStyle = 'bg-[#FFE5E5] border-2 border-[#FF4B4B]'
+          let cardStyle = 'bg-[#FDFBF8] border border-[#E0DAD2]'
+          if (revealed && opt.isCorrect) cardStyle = 'bg-[#EFF5F0] border border-[#B8D4C0]'
+          else if (revealed && isSelected && !opt.isCorrect) cardStyle = 'bg-[#F5EEEE] border border-[#D4BABA]'
 
           return (
             <button
               key={opt.id}
               onClick={() => handleSelect(opt.id, opt.text, opt.isCorrect)}
               disabled={revealed}
-              className={`w-full text-left px-3.5 py-2.5 rounded-[14px] transition-all shadow-[0_2px_0_rgba(0,0,0,0.04)] active:translate-y-[2px] active:shadow-none option-card-enter disabled:opacity-60 ${cardStyle} ${isSelected ? 'scale-[0.97]' : ''}`}
-              style={{ animationDelay: `${idx * 120}ms`, fontFamily: 'Nunito' }}
+              className={`w-full text-left px-3.5 py-2.5 rounded-[8px] transition-all active:translate-y-px option-card-enter disabled:opacity-60 ${cardStyle} ${isSelected ? 'scale-[0.98]' : ''}`}
+              style={{ animationDelay: `${idx * 120}ms` }}
             >
               <div className="flex items-center gap-2.5">
-                <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: revealed && opt.isCorrect ? '#58CC02' : revealed && isSelected ? '#FF4B4B' : '#B8CBE0' }} />
-                <span className="text-sm font-bold" style={{ color: revealed && opt.isCorrect ? '#2D8800' : revealed && isSelected && !opt.isCorrect ? '#CC0000' : '#1A1A2E' }}>
+                <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: revealed && opt.isCorrect ? '#3D6B4F' : revealed && isSelected ? '#8B3A3A' : '#B8CBE0' }} />
+                <span className="text-sm font-semibold" style={{ color: revealed && opt.isCorrect ? '#3D6B4F' : revealed && isSelected && !opt.isCorrect ? '#8B3A3A' : '#1A1814' }}>
                   {opt.text}
                 </span>
               </div>
@@ -350,20 +350,19 @@ export function DialogueChoiceBlockRenderer({ block, onComplete }: Props) {
         })}
       </div>
 
-      {/* Feedback + cultural hint — indented to match chat */}
+      {/* Feedback + cultural hint */}
       {revealed && (
-        <div className={`rounded-[16px] p-4 border-2 page-enter ${isCorrect ? 'bg-[#E5F9D0] border-[#89E219]' : 'bg-[#FFE5E5] border-[#FF4B4B]'}`}>
-          <p className={`font-black mb-1 ${isCorrect ? 'text-[#2D8800]' : 'text-[#CC0000]'}`} style={{ fontFamily: 'Nunito' }}>
+        <div className={`rounded-[8px] p-4 border page-enter ${isCorrect ? 'bg-[#EFF5F0] border-[#B8D4C0]' : 'bg-[#F5EEEE] border-[#D4BABA]'}`}>
+          <p className={`font-semibold mb-1 ${isCorrect ? 'text-[#3D6B4F]' : 'text-[#8B3A3A]'}`}>
             {isCorrect ? '✓ Correct!' : '✗ Not quite'}
           </p>
           {current.explanation && (
-            <p className={`text-sm ${isCorrect ? 'text-[#2D8800]' : 'text-[#CC0000]'}`} style={{ fontFamily: 'Nunito' }}>{current.explanation}</p>
+            <p className={`text-sm ${isCorrect ? 'text-[#3D6B4F]' : 'text-[#8B3A3A]'}`}>{current.explanation}</p>
           )}
           {isCorrect && showCoachNotes && current.culturalHint && (
-            <div className="mt-3 px-3.5 py-2 bg-white/60 rounded-[12px] border-l-[3px] border-[#FFB800]">
-              <p className="text-xs font-bold mb-0.5" style={{ color: '#CC7700' }}>💡</p>
-              <p className="text-[13px] leading-relaxed" style={{ color: '#92600A' }}>
-                {renderWithFurigana(current.culturalHint, showFurigana)}
+            <div className="mt-3 px-3.5 py-2 bg-transparent border-l-[2px] border-[#1B4F8A]/30">
+              <p className="text-[13px] leading-relaxed italic text-[#6B6560]">
+                ↳ {renderWithFurigana(current.culturalHint, showFurigana)}
               </p>
             </div>
           )}
@@ -372,7 +371,7 @@ export function DialogueChoiceBlockRenderer({ block, onComplete }: Props) {
 
       {revealed && (
         <Button variant={isCorrect ? 'correct' : 'primary'} size="lg" fullWidth onClick={handleNext}>
-          {currentIndex < block.exchanges.length - 1 ? 'Next →' : `Finish +${block.xpReward} XP ⚡`}
+          {currentIndex < block.exchanges.length - 1 ? 'Next →' : `Finish +${block.xpReward} XP`}
         </Button>
       )}
 

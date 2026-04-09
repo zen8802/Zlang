@@ -18,10 +18,10 @@ const PADDING: Record<string, string> = {
 }
 
 const VARIANTS: Record<CardVariant, string> = {
-  default: 'bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06),0_4px_0_rgba(0,0,0,0.04)] border border-gray-100',
-  elevated: 'bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08),0_6px_0_rgba(0,0,0,0.05)] border border-gray-100',
-  flat: 'bg-[#FAF8F5] border border-gray-100',
-  bordered: 'bg-white border-2 border-[#B8CBE0]',
+  default: 'bg-[#FDFBF8] border border-[#E0DAD2]',
+  elevated: 'bg-[#FDFBF8] border border-[#E0DAD2] shadow-[0_2px_12px_rgba(26,24,20,0.08)]',
+  flat: 'bg-[#F5F0EB] border border-[#E0DAD2]',
+  bordered: 'bg-[#FDFBF8] border-2 border-[#1B4F8A]/20',
 }
 
 export default function Card({
@@ -35,10 +35,10 @@ export default function Card({
     <div
       onClick={onClick}
       className={`
-        rounded-[20px] transition-all duration-200
+        rounded-[10px] transition-all duration-200
         ${VARIANTS[variant]}
         ${PADDING[padding]}
-        ${onClick ? 'cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(0,0,0,0.10)] active:translate-y-[2px] active:shadow-none' : ''}
+        ${onClick ? 'cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_2px_12px_rgba(26,24,20,0.10)] active:translate-y-px' : ''}
         ${className}
       `}
     >

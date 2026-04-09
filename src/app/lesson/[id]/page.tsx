@@ -54,7 +54,7 @@ export default function LessonPage() {
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F5F0EB' }}>
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-[#1B4F8A]/20 border-t-[#1B4F8A] rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-sm font-bold" style={{ fontFamily: 'Nunito', color: '#6B7280' }}>Loading lesson...</p>
+          <p className="text-sm font-bold" style={{ color: '#6B6560' }}>Loading lesson...</p>
         </div>
       </div>
     )
@@ -65,8 +65,8 @@ export default function LessonPage() {
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F5F0EB' }}>
         <div className="text-center max-w-sm">
           <p className="text-4xl mb-3">😵</p>
-          <p className="font-bold mb-2" style={{ fontFamily: 'Nunito', color: '#1A1A2E' }}>Lesson not found</p>
-          <p className="text-sm mb-4" style={{ color: '#6B7280' }}>{error}</p>
+          <p className="font-bold mb-2" style={{ color: '#1A1814' }}>Lesson not found</p>
+          <p className="text-sm mb-4" style={{ color: '#6B6560' }}>{error}</p>
           <button onClick={() => router.push('/lessons')} className="text-sm font-bold underline" style={{ color: '#1B4F8A' }}>
             Back to lessons
           </button>

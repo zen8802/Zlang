@@ -3,18 +3,12 @@
 @tailwind utilities;
 @import '../styles/design-system.css';
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Noto+Sans+JP:wght@100..900&family=Syne:wght@400..800&display=swap');
-
 :root {
   --background: #F5F0EB;
-  --foreground: #1a1a2e;
+  --foreground: #1A1814;
   --accent: #1B4F8A;
   --accent-jp: #FF6B35;
   --accent-en: #3B82F6;
-}
-
-* {
-  box-sizing: border-box;
 }
 
 html {
@@ -22,9 +16,6 @@ html {
 }
 
 body {
-  background: #F5F0EB;
-  color: var(--foreground);
-  font-family: 'DM Sans', sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
 }
@@ -51,7 +42,7 @@ body::before {
   border-width: 1px;
   border-style: solid;
   border-color: rgba(0, 0, 0, 0.08);
-  border-radius: 16px;
+  border-radius: var(--radius-md);
 }
 
 .glass-card:hover {
@@ -76,24 +67,6 @@ body::before {
   text-shadow: 0 0 20px rgba(27, 79, 138, 0.5);
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.25);
-}
-
 /* Confetti animation classes */
 @keyframes confetti-fall {
   0% { transform: translateY(-100%) rotate(0deg); opacity: 1; }
@@ -109,7 +82,7 @@ body::before {
   position: relative;
   width: 100%;
   padding-bottom: 56.25%; /* 16:9 */
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
@@ -162,8 +135,8 @@ body::before {
 }
 
 .char-rain-column span {
-  font-family: 'Noto Sans JP', sans-serif;
-  color: #1B4F8A;
+  font-family: var(--font-jp);
+  color: var(--blue-primary);
   font-size: var(--rain-font-size, 14px);
   opacity: var(--rain-opacity, 0.08);
   writing-mode: vertical-rl;
@@ -175,16 +148,7 @@ body::before {
 /* Selection styling */
 ::selection {
   background: rgba(27, 79, 138, 0.3);
-  color: #1a1a2e;
-}
-
-/* Furigana rendering */
-ruby {
-  ruby-align: center;
-}
-rt {
-  ruby-position: over;
-  text-align: center;
+  color: var(--ink-black);
 }
 
 /* Safe area bottom padding */
@@ -203,16 +167,6 @@ rt {
   50% { width: 70% }
   90% { width: 90% }
   100% { width: 95% }
-}
-
-/* Page enter animation (replaces framer-motion) */
-@keyframes pageEnter {
-  0% { opacity: 0; transform: translateY(20px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
-
-.page-enter {
-  animation: pageEnter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 /* Option card fade-in animation */

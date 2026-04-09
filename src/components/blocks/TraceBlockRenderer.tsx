@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import type { TraceBlock } from '@/types/lesson-blocks'
 import Button from '@/components/ui/Button'
+import { CharacterWriteCanvas } from './CharacterWriteCanvas'
 
 interface Props {
   block: TraceBlock
@@ -12,7 +13,7 @@ interface Props {
   freewriteOnly?: boolean
 }
 
-type Phase = 'watch' | 'practice' | 'correct' | 'done'
+type Phase = 'watch' | 'practice' | 'write' | 'correct' | 'done'
 
 let HanziWriter: any = null
 
@@ -54,8 +55,8 @@ export function TraceBlockRenderer({ block, onComplete }: Props) {
         padding: 20,
         showOutline: true,
         showCharacter: false,
-        strokeColor: '#1A1A2E',
-        outlineColor: '#E5E7EB',
+        strokeColor: '#1A1814',
+        outlineColor: '#E0DAD2',
         highlightColor: '#1B4F8A',
         drawingColor: '#1B4F8A',
         drawingWidth: 5,
@@ -146,7 +147,7 @@ export function TraceBlockRenderer({ block, onComplete }: Props) {
       },
       onComplete: () => {
         setPhase('correct')
-        writerRef.current?.showCharacter()
+        // DON'T call showCharacter() — keep the user's drawn strokes visible
         playAudio(currentChar.character)
 
         setTimeout(() => {
@@ -164,11 +165,11 @@ export function TraceBlockRenderer({ block, onComplete }: Props) {
   if (allDone) return (
     <div className="text-center space-y-5 page-enter">
       <div className="text-6xl">✍️</div>
-      <p className="font-black text-2xl text-[#1B4F8A]" style={{ fontFamily: 'Nunito' }}>
+      <p className="font-semibold text-2xl text-[#1B4F8A]">
         {block.characters.map(c => c.character).join('・')} practiced!
       </p>
       <Button variant="primary" size="lg" fullWidth onClick={() => onComplete(block.xpReward)}>
-        Continue +{block.xpReward} XP ⚡
+        Continue +{block.xpReward} XP
       </Button>
     </div>
   )
@@ -177,39 +178,41 @@ export function TraceBlockRenderer({ block, onComplete }: Props) {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="font-black text-lg text-[#1B4F8A]" style={{ fontFamily: 'Nunito' }}>
+        <h3 className="font-semibold text-lg text-[#1B4F8A]">
           {phase === 'watch' ? 'Watch the stroke order' : phase === 'correct' ? '✓ Perfect!' : 'Now you try'}
         </h3>
-        <span className="text-sm text-gray-400 font-bold" style={{ fontFamily: 'Nunito' }}>
+        <span className="text-sm text-[#9E9892] font-semibold">
           {charIndex + 1} / {block.characters.length}
         </span>
       </div>
 
+      {/* Phase indicator — hidden during write phase (CharacterWriteCanvas has its own UI) */}
+      {phase !== 'write' && (<>
       {/* Phase indicator */}
-      <div className={`rounded-[14px] px-4 py-2.5 border transition-all ${
+      <div className={`rounded-[8px] px-4 py-2.5 border transition-all ${
         phase === 'watch' ? 'bg-[#EBF0F8] border-[#B8CBE0]' :
-        phase === 'correct' ? 'bg-[#E5F9D0] border-[#89E219]' :
-        'bg-[#FFF3CC] border-[#FFB800]'
+        phase === 'correct' ? 'bg-[#EFF5F0] border-[#B8D4C0]' :
+        'bg-[#F5F0E8] border-[#D4C4A8]'
       }`}>
-        <p className={`text-sm font-bold ${
-          phase === 'watch' ? 'text-[#1B4F8A]' : phase === 'correct' ? 'text-[#2D8800]' : 'text-[#CC7700]'
-        }`} style={{ fontFamily: 'Nunito' }}>
-          {phase === 'watch' ? '👀 Watch carefully — then try it yourself'
-            : phase === 'correct' ? '🎉 You got it!'
-            : `✏️ Draw each stroke in order${mistakes > 0 ? ` — ${mistakes} miss${mistakes > 1 ? 'es' : ''}, hint coming` : ''}`}
+        <p className={`text-sm font-semibold ${
+          phase === 'watch' ? 'text-[#1B4F8A]' : phase === 'correct' ? 'text-[#3D6B4F]' : 'text-[#7A5C2E]'
+        }`}>
+          {phase === 'watch' ? 'Watch carefully — then try it yourself'
+            : phase === 'correct' ? 'You got it!'
+            : `Draw each stroke in order${mistakes > 0 ? ` — ${mistakes} miss${mistakes > 1 ? 'es' : ''}, hint coming` : ''}`}
         </p>
       </div>
 
       {/* HanziWriter canvas */}
       <div className="flex justify-center">
-        <div className="relative bg-white rounded-[24px] overflow-hidden shadow-[0_6px_0_rgba(0,0,0,0.06)] border-2 transition-all duration-300" style={{
+        <div className="relative bg-[#FDFBF8] rounded-[8px] overflow-hidden border transition-all duration-300" style={{
           width: 280, height: 280,
-          borderColor: phase === 'correct' ? '#58CC02' : phase === 'practice' ? '#1B4F8A' : '#E5E7EB',
+          borderColor: phase === 'correct' ? '#B8D4C0' : phase === 'practice' ? '#1B4F8A' : '#E0DAD2',
         }}>
           {/* Grid lines */}
           <svg className="absolute inset-0 pointer-events-none" width={280} height={280}>
-            <line x1={140} y1={4} x2={140} y2={276} stroke="#E5E7EB" strokeWidth={1} strokeDasharray="6,4" />
-            <line x1={4} y1={140} x2={276} y2={140} stroke="#E5E7EB" strokeWidth={1} strokeDasharray="6,4" />
+            <line x1={140} y1={4} x2={140} y2={276} stroke="#C8C3BC" strokeWidth={0.8} strokeDasharray="6,4" />
+            <line x1={4} y1={140} x2={276} y2={140} stroke="#C8C3BC" strokeWidth={0.8} strokeDasharray="6,4" />
           </svg>
 
           {/* HanziWriter renders here */}
@@ -217,15 +220,17 @@ export function TraceBlockRenderer({ block, onComplete }: Props) {
 
           {/* Loading */}
           {!ready && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/80">
-              <div className="text-4xl animate-pulse" style={{ fontFamily: 'Noto Sans JP' }}>{currentChar.character}</div>
+            <div className="absolute inset-0 flex items-center justify-center bg-[#FDFBF8]/80">
+              <div className="text-4xl" style={{ fontFamily: 'Noto Sans JP' }}>{currentChar.character}</div>
             </div>
           )}
 
-          {/* Correct overlay */}
+          {/* Correct overlay — subtle green fade with checkmark */}
           {phase === 'correct' && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="text-5xl bounce-in">✓</div>
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none ink-in" style={{ backgroundColor: 'rgba(61, 107, 79, 0.08)' }}>
+              <div className="w-16 h-16 rounded-full flex items-center justify-center bg-[#EFF5F0] border border-[#B8D4C0]">
+                <span className="text-3xl text-[#3D6B4F] font-semibold">✓</span>
+              </div>
             </div>
           )}
         </div>
@@ -234,52 +239,93 @@ export function TraceBlockRenderer({ block, onComplete }: Props) {
       {/* Stroke progress */}
       {phase === 'practice' && totalStrokes > 0 && (
         <div>
-          <div className="flex justify-between text-xs text-gray-400 font-bold mb-1" style={{ fontFamily: 'Nunito' }}>
+          <div className="flex justify-between text-xs text-[#9E9892] font-semibold mb-1">
             <span>Strokes</span>
             <span>{correctStrokes} / {totalStrokes}</span>
           </div>
-          <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-[#F5F0E8] rounded-full overflow-hidden">
             <div className="h-full bg-[#1B4F8A] rounded-full transition-all duration-300" style={{ width: `${(correctStrokes / totalStrokes) * 100}%` }} />
           </div>
         </div>
       )}
 
       {/* Character info */}
-      <div className="flex items-center gap-4 bg-[#EBF0F8] rounded-[16px] p-4">
+      <div className="flex items-center gap-4 bg-[#FDFBF8] border border-[#E0DAD2] rounded-[8px] p-4">
         <div className="text-center">
-          <p className="text-4xl font-black text-[#1A1A2E]" style={{ fontFamily: 'Noto Sans JP' }}>{currentChar.character}</p>
+          <p className="text-4xl font-normal text-[#1A1814]" style={{ fontFamily: 'Noto Sans JP' }}>{currentChar.character}</p>
           <p className="text-xs font-mono text-[#1B4F8A] mt-0.5">{currentChar.romaji}</p>
         </div>
         <div className="flex-1">
-          <p className="font-bold text-gray-800" style={{ fontFamily: 'Nunito' }}>{currentChar.english}</p>
+          <p className="font-semibold text-[#1A1814]">{currentChar.english}</p>
           {currentChar.memoryHook && (
-            <p className="text-xs text-gray-500 italic mt-1" style={{ fontFamily: 'Nunito' }}>💡 {currentChar.memoryHook}</p>
+            <p className="text-xs text-[#6B6560] italic mt-1">💡 {currentChar.memoryHook}</p>
           )}
         </div>
-        <button onClick={() => playAudio(currentChar.character)} className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-xl shadow-sm hover:bg-[#dbe6f5] transition-colors shrink-0">
+        <button onClick={() => playAudio(currentChar.character)} className="w-10 h-10 rounded-full bg-[#EBF0F8] flex items-center justify-center text-xl hover:bg-[#dbe6f5] transition-colors shrink-0">
           🔊
         </button>
       </div>
 
+      </>)}
+
       {/* Action buttons */}
       {phase === 'watch' && ready && (
         <div className="space-y-2">
-          <Button variant="primary" size="lg" fullWidth onClick={startPractice}>
-            I&apos;m ready to try →
+          <Button variant="primary" size="lg" fullWidth onClick={() => setPhase('write')}>
+            I&apos;m ready to write →
           </Button>
-          <button onClick={watchAgain} className="w-full text-center text-sm text-[#1B4F8A] font-bold py-2 hover:underline" style={{ fontFamily: 'Nunito' }}>
-            ↺ Watch again
-          </button>
+          <div className="flex justify-center gap-4">
+            <button onClick={watchAgain} className="text-sm text-[#1B4F8A] font-semibold py-2 hover:underline">
+              ↺ Watch again
+            </button>
+            <button onClick={startPractice} className="text-sm text-[#9E9892] font-semibold py-2 hover:underline">
+              Practice strokes
+            </button>
+          </div>
         </div>
       )}
 
       {phase === 'practice' && (
         <div className="space-y-2">
-          <p className="text-center text-xs text-gray-400" style={{ fontFamily: 'Nunito' }}>Draw directly on the character above</p>
-          <button onClick={watchAgain} className="w-full text-center text-sm text-gray-400 font-bold py-1.5 hover:text-[#1B4F8A] transition-colors" style={{ fontFamily: 'Nunito' }}>
-            ← Watch stroke order again
-          </button>
+          <p className="text-center text-xs text-[#9E9892]">Draw each stroke in order on the character above</p>
+          <div className="flex justify-center gap-4">
+            <button onClick={watchAgain} className="text-sm text-[#9E9892] font-semibold py-1.5 hover:text-[#1B4F8A] transition-colors">
+              ← Watch again
+            </button>
+            <button onClick={() => setPhase('write')} className="text-sm text-[#1B4F8A] font-semibold py-1.5 hover:underline">
+              Write from memory →
+            </button>
+          </div>
         </div>
+      )}
+
+      {/* Write from memory — CharacterWriteCanvas with Google Vision */}
+      {phase === 'write' && (
+        <CharacterWriteCanvas
+          targetCharacter={currentChar.character}
+          targetReading={currentChar.reading}
+          targetRomaji={currentChar.romaji}
+          targetEnglish={currentChar.english}
+          memoryHook={currentChar.memoryHook}
+          attemptNumber={0}
+          onSuccess={() => {
+            setPhase('correct')
+            setTimeout(() => {
+              if (charIndex < block.characters.length - 1) {
+                setCharIndex(i => i + 1)
+              } else {
+                setAllDone(true)
+              }
+            }, 1500)
+          }}
+          onSkip={() => {
+            if (charIndex < block.characters.length - 1) {
+              setCharIndex(i => i + 1)
+            } else {
+              setAllDone(true)
+            }
+          }}
+        />
       )}
     </div>
   )

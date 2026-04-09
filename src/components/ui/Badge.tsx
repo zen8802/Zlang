@@ -9,12 +9,12 @@ interface BadgeProps {
 }
 
 const COLORS: Record<BadgeColor, string> = {
-  blue: 'bg-[#EBF0F8] text-[#1B4F8A] border border-[#B8CBE0]',
-  green: 'bg-[#E5F9D0] text-[#2D8800] border border-[#89E219]',
-  gold: 'bg-[#FFF3CC] text-[#CC7700] border border-[#FFB800]',
-  red: 'bg-[#FFE5E5] text-[#CC0000] border border-[#FF4B4B]',
-  gray: 'bg-gray-100 text-gray-500 border border-gray-200',
-  purple: 'bg-purple-50 text-purple-600 border border-purple-200',
+  blue:   'bg-[#EBF0F8] text-[#1B4F8A] border border-[#1B4F8A]/20',
+  green:  'bg-[#EFF5F0] text-[#3D6B4F] border border-[#3D6B4F]/20',
+  gold:   'bg-[#F5F0E8] text-[#7A5C2E] border border-[#7A5C2E]/20',
+  red:    'bg-[#F5EEEE] text-[#8B3A3A] border border-[#8B3A3A]/20',
+  gray:   'bg-[#F0EDE8] text-[#6B6560] border border-[#6B6560]/20',
+  purple: 'bg-[#F2EEFA] text-[#5B3D8A] border border-[#5B3D8A]/20',
 }
 
 export default function Badge({ children, color = 'blue', size = 'md' }: BadgeProps) {

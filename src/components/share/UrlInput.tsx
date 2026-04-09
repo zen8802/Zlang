@@ -22,7 +22,7 @@ export default function UrlInput({ onSubmit, error }: Props) {
   return (
     <div className="fixed inset-0 flex flex-col items-center justify-center px-6 bg-background">
       <div className="text-center mb-12">
-        <h1 className="font-display text-4xl font-black" style={{ color: '#1B4F8A' }}>
+        <h1 className="font-display text-4xl font-semibold" style={{ color: '#1B4F8A' }}>
           未来
         </h1>
         <p className="text-sm text-foreground/40 mt-1 font-body">

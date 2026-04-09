@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import type { Lesson } from '@/types/lesson-blocks'
-import ProgressBar from '@/components/ui/ProgressBar'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
 import BlockRenderer from '@/components/blocks/BlockRenderer'
@@ -42,11 +41,11 @@ export default function LessonRunner({ lesson, onLessonComplete }: Props) {
 
   if (completed) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 gap-6">
-        {/* Big green checkmark */}
-        <div className="bounce-in">
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 gap-6 bg-[#FDFBF8]">
+        {/* Checkmark */}
+        <div className="ink-in">
           <svg width="96" height="96" viewBox="0 0 96 96" fill="none">
-            <circle cx="48" cy="48" r="48" fill="#58CC02" />
+            <circle cx="48" cy="48" r="48" fill="#3D6B4F" />
             <path
               d="M28 48L42 62L68 36"
               stroke="white"
@@ -57,17 +56,17 @@ export default function LessonRunner({ lesson, onLessonComplete }: Props) {
           </svg>
         </div>
 
-        <h1 className="text-3xl font-extrabold text-[#1A1A2E]" style={{ fontFamily: 'var(--font-ui)' }}>
+        <h1 className="text-3xl font-semibold text-[#1A1A2E]" style={{ fontFamily: 'Shippori Mincho' }}>
           Lesson Complete!
         </h1>
 
         {/* XP card */}
         <Card variant="elevated" className="text-center w-full max-w-xs">
-          <div className="bg-[#FFF3CC] rounded-[16px] p-4">
-            <p className="text-sm text-[#CC7700] font-bold" style={{ fontFamily: 'var(--font-ui)' }}>
+          <div className="bg-[#F5F0E8] rounded-[8px] p-4">
+            <p className="text-sm text-[#7A5C2E] font-bold" style={{ fontFamily: 'var(--font-ui)' }}>
               XP Earned
             </p>
-            <p className="text-4xl font-extrabold text-[#FFB800] xp-appear" style={{ fontFamily: 'var(--font-ui)' }}>
+            <p className="text-4xl font-semibold text-[#1B4F8A] transition-opacity duration-500" style={{ fontFamily: 'Shippori Mincho' }}>
               +{totalXP}
             </p>
           </div>
@@ -92,7 +91,7 @@ export default function LessonRunner({ lesson, onLessonComplete }: Props) {
               window.location.href = '/dashboard'
             }
           }}
-          className="w-8 h-8 flex items-center justify-center text-[#6B7280] hover:text-[#1A1A2E] transition-colors"
+          className="w-8 h-8 flex items-center justify-center text-[#6B6560] hover:text-[#1A1A2E] transition-colors"
         >
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <line x1="4" y1="4" x2="16" y2="16" />
@@ -100,9 +99,11 @@ export default function LessonRunner({ lesson, onLessonComplete }: Props) {
           </svg>
         </button>
         <div className="flex-1">
-          <ProgressBar value={progress} color="#58CC02" height={10} />
+          <div className="w-full h-[2px] bg-[#E0DAD2] rounded-full overflow-hidden">
+            <div className="h-full bg-[#1B4F8A] rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
+          </div>
         </div>
-        <span className="text-xs text-[#6B7280] font-bold min-w-[40px] text-right" style={{ fontFamily: 'var(--font-ui)' }}>
+        <span className="text-xs text-[#6B6560] font-bold min-w-[40px] text-right" style={{ fontFamily: 'var(--font-ui)' }}>
           {blockIndex + 1}/{lesson.blocks.length}
         </span>
       </div>
@@ -112,8 +113,7 @@ export default function LessonRunner({ lesson, onLessonComplete }: Props) {
         <button
           onClick={() => setBlockIndex(Math.max(0, blockIndex - 1))}
           disabled={blockIndex === 0}
-          className="text-gray-300 hover:text-gray-500 disabled:opacity-0 font-bold"
-          style={{ fontFamily: 'Nunito' }}
+          className="text-[#9E9892] hover:text-[#6B6560] disabled:opacity-0 font-semibold"
         >
           ← Back
         </button>
@@ -122,8 +122,7 @@ export default function LessonRunner({ lesson, onLessonComplete }: Props) {
             if (blockIndex < lesson.blocks.length - 1) setBlockIndex(blockIndex + 1)
           }}
           disabled={blockIndex >= lesson.blocks.length - 1}
-          className="text-gray-300 hover:text-gray-500 disabled:opacity-0 font-bold"
-          style={{ fontFamily: 'Nunito' }}
+          className="text-[#9E9892] hover:text-[#6B6560] disabled:opacity-0 font-semibold"
         >
           Skip →
         </button>

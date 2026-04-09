@@ -35,11 +35,7 @@ export default function FlipCard({
   return (
     <div
       onClick={() => setFlipped(!flipped)}
-      className="bg-white rounded-[20px] min-h-[200px] flex flex-col items-center justify-center text-center cursor-pointer active:scale-[0.98] transition-transform"
-      style={{
-        boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 6px 0 rgba(0,0,0,0.05)',
-        border: '1px solid rgba(0,0,0,0.04)',
-      }}
+      className="bg-[#FDFBF8] rounded-[8px] min-h-[200px] flex flex-col items-center justify-center text-center cursor-pointer active:scale-[0.98] transition-transform duration-[600ms] border border-[#E0DAD2] shadow-[0_1px_4px_rgba(26,24,20,0.06)]"
     >
       {!flipped ? (
         <div className="p-6">
@@ -48,7 +44,7 @@ export default function FlipCard({
               {reading}
             </p>
           )}
-          <p className="text-4xl font-black" style={{ fontFamily: 'Noto Sans JP', color: '#1A1A2E' }}>
+          <p className="text-4xl font-normal" style={{ fontFamily: 'Noto Sans JP', color: '#1A1A2E' }}>
             {front || word}
           </p>
           <p className="text-xs mt-6" style={{ color: '#9CA3AF' }}>
@@ -57,11 +53,11 @@ export default function FlipCard({
         </div>
       ) : (
         <div className="p-6 w-full">
-          <p className="text-2xl font-black mb-3" style={{ color: '#1A1A2E' }}>
+          <p className="text-2xl font-semibold mb-3" style={{ color: '#1A1A2E' }}>
             {back || meaning}
           </p>
           {exampleSentence && (
-            <div className="rounded-[12px] p-3 mb-2" style={{ backgroundColor: '#EBF0F8' }}>
+            <div className="rounded-[6px] p-3 mb-2" style={{ backgroundColor: '#EBF0F8' }}>
               <p className="text-sm" style={{ fontFamily: 'Noto Sans JP', color: '#6B7280' }}>
                 {exampleSentence}
               </p>
@@ -76,24 +72,21 @@ export default function FlipCard({
             <div className="grid grid-cols-3 gap-2 mt-4">
               <button
                 onClick={(e) => { e.stopPropagation(); rateHandler(1) }}
-                className="py-2 rounded-[12px] text-sm font-bold text-white shadow-[0_3px_0_#CC0000] active:shadow-none active:translate-y-[3px] transition-all"
-                style={{ backgroundColor: '#FF4B4B' }}
+                className="py-2 rounded-[6px] text-sm font-semibold bg-[#F5EEEE] text-[#8B3A3A] border border-[#D4BABA] hover:bg-[#EDE4E4] active:translate-y-px transition-all"
               >
-                😰 Hard
+                Hard
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); rateHandler(2) }}
-                className="py-2 rounded-[12px] text-sm font-bold text-white shadow-[0_3px_0_#CC9200] active:shadow-none active:translate-y-[3px] transition-all"
-                style={{ backgroundColor: '#FFB800' }}
+                className="py-2 rounded-[6px] text-sm font-semibold bg-[#F5F0E8] text-[#7A5C2E] border border-[#D4C4A8] hover:bg-[#EDE8DC] active:translate-y-px transition-all"
               >
-                😐 Okay
+                Okay
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); rateHandler(3) }}
-                className="py-2 rounded-[12px] text-sm font-bold text-white shadow-[0_3px_0_#46A302] active:shadow-none active:translate-y-[3px] transition-all"
-                style={{ backgroundColor: '#58CC02' }}
+                className="py-2 rounded-[6px] text-sm font-semibold bg-[#EFF5F0] text-[#3D6B4F] border border-[#B8D4C0] hover:bg-[#E0EDE4] active:translate-y-px transition-all"
               >
-                😄 Easy
+                Easy
               </button>
             </div>
           )}

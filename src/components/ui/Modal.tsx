@@ -31,12 +31,11 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
       <div
         ref={ref}
         onClick={(e) => e.stopPropagation()}
-        className="relative bg-white rounded-[24px] w-full max-w-sm p-6 bounce-in"
-        style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.2), 0 6px 0 rgba(0,0,0,0.05)' }}
+        className="relative bg-[#FDFBF8] rounded-[10px] w-full max-w-sm p-6 ink-in shadow-[0_4px_20px_rgba(26,24,20,0.10)]"
       >
         {title && (
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-black" style={{ fontFamily: 'Nunito', color: '#1A1A2E' }}>{title}</h2>
+            <h2 className="text-lg font-semibold" style={{ color: '#1A1A2E' }}>{title}</h2>
             <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors">✕</button>
           </div>
         )}

@@ -5,8 +5,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAppStore, t } from '@/store/useAppStore'
 import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
-import XPPill from '@/components/ui/XPPill'
-import StreakPill from '@/components/ui/StreakPill'
 
 interface NavLink {
   key: string
@@ -23,7 +21,6 @@ export default function Navbar() {
   const pathname = usePathname()
 
   const streak = useAppStore((s) => s.streak)
-  const xpToday = useAppStore((s) => s.xpToday)
   const uiLanguage = useAppStore((s) => s.uiLanguage)
   const setUiLanguage = useAppStore((s) => s.setUiLanguage)
 
@@ -33,10 +30,10 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 px-4 py-3 flex items-center justify-between" style={{ backgroundColor: '#F5F0EB', boxShadow: '0 2px 0 rgba(0,0,0,0.04)' }}>
+      <header className="sticky top-0 z-40 px-4 py-3 flex items-center justify-between bg-[#FDFBF8] border-b border-[#E0DAD2]">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <span className="text-2xl font-black" style={{ fontFamily: 'Noto Sans JP', color: '#1B4F8A' }}>未来</span>
-          <span className="text-xs font-bold tracking-[0.2em]" style={{ color: '#9CA3AF' }}>ZLANG</span>
+          <span className="font-semibold" style={{ fontFamily: 'Shippori Mincho', fontSize: '20px', color: '#1B4F8A' }}>未来</span>
+          <span style={{ fontFamily: 'DM Sans', fontSize: '10px', letterSpacing: '0.15em', color: '#9E9892' }}>MIRAI</span>
         </Link>
 
         {/* Desktop nav */}
@@ -44,7 +41,7 @@ export default function Navbar() {
           {navLinks.map(link => {
             const isActive = pathname === link.href || pathname?.startsWith(link.href + '/')
             return (
-              <Link key={link.key} href={link.href} className={`px-4 py-2 rounded-[12px] text-sm font-bold transition-all ${isActive ? 'bg-[#EBF0F8] text-[#1B4F8A]' : 'text-[#6B7280] hover:text-[#1A1A2E] hover:bg-gray-50'}`} style={{ fontFamily: 'Nunito' }}>
+              <Link key={link.key} href={link.href} className={`px-4 py-2 rounded-[6px] text-sm font-bold transition-all ${isActive ? 'bg-[#EBF0F8] text-[#1B4F8A]' : 'text-[#6B6560] hover:text-[#1A1814] hover:bg-gray-50'}`} style={{ fontFamily: 'DM Sans' }}>
                 {t(link.key, uiLanguage)}
               </Link>
             )
@@ -52,14 +49,16 @@ export default function Navbar() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <StreakPill streak={streak} />
-          <XPPill xp={xpToday} />
+          {/* Streak display */}
+          <span style={{ fontFamily: 'DM Sans', fontSize: '13px', color: '#6B6560' }}>
+            {streak}日
+          </span>
 
           {/* Language toggle */}
           <button
             onClick={toggleLanguage}
             className="hidden md:inline-flex px-3 py-1.5 rounded-[10px] text-xs font-bold transition-all hover:bg-[#EBF0F8]"
-            style={{ color: '#6B7280', fontFamily: 'Nunito' }}
+            style={{ color: '#6B6560', fontFamily: 'DM Sans' }}
             aria-label={`Switch language to ${uiLanguage === 'en' ? 'Japanese' : 'English'}`}
           >
             {uiLanguage === 'en' ? 'EN' : 'JP'}
@@ -67,8 +66,8 @@ export default function Navbar() {
 
           {/* Clerk auth */}
           <SignedOut>
-            <Link href="/sign-in" className="text-xs font-bold ml-2" style={{ color: '#6B7280', fontFamily: 'Nunito' }}>Log in</Link>
-            <Link href="/sign-up" className="text-xs font-bold text-white px-3 py-1.5 rounded-[10px] ml-1 shadow-[0_2px_0_#133970]" style={{ backgroundColor: '#1B4F8A', fontFamily: 'Nunito' }}>Sign up</Link>
+            <Link href="/sign-in" className="text-xs font-bold ml-2" style={{ color: '#6B6560', fontFamily: 'DM Sans' }}>Log in</Link>
+            <Link href="/sign-up" className="text-xs font-bold text-white px-3 py-1.5 rounded-[8px] ml-1" style={{ backgroundColor: '#1B4F8A', fontFamily: 'DM Sans' }}>Sign up</Link>
           </SignedOut>
           <SignedIn>
             <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: 'w-8 h-8 ml-2' } }} />
@@ -77,7 +76,7 @@ export default function Navbar() {
       </header>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-40 pb-[env(safe-area-inset-bottom)]" style={{ boxShadow: '0 -2px 12px rgba(0,0,0,0.06)' }}>
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#FDFBF8] border-t border-[#E0DAD2] z-40 pb-[env(safe-area-inset-bottom)]">
         <div className="flex justify-around px-2 py-2">
           {[
             { key: 'nav.dashboard', href: '/dashboard', icon: '🏠', label: t('nav.dashboard', uiLanguage) },
@@ -86,9 +85,9 @@ export default function Navbar() {
           ].map(item => {
             const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
             return (
-              <Link key={item.key} href={item.href} className={`flex flex-col items-center gap-1 px-4 py-2 rounded-[16px] transition-all duration-150 min-w-[60px] ${isActive ? 'bg-[#EBF0F8] text-[#1B4F8A]' : 'text-gray-400 hover:text-gray-600'}`}>
+              <Link key={item.key} href={item.href} className={`flex flex-col items-center gap-1 px-4 py-2 rounded-[10px] transition-all duration-150 min-w-[60px] ${isActive ? 'text-[#1B4F8A]' : 'text-[#9E9892] hover:text-[#6B6560]'}`}>
                 <span className="text-xl">{item.icon}</span>
-                <span className="text-[10px] font-bold" style={{ fontFamily: 'Nunito' }}>{item.label}</span>
+                <span className="text-[10px] font-bold" style={{ fontFamily: 'DM Sans' }}>{item.label}</span>
               </Link>
             )
           })}

@@ -231,7 +231,7 @@ export default function SettingsPage() {
             {/* Show Furigana toggle */}
             <div className="flex items-center justify-between p-4 border-b border-black/[0.06]">
               <div>
-                <p className="font-bold text-sm" style={{ fontFamily: 'Nunito', color: '#1A1A2E' }}>
+                <p className="font-bold text-sm" style={{ color: '#1A1814' }}>
                   {uiLanguage === 'en' ? 'Show Furigana' : 'ふりがな表示'}
                 </p>
                 <p className="text-xs" style={{ color: '#9CA3AF' }}>
@@ -253,7 +253,7 @@ export default function SettingsPage() {
             {/* Show English Translation toggle */}
             <div className="flex items-center justify-between p-4">
               <div>
-                <p className="font-bold text-sm" style={{ fontFamily: 'Nunito', color: '#1A1A2E' }}>
+                <p className="font-bold text-sm" style={{ color: '#1A1814' }}>
                   {uiLanguage === 'en' ? 'Show English Translation' : '英語翻訳を表示'}
                 </p>
                 <p className="text-xs" style={{ color: '#9CA3AF' }}>
