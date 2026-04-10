@@ -37,7 +37,23 @@ interface Message {
   vocab?: VocabWord[]
   coachNote?: string
   options?: ResponseOption[]
+  userEnglish?: string
   timestamp: number
+}
+
+interface TranslatedResponse {
+  japanese: string
+  reading: string
+  romaji: string
+  breakdown: {
+    chunk: string
+    reading: string
+    meaning: string
+    note?: string
+  }[]
+  naturalness: string
+  alternativePhrase?: string
+  alternativePhraseEN?: string
 }
 
 const POS_COLORS: Record<string, { underline: string; bg: string; text: string; label: string }> = {
@@ -387,6 +403,7 @@ export default function StudioSessionPage() {
 
   const globalShowFurigana = useAppStore((s) => s.showFurigana)
   const globalShowTranslation = useAppStore((s) => s.showTranslation)
+  const userProfile = useAppStore((s) => s.userProfile)
 
   // Local toggles (initialized from global settings, togglable in-chat)
   const [showFurigana, setShowFurigana] = useState(true)
@@ -415,6 +432,11 @@ export default function StudioSessionPage() {
   const [error, setError] = useState<string | null>(null)
   const [showTypeOwn, setShowTypeOwn] = useState(false)
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null)
+  // English → translate flow
+  const [translateInput, setTranslateInput] = useState('')
+  const [translating, setTranslating] = useState(false)
+  const [translated, setTranslated] = useState<TranslatedResponse | null>(null)
+  const [showBreakdown, setShowBreakdown] = useState(true)
   const [activeVocab, setActiveVocab] = useState<VocabWord | null>(null)
   const [vocabPopupRect, setVocabPopupRect] = useState<DOMRect | null>(null)
   const [speakingMsgId, setSpeakingMsgId] = useState<string | null>(null)
@@ -658,13 +680,14 @@ export default function StudioSessionPage() {
 
   // Send a message (from option or typed)
   const sendText = useCallback(
-    async (text: string) => {
+    async (text: string, userEnglish?: string) => {
       if (!text.trim() || isStreaming) return
 
       const userMsg: Message = {
         id: `user-${Date.now()}`,
         role: 'user',
         content: text.trim(),
+        userEnglish: userEnglish?.trim() || undefined,
         timestamp: Date.now(),
       }
 
@@ -751,6 +774,74 @@ export default function StudioSessionPage() {
     },
     [isStreaming, sessionId],
   )
+
+  // Translate English → Japanese via API
+  const handleTranslate = useCallback(async () => {
+    if (!translateInput.trim() || translating) return
+    setTranslating(true)
+    setShowBreakdown(true)
+    try {
+      // Find the latest character message for context
+      const lastChar = [...messages].reverse().find((m) => m.role === 'character')
+      const characterLine = lastChar ? stripFurigana(lastChar.content) : ''
+      const characterLineEN = lastChar?.english || ''
+
+      // Build previousExchanges from prior character/user pairs
+      const previousExchanges: {
+        characterLine: string
+        characterLineEN: string
+        userJP: string
+        userEN: string
+      }[] = []
+      for (let i = 0; i < messages.length - 1; i++) {
+        const m = messages[i]
+        const next = messages[i + 1]
+        if (m.role === 'character' && next?.role === 'user') {
+          previousExchanges.push({
+            characterLine: stripFurigana(m.content),
+            characterLineEN: m.english || '',
+            userJP: next.content,
+            userEN: next.userEnglish || '',
+          })
+        }
+      }
+
+      const res = await fetch('/api/lessons/translate-response', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userEnglish: translateInput,
+          characterLine,
+          characterLineEN,
+          setting: session?.scenarioTitle || 'A conversation in Japan',
+          characterName: session?.characterName || '',
+          previousExchanges,
+          userProfile,
+        }),
+      })
+      const data = await res.json()
+      if (data.translation) {
+        setTranslated(data.translation)
+        setTimeout(() => speakJapanese(data.translation.japanese), 300)
+      }
+    } catch (err) {
+      console.error('Translate error:', err)
+    }
+    setTranslating(false)
+  }, [translateInput, translating, messages, session, speakJapanese, userProfile])
+
+  const handleSendTranslated = useCallback(() => {
+    if (!translated) return
+    const jp = translated.japanese
+    const en = translateInput
+    setTranslated(null)
+    setTranslateInput('')
+    sendText(jp, en)
+  }, [translated, translateInput, sendText])
+
+  const handleTryAgain = useCallback(() => {
+    setTranslated(null)
+  }, [])
 
   // Select an option
   const selectOption = useCallback(
@@ -996,7 +1087,7 @@ export default function StudioSessionPage() {
               </div>
             ) : (
               /* User message */
-              <div className="flex justify-end">
+              <div className="flex flex-col items-end">
                 <div
                   className="max-w-[85%] px-4 py-3 text-white"
                   style={{ backgroundColor: '#1B4F8A', borderRadius: '12px 2px 12px 12px' }}
@@ -1008,6 +1099,14 @@ export default function StudioSessionPage() {
                     {renderWithFurigana(msg.content, showFurigana)}
                   </p>
                 </div>
+                {msg.userEnglish && (
+                  <p
+                    className="text-xs italic mt-1 mr-1 max-w-[85%] text-right"
+                    style={{ color: '#9E9892', fontFamily: 'DM Sans, sans-serif' }}
+                  >
+                    &ldquo;{msg.userEnglish}&rdquo;
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -1090,8 +1189,201 @@ export default function StudioSessionPage() {
           </div>
         )}
 
-        {/* ---- Response Options --------------------------------------------- */}
-        {showOptions && !showTypeOwn && (
+        {/* ---- English → Translate flow ------------------------------------ */}
+        {!lessonBlocks && !isStreaming && !isAnimating && messages.length > 0 && messages[messages.length - 1]?.role === 'character' && (
+          <div className="pt-2 space-y-3">
+            {translated ? (
+              <div className="space-y-3 ink-in">
+                {/* Translated Japanese bubble */}
+                <div className="flex justify-end">
+                  <div
+                    className="bg-[#1B4F8A] px-4 py-3 max-w-[85%]"
+                    style={{ borderRadius: '10px 2px 10px 10px' }}
+                  >
+                    <p
+                      className="text-white text-[17px] leading-relaxed"
+                      style={{ fontFamily: 'Noto Sans JP, sans-serif' }}
+                    >
+                      {translated.japanese}
+                    </p>
+                    <p
+                      className="text-white/50 text-xs mt-1 font-medium"
+                      style={{ fontFamily: 'DM Mono, monospace' }}
+                    >
+                      {translated.romaji}
+                    </p>
+                    <button
+                      onClick={() => speakJapanese(translated.japanese)}
+                      className="text-white/40 text-xs mt-1 hover:text-white/70 transition-colors flex items-center gap-1"
+                      style={{ fontFamily: 'DM Sans, sans-serif' }}
+                    >
+                      🔊 Hear your response
+                    </button>
+                  </div>
+                </div>
+
+                {/* Breakdown card */}
+                <div className="bg-[#FDFBF8] rounded-[10px] border border-[#E0DAD2] overflow-hidden">
+                  <button
+                    onClick={() => setShowBreakdown((b) => !b)}
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#F5F0EB] transition-colors"
+                  >
+                    <p
+                      className="text-[10px] tracking-widest uppercase text-[#9E9892] font-medium"
+                      style={{ fontFamily: 'DM Sans, sans-serif' }}
+                    >
+                      Breaking it down
+                    </p>
+                    <span className="text-[#C8C3BC] text-xs">{showBreakdown ? '▲' : '▼'}</span>
+                  </button>
+                  {showBreakdown && (
+                    <div className="px-4 pb-4 space-y-3 border-t border-[#E0DAD2] pt-3">
+                      <div className="space-y-2">
+                        {translated.breakdown.map((chunk, i) => (
+                          <div
+                            key={i}
+                            className="flex items-start gap-3 pb-2 border-b border-[#F5F0EB] last:border-0 last:pb-0"
+                          >
+                            <div className="shrink-0 min-w-[80px]">
+                              <p
+                                className="text-base text-[#1A1814] font-medium"
+                                style={{ fontFamily: 'Noto Sans JP, sans-serif' }}
+                              >
+                                {chunk.chunk}
+                              </p>
+                              <p
+                                className="text-[11px] text-[#9E9892]"
+                                style={{ fontFamily: 'DM Mono, monospace' }}
+                              >
+                                {chunk.reading}
+                              </p>
+                            </div>
+                            <div className="flex-1">
+                              <p
+                                className="text-sm text-[#1A1814]"
+                                style={{ fontFamily: 'DM Sans, sans-serif' }}
+                              >
+                                {chunk.meaning}
+                              </p>
+                              {chunk.note && (
+                                <p
+                                  className="text-xs text-[#7A5C2E] mt-0.5 italic"
+                                  style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                >
+                                  {chunk.note}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="bg-[#EBF0F8] rounded-[8px] px-3 py-2 border border-[#1B4F8A]/15">
+                        <p
+                          className="text-xs text-[#1B4F8A]"
+                          style={{ fontFamily: 'DM Sans, sans-serif' }}
+                        >
+                          💬 {translated.naturalness}
+                        </p>
+                      </div>
+
+                      {translated.alternativePhrase && (
+                        <div className="bg-[#F5F0E8] rounded-[8px] px-3 py-2 border border-[#D4C4A8]">
+                          <p
+                            className="text-[10px] text-[#7A5C2E] font-medium tracking-wide uppercase mb-1"
+                            style={{ fontFamily: 'DM Sans, sans-serif' }}
+                          >
+                            You could also say
+                          </p>
+                          <p
+                            className="text-sm text-[#1A1814]"
+                            style={{ fontFamily: 'Noto Sans JP, sans-serif' }}
+                          >
+                            {translated.alternativePhrase}
+                          </p>
+                          {translated.alternativePhraseEN && (
+                            <p
+                              className="text-xs text-[#9E9892] italic mt-0.5"
+                              style={{ fontFamily: 'DM Sans, sans-serif' }}
+                            >
+                              {translated.alternativePhraseEN}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Send + Try again */}
+                <button
+                  onClick={handleSendTranslated}
+                  className="w-full bg-[#1B4F8A] hover:bg-[#4A7AB5] text-white font-medium py-3 rounded-[8px] transition-colors"
+                  style={{ fontFamily: 'DM Sans, sans-serif' }}
+                >
+                  Send →
+                </button>
+                <div className="text-center">
+                  <button
+                    onClick={handleTryAgain}
+                    className="text-xs font-medium text-[#9E9892] hover:text-[#1B4F8A] transition-colors"
+                    style={{ fontFamily: 'DM Sans, sans-serif' }}
+                  >
+                    ← Try different wording
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p
+                  className="text-xs text-[#9E9892] text-center"
+                  style={{ fontFamily: 'DM Sans, sans-serif' }}
+                >
+                  Say what you want in English — we&apos;ll translate it
+                </p>
+                <div className="bg-[#FDFBF8] rounded-[10px] border-2 border-[#E0DAD2] focus-within:border-[#1B4F8A] transition-colors overflow-hidden">
+                  <textarea
+                    value={translateInput}
+                    onChange={(e) => setTranslateInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault()
+                        handleTranslate()
+                      }
+                    }}
+                    placeholder="Type what you want to say in English..."
+                    rows={2}
+                    className="w-full px-4 pt-3 pb-1 text-sm text-[#1A1814] resize-none bg-transparent outline-none placeholder-[#C8C3BC]"
+                    style={{ fontFamily: 'DM Sans, sans-serif' }}
+                  />
+                  <div className="flex items-center justify-between px-4 pb-3">
+                    <p
+                      className="text-[10px] text-[#C8C3BC]"
+                      style={{ fontFamily: 'DM Sans, sans-serif' }}
+                    >
+                      Write in English — we&apos;ll translate it
+                    </p>
+                    <button
+                      onClick={handleTranslate}
+                      disabled={!translateInput.trim() || translating}
+                      className={`text-xs font-medium px-3 py-1.5 rounded-[6px] transition-all ${
+                        translateInput.trim() && !translating
+                          ? 'bg-[#1B4F8A] text-white hover:bg-[#4A7AB5]'
+                          : 'bg-[#E0DAD2] text-[#C8C3BC] cursor-not-allowed'
+                      }`}
+                      style={{ fontFamily: 'DM Sans, sans-serif' }}
+                    >
+                      {translating ? 'Translating...' : 'Translate →'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ---- Response Options (DISABLED — replaced by English translate flow) */}
+        {false && showOptions && !showTypeOwn && (
           <div className="space-y-1.5 pt-2">
             {voiceReplyMode && (
               <p className="text-[10px] text-center font-bold mb-1" style={{ color: '#9E9892' }}>
@@ -1169,7 +1461,7 @@ export default function StudioSessionPage() {
         )}
 
         {/* ---- Type-your-own input (expanded) ------------------------------ */}
-        {showOptions && showTypeOwn && !isStreaming && (
+        {false && showOptions && showTypeOwn && !isStreaming && (
           <div className="pt-2 space-y-2">
             <div className="flex items-end gap-2">
               <textarea
@@ -1209,8 +1501,8 @@ export default function StudioSessionPage() {
           </div>
         )}
 
-        {/* ---- Fallback text input when no options available --------------- */}
-        {!lessonBlocks && !showOptions && !isStreaming && messages.length > 0 && messages[messages.length - 1]?.role === 'character' && (
+        {/* ---- Fallback text input when no options available (DISABLED) --- */}
+        {false && !lessonBlocks && !showOptions && !isStreaming && messages.length > 0 && messages[messages.length - 1]?.role === 'character' && (
           <div className="pt-2">
             <div className="flex items-end gap-2">
               <textarea

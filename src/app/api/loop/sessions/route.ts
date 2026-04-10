@@ -41,6 +41,19 @@ export async function POST(request: Request) {
     let characterSpeechStyle = scenario.character.speechStyle
     let characterRelationship = scenario.character.relationship
     let setting = scenario.setting
+    // If the scenario defines a tight conversation flow, append it to the
+    // setting text so both system prompts (opening + per-turn) see it.
+    if (Array.isArray(scenario.conversationFlow) && scenario.conversationFlow.length > 0) {
+      const beats = scenario.conversationFlow
+        .map((b: string, i: number) => `  ${i + 1}. ${b}`)
+        .join('\n')
+      setting = `${setting}
+
+CONVERSATION FLOW (drive the conversation through EXACTLY these beats, in order — one beat per character turn, no padding, no small talk between beats):
+${beats}
+
+After the final beat is resolved, gracefully end the conversation with a short farewell line. Do not invent extra beats. Do not loop back. Keep the whole exchange tight — about ${scenario.conversationFlow.length} character turns total.`
+    }
     let openingLine = scenario.openingLine
     let scenarioTitle = scenario.title
     let scenarioTitleJP = scenario.titleJP
@@ -166,7 +179,7 @@ Return ONLY valid JSON (no markdown fences):
             character_description, character_personality, character_speech_style,
             character_relationship, voice_id, setting, opening_line,
             phase, attempt_messages, retry_messages,
-            diagnosis, learn_blocks, milestone,
+            diagnosis, learn_blocks, milestone_card,
             created_at
           )
           VALUES (
@@ -262,6 +275,7 @@ STRICT RULES:
 11. Never break character before the separators.
 12. Keep responses concise — 1-3 sentences of dialogue.
 13. Progress the scenario naturally. Don't wait for perfect Japanese.
+13a. CRITICAL — NEVER end your turn on a pure acknowledgment. If your natural reaction would be a one-line ack like "good choice", "okay", "got it", "わかった", "了解(りょうかい)", "いいね", "はい" — DO NOT stop there. In the SAME message, immediately chain into the next conversation beat from the SETTING's CONVERSATION FLOW (or, if no flow is defined, the next natural step in the scenario). Every message must end with EITHER a question, a request, a price/total, or a clear conversational hook. If you find yourself about to send only an acknowledgment, append the next beat first.
 14. If the learner writes in ${nativeLanguage}, gently respond in ${targetLanguage} and the coach note should say "Try responding in Japanese next time!"
 15. After ---COACH---, always add ---OPTIONS--- followed by exactly 4 response options the learner could say next.
 Each option MUST include furigana for all kanji in the same format: 漢字(かんじ).

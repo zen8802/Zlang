@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from '@clerk/nextjs'
+import { OnboardingGuard } from '@/components/onboarding/OnboardingGuard'
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -21,7 +22,7 @@ export default function RootLayout({
           <meta name="theme-color" content="#1B4F8A" />
         </head>
         <body className="font-body antialiased min-h-screen bg-background text-foreground relative">
-          {children}
+          <OnboardingGuard>{children}</OnboardingGuard>
         </body>
       </html>
     </ClerkProvider>

@@ -246,6 +246,31 @@ export interface DialogueChoiceBlock extends BaseBlock {
   }[]
 }
 
+// ── Dialogue Translate ───────────────────────
+// Beginner-friendly conversation block. Character speaks Japanese (with EN
+// always shown). Learner types their reply in English; Claude translates it
+// into natural Japanese with a per-chunk breakdown. Builds active production.
+
+export interface DialogueTranslateExchange {
+  id: string
+  characterLine: string     // Japanese (kanji+kana, no furigana markup needed)
+  characterLineEN: string   // English — always visible to beginner
+  promptHint: string        // e.g. "Tell her where you're from"
+}
+
+export interface DialogueTranslateBlock extends BaseBlock {
+  type: 'dialogue_translate'
+  title: string
+  character: {
+    name: string
+    nameJP: string
+    emoji: string
+    color: string
+  }
+  setting: string
+  exchanges: DialogueTranslateExchange[]
+}
+
 // ── Trace ───────────────────────────────────
 
 export interface TraceBlock extends BaseBlock {
@@ -277,6 +302,7 @@ export type BlockType =
   | 'image_match'
   | 'audio_match'
   | 'dialogue_choice'
+  | 'dialogue_translate'
   | 'trace'
 
 export type LessonBlock =
@@ -293,6 +319,7 @@ export type LessonBlock =
   | ImageMatchBlock
   | AudioMatchBlock
   | DialogueChoiceBlock
+  | DialogueTranslateBlock
   | TraceBlock
 
 // ── Lesson ───────────────────────────────────

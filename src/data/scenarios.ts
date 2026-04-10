@@ -41,6 +41,13 @@ export interface ScenarioTemplate {
   tweaks: ScenarioTweak[]
   color: string
   gradient: string
+  /**
+   * Optional ordered list of conversation beats. When present, the loop's
+   * system prompt instructs the character to drive the conversation through
+   * EXACTLY these beats — one beat per character turn — and to end after the
+   * last beat. Used to keep loop sessions tight and goal-directed.
+   */
+  conversationFlow?: string[]
 }
 
 // ---------------------------------------------------------------------------
@@ -70,6 +77,12 @@ export const SCENARIO_TEMPLATES: ScenarioTemplate[] = [
       voiceId: 'JOcmGzB8OFjY8MhjHHEf',
       avatar: '/Takeshi1.png',
     },
+    conversationFlow: [
+      'Welcome the learner into the shop and seat them at the counter.',
+      'Ask how firm they want their noodles (麺(めん)の硬(かた)さ) and take that order.',
+      'Respond when the learner asks for a glass of water (お水(みず)) and bring it.',
+      'Tell them the total and take their payment, then wrap up the visit.',
+    ],
     setting: 'A small 8-seat counter ramen shop in Fukuoka. Steam rising, ticket machine by the door, hand-written specials on the wall.',
     settingJP: '福岡の小さなカウンター8席のラーメン屋。湯気が立ち上り、入口に券売機、壁に手書きのおすすめメニュー。',
     userGoal: 'Successfully order a bowl of ramen with your preferred toppings and spice level.',

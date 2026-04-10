@@ -11,6 +11,7 @@ import ShadowingBlockRenderer from './ShadowingBlockRenderer'
 import { ImageMatchBlockRenderer } from './ImageMatchBlockRenderer'
 import { AudioMatchBlockRenderer } from './AudioMatchBlockRenderer'
 import { DialogueChoiceBlockRenderer } from './DialogueChoiceBlockRenderer'
+import { DialogueTranslateBlockRenderer } from './DialogueTranslateBlockRenderer'
 import { TraceBlockRenderer } from './TraceBlockRenderer'
 
 interface Props {
@@ -40,6 +41,8 @@ export default function BlockRenderer({ block, onComplete }: Props) {
       return <AudioMatchBlockRenderer block={block} onComplete={onComplete} />
     case 'dialogue_choice':
       return <DialogueChoiceBlockRenderer block={block} onComplete={onComplete} />
+    case 'dialogue_translate':
+      return <DialogueTranslateBlockRenderer block={block} onComplete={onComplete} />
     case 'trace':
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return <TraceBlockRenderer block={block} onComplete={onComplete} freewriteOnly={(block as any).freewriteOnly} />

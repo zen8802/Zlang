@@ -5,7 +5,17 @@ import { persist } from 'zustand/middleware'
 // Types
 // ---------------------------------------------------------------------------
 
+export interface UserProfile {
+  direction: 'en-to-jp' | 'jp-to-en'
+  age: number | null
+  gender: string | null
+  experience: number // 1-10
+}
+
 interface AppState {
+  // Onboarding profile (age/gender/experience/direction) — used to tune AI translations
+  userProfile: UserProfile | null
+
   // User profile
   corridor: 'en-to-jp' | 'jp-to-en' | null
   uiLanguage: 'en' | 'jp'
@@ -26,6 +36,7 @@ interface AppState {
   showTranslation: boolean
 
   // Actions
+  setUserProfile: (profile: UserProfile) => void
   setCorridor: (corridor: 'en-to-jp' | 'jp-to-en') => void
   setUiLanguage: (lang: 'en' | 'jp') => void
   setLevel: (level: '' | 'beginner' | 'basics' | 'intermediate' | 'advanced') => void
@@ -61,6 +72,7 @@ function yesterdayStr(): string {
 // ---------------------------------------------------------------------------
 
 const initialState = {
+  userProfile: null as UserProfile | null,
   corridor: null as 'en-to-jp' | 'jp-to-en' | null,
   uiLanguage: 'en' as 'en' | 'jp',
   level: '' as '' | 'beginner' | 'basics' | 'intermediate' | 'advanced',
@@ -94,6 +106,13 @@ export const useAppStore = create<AppState>()(
       ...initialState,
 
       // -- Profile actions ----------------------------------------------------
+
+      setUserProfile: (profile) =>
+        set({
+          userProfile: profile,
+          // Mirror the direction into corridor so the rest of the app stays in sync
+          corridor: profile.direction,
+        }),
 
       setCorridor: (corridor) => set({ corridor }),
 

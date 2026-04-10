@@ -102,7 +102,7 @@ Return ONLY valid JSON (no markdown fences):
         // Update the loop session with milestone data and mark as complete
         await sql`
           UPDATE loop_sessions
-          SET milestone = ${JSON.stringify(milestone)}::jsonb,
+          SET milestone_card = ${JSON.stringify(milestone)}::jsonb,
               phase = 'complete'
           WHERE id = ${sessionId}
         `

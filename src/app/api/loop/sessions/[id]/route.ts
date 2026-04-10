@@ -19,7 +19,7 @@ export async function GET(
         character_description, character_personality, character_speech_style,
         character_relationship, voice_id, setting, opening_line,
         phase, attempt_messages, retry_messages,
-        diagnosis, learn_blocks, milestone,
+        diagnosis, learn_blocks, milestone_card,
         created_at
       FROM loop_sessions
       WHERE id = ${sessionId}
@@ -54,7 +54,7 @@ export async function GET(
       retryMessages: row.retry_messages || [],
       diagnosis: row.diagnosis || null,
       learnBlocks: row.learn_blocks || null,
-      milestone: row.milestone || null,
+      milestone: row.milestone_card || null,
       createdAt: row.created_at,
     })
   } catch (error) {

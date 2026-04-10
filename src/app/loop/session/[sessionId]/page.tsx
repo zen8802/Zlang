@@ -74,18 +74,26 @@ export default function LoopSessionPage() {
   }, [sessionId])
 
   // Transition to diagnosis phase
-  const handleEndAttempt = useCallback(async () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleEndAttempt = useCallback(async (messages: any[]) => {
     setPhase('diagnosing')
     try {
-      const res = await fetch(`/api/loop/sessions/${sessionId}/diagnose`, {
+      // Convert UI roles ('character'/'user') to Claude roles ('assistant'/'user')
+      const transcript = (messages || []).map(m => ({
+        role: m.role === 'character' ? 'assistant' : 'user',
+        content: m.content || '',
+      }))
+      const res = await fetch(`/api/loop/diagnose`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, messages: transcript }),
       })
       if (!res.ok) throw new Error('Diagnosis failed')
       const data = await res.json()
       setSession(prev => prev ? {
         ...prev,
         diagnosis: data.diagnosis,
-        lessonBlocks: data.lessonBlocks || [],
+        lessonBlocks: data.learnBlocks || [],
         phase: 'learn',
       } : prev)
       setPhase('learn')

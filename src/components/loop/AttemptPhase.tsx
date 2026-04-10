@@ -34,7 +34,67 @@ interface Message {
   vocab?: VocabWord[]
   coachNote?: string
   options?: ResponseOption[]
+  jpOfYours?: { japanese: string; romaji: string; english: string }
+  userEnglish?: string
   timestamp: number
+}
+
+interface TranslatedResponse {
+  japanese: string
+  reading: string
+  romaji: string
+  breakdown: {
+    chunk: string
+    reading: string
+    meaning: string
+    note?: string
+  }[]
+  naturalness: string
+  alternativePhrase?: string
+  alternativePhraseEN?: string
+}
+
+// ---------------------------------------------------------------------------
+// Farewell detection
+// ---------------------------------------------------------------------------
+
+const FAREWELL_PATTERNS_JP = [
+  'ありがとうございました',
+  'ごちそうさま',
+  'さようなら',
+  'さよなら',
+  'またね',
+  'また来てください',
+  'おやすみ',
+  'バイバイ',
+  'ばいばい',
+  'お疲れ',
+  '失礼します',
+  'またのお越しを',
+  '行ってらっしゃい',
+  'いってらっしゃい',
+  'お気をつけて',
+]
+
+const FAREWELL_PATTERNS_EN = [
+  'goodbye',
+  'see you',
+  'thanks for coming',
+  'take care',
+]
+
+export function containsFarewell(text: string): boolean {
+  if (!text) return false
+  // Strip furigana parentheses: 漢字(かんじ) -> 漢字
+  const stripped = text.replace(/([一-龥々]+)\(([ぁ-んァ-ヶー]+)\)/g, '$1')
+  for (const p of FAREWELL_PATTERNS_JP) {
+    if (stripped.includes(p)) return true
+  }
+  const lower = stripped.toLowerCase()
+  for (const p of FAREWELL_PATTERNS_EN) {
+    if (lower.includes(p)) return true
+  }
+  return false
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -43,7 +103,7 @@ interface AttemptPhaseProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   session: any
   diagnosing: boolean
-  onEndAttempt: () => void
+  onEndAttempt: (messages: Message[]) => void
 }
 
 // ---------------------------------------------------------------------------
@@ -62,16 +122,6 @@ const POS_COLORS: Record<string, { underline: string; bg: string; text: string; 
   expression: { underline: '#7A5C2E', bg: '#F5F0E8', text: '#7A5C2E', label: '\u8868\u73FE' },
 }
 
-const DIFFICULTY_STYLES: Record<
-  ResponseOption['difficulty'],
-  { color: 'green' | 'blue' | 'gold' | 'purple'; border: string }
-> = {
-  safe:    { color: 'green',  border: '#3D6B4F' },
-  natural: { color: 'blue',   border: '#1B4F8A' },
-  bold:    { color: 'gold',   border: '#7A5C2E' },
-  funny:   { color: 'purple', border: '#8B5CF6' },
-}
-
 // ---------------------------------------------------------------------------
 // Parse character response (copied from studio)
 // ---------------------------------------------------------------------------
@@ -84,7 +134,7 @@ function parseCharacterResponse(text: string) {
   let coachNote = ''
   let optionsRaw = ''
 
-  const firstSep = remaining.search(/---\s*(?:VOCAB|ROMAJI|EN|COACH|OPTIONS)\s*---/)
+  const firstSep = remaining.search(/---\s*(?:VOCAB|ROMAJI|EN|COACH|OPTIONS|JP_OF_YOURS)\s*---/)
   if (firstSep >= 0) {
     characterContent = remaining.slice(0, firstSep).trim()
     remaining = remaining.slice(firstSep)
@@ -94,7 +144,7 @@ function parseCharacterResponse(text: string) {
   }
 
   const vocabList: VocabWord[] = []
-  const vocabMatch = remaining.match(/---\s*VOCAB\s*---\s*([\s\S]*?)(?=---\s*(?:ROMAJI|EN|COACH|OPTIONS)\s*---|$)/)
+  const vocabMatch = remaining.match(/---\s*VOCAB\s*---\s*([\s\S]*?)(?=---\s*(?:ROMAJI|EN|COACH|OPTIONS|JP_OF_YOURS)\s*---|$)/)
   if (vocabMatch) {
     const vocabLines = vocabMatch[1].trim().split('\n').filter(l => l.trim())
     for (const line of vocabLines) {
@@ -111,17 +161,27 @@ function parseCharacterResponse(text: string) {
     }
   }
 
-  const romajiMatch = remaining.match(/---\s*ROMAJI\s*---\s*([\s\S]*?)(?=---\s*(?:EN|COACH|OPTIONS)\s*---|$)/)
+  const romajiMatch = remaining.match(/---\s*ROMAJI\s*---\s*([\s\S]*?)(?=---\s*(?:EN|COACH|OPTIONS|JP_OF_YOURS)\s*---|$)/)
   if (romajiMatch) romajiContent = romajiMatch[1].trim()
 
-  const enMatch = remaining.match(/---\s*EN\s*---\s*([\s\S]*?)(?=---\s*(?:COACH|OPTIONS)\s*---|$)/)
+  const enMatch = remaining.match(/---\s*EN\s*---\s*([\s\S]*?)(?=---\s*(?:COACH|OPTIONS|JP_OF_YOURS)\s*---|$)/)
   if (enMatch) englishContent = enMatch[1].trim()
 
-  const coachMatch = remaining.match(/---\s*COACH\s*---\s*([\s\S]*?)(?=---\s*OPTIONS\s*---|$)/)
+  const coachMatch = remaining.match(/---\s*COACH\s*---\s*([\s\S]*?)(?=---\s*(?:OPTIONS|JP_OF_YOURS)\s*---|$)/)
   if (coachMatch) coachNote = coachMatch[1].trim()
 
-  const optionsMatch = remaining.match(/---\s*OPTIONS\s*---\s*([\s\S]*)$/)
+  const optionsMatch = remaining.match(/---\s*OPTIONS\s*---\s*([\s\S]*?)(?=---\s*JP_OF_YOURS\s*---|$)/)
   if (optionsMatch) optionsRaw = optionsMatch[1].trim()
+
+  let jpOfYours: { japanese: string; romaji: string; english: string } | undefined
+  const jpMatch = remaining.match(/---\s*JP_OF_YOURS\s*---\s*([\s\S]*)$/)
+  if (jpMatch) {
+    const line = jpMatch[1].trim().split('\n').find(l => l.trim()) || ''
+    const parts = line.split('|').map(p => p.trim())
+    if (parts.length >= 3 && parts[0]) {
+      jpOfYours = { japanese: parts[0], romaji: parts[1], english: parts[2] }
+    }
+  }
 
   const options: ResponseOption[] = []
   const lines = optionsRaw.split('\n').filter((l) => l.trim())
@@ -155,7 +215,7 @@ function parseCharacterResponse(text: string) {
     }
   }
 
-  return { characterContent, vocabList, romajiContent, englishContent, coachNote, options }
+  return { characterContent, vocabList, romajiContent, englishContent, coachNote, options, jpOfYours }
 }
 
 // ---------------------------------------------------------------------------
@@ -369,6 +429,7 @@ function VocabPopup({ word, rect, onClose }: { word: VocabWord; rect: DOMRect; o
 export default function AttemptPhase({ sessionId, session, diagnosing, onEndAttempt }: AttemptPhaseProps) {
   const globalShowFurigana = useAppStore((s) => s.showFurigana)
   const globalShowTranslation = useAppStore((s) => s.showTranslation)
+  const userProfile = useAppStore((s) => s.userProfile)
 
   const [showFurigana, setShowFurigana] = useState(true)
   const [showRomaji, setShowRomaji] = useState(true)
@@ -385,47 +446,54 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
   const [isAnimating, setIsAnimating] = useState(false)
   const [animatedChars, setAnimatedChars] = useState(0)
   const [pendingMessage, setPendingMessage] = useState<Message | null>(null)
+  const [autoEnding, setAutoEnding] = useState(false)
   const animateTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const [inputText, setInputText] = useState('')
-  const [showTypeOwn, setShowTypeOwn] = useState(false)
-  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null)
+  const autoEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [activeVocab, setActiveVocab] = useState<VocabWord | null>(null)
   const [vocabPopupRect, setVocabPopupRect] = useState<DOMRect | null>(null)
 
+  // English-input → AI-translate flow (beginner mode)
+  const [englishInput, setEnglishInput] = useState('')
+  const [translating, setTranslating] = useState(false)
+  const [translated, setTranslated] = useState<TranslatedResponse | null>(null)
+  const [showBreakdown, setShowBreakdown] = useState(true)
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const userExchanges = messages.filter(m => m.role === 'user').length
 
-  const latestOptions: ResponseOption[] =
-    messages.length > 0
-      ? (messages.filter(m => m.role === 'character').slice(-1)[0]?.options ?? [])
-      : []
-
   // Load existing messages
   useEffect(() => {
-    if (session?.messages?.length > 0) {
-      const parsedMessages: Message[] = session.messages.map((msg: Message) => {
-        if (msg.role === 'character') {
-          const fullText = msg.coachNote
-            ? `${msg.content}---COACH---${msg.coachNote}`
-            : msg.content
-          const parsed = parseCharacterResponse(fullText)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const raw: any[] = session?.attemptMessages ?? session?.messages ?? []
+    if (raw.length > 0) {
+      const parsedMessages: Message[] = raw.map((msg, idx) => {
+        const role: 'character' | 'user' =
+          msg.role === 'user' ? 'user' : 'character'
+        if (role === 'character') {
+          const parsed = parseCharacterResponse(msg.content || '')
           return {
-            ...msg,
+            id: msg.id || `loaded-char-${idx}`,
+            role: 'character',
             content: parsed.characterContent,
-            romaji: parsed.romajiContent || msg.romaji,
-            english: parsed.englishContent || msg.english,
-            vocab: parsed.vocabList.length > 0 ? parsed.vocabList : msg.vocab,
-            coachNote: parsed.coachNote || msg.coachNote,
+            romaji: parsed.romajiContent || undefined,
+            english: parsed.englishContent || undefined,
+            vocab: parsed.vocabList.length > 0 ? parsed.vocabList : undefined,
+            coachNote: parsed.coachNote || undefined,
             options: parsed.options.length > 0 ? parsed.options : undefined,
+            timestamp: msg.timestamp || Date.now(),
           }
         }
-        return msg
+        return {
+          id: msg.id || `loaded-user-${idx}`,
+          role: 'user',
+          content: msg.content || '',
+          timestamp: msg.timestamp || Date.now(),
+        }
       })
       setMessages(parsedMessages)
     }
-  }, [session?.messages])
+  }, [session?.attemptMessages, session?.messages])
 
   // Auto-scroll
   const scrollToBottom = useCallback(() => {
@@ -438,30 +506,25 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
 
   // Send message
   const sendText = useCallback(
-    async (text: string) => {
+    async (text: string, userEnglish?: string) => {
       if (!text.trim() || isStreaming) return
 
       const userMsg: Message = {
         id: `user-${Date.now()}`,
         role: 'user',
         content: text.trim(),
+        userEnglish: userEnglish?.trim() || undefined,
         timestamp: Date.now(),
       }
 
       setMessages(prev => [...prev, userMsg])
-      setInputText('')
-      setShowTypeOwn(false)
       setIsStreaming(true)
-
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto'
-      }
 
       try {
         const res = await fetch(`/api/loop/sessions/${sessionId}/message`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: text.trim(), phase: 'attempt' }),
+          body: JSON.stringify({ message: text.trim(), phase: 'attempt', userProfile }),
         })
 
         if (!res.ok) throw new Error('Failed to send message')
@@ -491,6 +554,20 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
           timestamp: Date.now(),
         }
 
+        // Attach jpOfYours to the most recent user message (if present)
+        if (parsed.jpOfYours) {
+          setMessages(prev => {
+            const next = [...prev]
+            for (let i = next.length - 1; i >= 0; i--) {
+              if (next[i].role === 'user') {
+                next[i] = { ...next[i], jpOfYours: parsed.jpOfYours }
+                break
+              }
+            }
+            return next
+          })
+        }
+
         setIsStreaming(false)
         setPendingMessage(characterMsg)
         setIsAnimating(true)
@@ -507,7 +584,18 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
           if (charCount >= totalChars) {
             if (animateTimerRef.current) clearInterval(animateTimerRef.current)
             animateTimerRef.current = null
-            setMessages(prev => [...prev, characterMsg])
+            setMessages(prev => {
+              const next = [...prev, characterMsg]
+              // Auto-end check: farewell detected + at least 2 user exchanges
+              const userCount = next.filter(m => m.role === 'user').length
+              if (containsFarewell(parsed.characterContent) && userCount >= 2) {
+                setAutoEnding(true)
+                autoEndTimerRef.current = setTimeout(() => {
+                  onEndAttempt(next)
+                }, 1500)
+              }
+              return next
+            })
             setPendingMessage(null)
             setIsAnimating(false)
             setAnimatedChars(0)
@@ -517,46 +605,103 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
         console.error('Send error:', err)
       } finally {
         setIsStreaming(false)
-        setSelectedOptionId(null)
       }
     },
-    [isStreaming, sessionId],
+    [isStreaming, sessionId, onEndAttempt, userProfile],
   )
 
-  const selectOption = useCallback(
-    (option: ResponseOption) => {
-      setSelectedOptionId(option.id)
-      setTimeout(() => {
-        sendText(option.japanese)
-      }, 250)
-    },
-    [sendText],
-  )
+  // Translate English → Japanese via API
+  const handleTranslate = useCallback(async () => {
+    if (!englishInput.trim() || translating) return
+    setTranslating(true)
+    setShowBreakdown(true)
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault()
-        sendText(inputText)
+    // Build context from existing message history
+    const lastCharacter = [...messages].reverse().find(m => m.role === 'character')
+    const characterLine = lastCharacter ? stripFurigana(lastCharacter.content) : ''
+    const characterLineEN = lastCharacter?.english || ''
+
+    // Build previousExchanges pairs (character → user)
+    const previousExchanges: { characterLine: string; characterLineEN: string; userJP: string; userEN: string }[] = []
+    for (let i = 0; i < messages.length - (lastCharacter ? 1 : 0); i++) {
+      const m = messages[i]
+      if (m.role === 'character') {
+        const next = messages[i + 1]
+        if (next && next.role === 'user') {
+          previousExchanges.push({
+            characterLine: stripFurigana(m.content),
+            characterLineEN: m.english || '',
+            userJP: stripFurigana(next.content),
+            userEN: next.userEnglish || '',
+          })
+        }
       }
-    },
-    [sendText, inputText],
-  )
+    }
 
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputText(e.target.value)
-    const textarea = e.target
-    textarea.style.height = 'auto'
-    textarea.style.height = Math.min(textarea.scrollHeight, 160) + 'px'
+    try {
+      const res = await fetch('/api/lessons/translate-response', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userEnglish: englishInput,
+          characterLine,
+          characterLineEN,
+          setting: session?.setting || session?.scenarioTitle || '',
+          characterName: session?.characterName || '',
+          previousExchanges,
+          userProfile,
+        }),
+      })
+      const data = await res.json()
+      if (data.translation) {
+        setTranslated(data.translation)
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+          setTimeout(() => {
+            speechSynthesis.cancel()
+            const u = new SpeechSynthesisUtterance(data.translation.japanese)
+            u.lang = 'ja-JP'
+            u.rate = 0.85
+            speechSynthesis.speak(u)
+          }, 400)
+        }
+      }
+    } catch (err) {
+      console.error('translate error:', err)
+    }
+    setTranslating(false)
+  }, [englishInput, translating, messages, session, userProfile])
+
+  const playJapaneseAudio = useCallback((text: string) => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      speechSynthesis.cancel()
+      const u = new SpeechSynthesisUtterance(text)
+      u.lang = 'ja-JP'
+      u.rate = 0.85
+      speechSynthesis.speak(u)
+    }
   }, [])
 
-  const showOptions =
-    !isStreaming &&
-    !isAnimating &&
-    !diagnosing &&
-    latestOptions.length > 0 &&
-    messages.length > 0 &&
-    messages[messages.length - 1]?.role === 'character'
+  const handleSendTranslated = useCallback(() => {
+    if (!translated) return
+    const japanese = translated.japanese
+    const english = englishInput
+    setTranslated(null)
+    setEnglishInput('')
+    setShowBreakdown(true)
+    sendText(japanese, english)
+  }, [translated, englishInput, sendText])
+
+  const handleEditTranslation = useCallback(() => {
+    setTranslated(null)
+  }, [])
+
+  // Cleanup any pending auto-end timer on unmount
+  useEffect(() => {
+    return () => {
+      if (autoEndTimerRef.current) clearTimeout(autoEndTimerRef.current)
+      if (animateTimerRef.current) clearInterval(animateTimerRef.current)
+    }
+  }, [])
 
   // ---- Diagnosing overlay ----
   if (diagnosing) {
@@ -670,19 +815,44 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
                 </div>
               </div>
             ) : (
-              <div className="flex justify-end">
-                <div
-                  className="max-w-[85%] px-4 py-3 text-white"
-                  style={{ backgroundColor: '#1B4F8A', borderRadius: '12px 2px 12px 12px' }}
-                >
-                  <p
-                    className="text-[15px] leading-relaxed whitespace-pre-wrap"
-                    style={{ fontFamily: 'Noto Sans JP' }}
+              <>
+                <div className="flex justify-end">
+                  <div
+                    className="max-w-[85%] px-4 py-3 text-white"
+                    style={{ backgroundColor: '#1B4F8A', borderRadius: '12px 2px 12px 12px' }}
                   >
-                    {renderWithFurigana(msg.content, showFurigana)}
-                  </p>
+                    <p
+                      className="text-[15px] leading-relaxed whitespace-pre-wrap"
+                      style={{ fontFamily: 'Noto Sans JP' }}
+                    >
+                      {renderWithFurigana(msg.content, showFurigana)}
+                    </p>
+                  </div>
                 </div>
-              </div>
+                {msg.jpOfYours && (
+                  <div className="flex justify-end mt-1">
+                    <div className="max-w-[85%] px-3 py-1.5 rounded-[6px] bg-[#EBF0F8] border border-[#1B4F8A]/15">
+                      <p className="text-[11px] text-[#1B4F8A]" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                        In Japanese:{' '}
+                        <span style={{ fontFamily: 'Noto Sans JP, sans-serif' }}>
+                          {msg.jpOfYours.japanese}
+                        </span>
+                        <span className="text-[#1B4F8A]/60 ml-1">({msg.jpOfYours.romaji})</span>
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {msg.userEnglish && (
+                  <div className="flex justify-end mt-1">
+                    <p
+                      className="text-[11px] italic text-[#9E9892] max-w-[85%] pr-1"
+                      style={{ fontFamily: 'DM Sans, sans-serif' }}
+                    >
+                      &ldquo;{msg.userEnglish}&rdquo;
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         ))}
@@ -749,133 +919,220 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
           )
         })()}
 
-        {/* Response options */}
-        {showOptions && !showTypeOwn && (
-          <div className="space-y-1.5 pt-2">
-            {latestOptions.map((option, idx) => {
-              const style = DIFFICULTY_STYLES[option.difficulty] || DIFFICULTY_STYLES.natural
-              const isSelected = selectedOptionId === option.id
-              return (
-                <div
-                  key={option.id}
-                  className={`w-full text-left px-3.5 py-2.5 bg-[#FDFBF8] rounded-[8px] border transition-all cursor-pointer active:translate-y-px ${
-                    isSelected ? 'scale-[0.97] border-[#3D6B4F]' : 'border-[#E0DAD2]'
-                  }`}
-                  style={{ animationDelay: `${idx * 150}ms` }}
-                  onClick={() => selectOption(option)}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: style.border }} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold leading-snug" style={{ fontFamily: 'Noto Sans JP', color: '#1A1814' }}>
-                        {renderWithFurigana(option.japanese, showFurigana)}
-                      </p>
-                      {showRomaji && (
-                        <p className="text-[10px] mt-0.5" style={{ fontFamily: 'DM Mono, monospace', color: '#B0B0B0' }}>
-                          {option.romaji}
-                        </p>
-                      )}
-                      {showTranslation && (
-                        <p className="text-xs mt-0.5 italic" style={{ color: '#9E9892' }}>
-                          {option.english}
-                        </p>
-                      )}
-                    </div>
+        {/* English-input → AI-translate flow (beginner) */}
+        {!isStreaming && !isAnimating && !diagnosing && messages.length > 0 && messages[messages.length - 1]?.role === 'character' && (
+          <div className="pt-2 space-y-3">
+            {/* Translation result */}
+            {translated && (
+              <div className="space-y-3 ink-in">
+                <div className="flex justify-end">
+                  <div
+                    className="bg-[#1B4F8A] px-4 py-3 max-w-[85%]"
+                    style={{ borderRadius: '10px 2px 10px 10px' }}
+                  >
+                    <p
+                      className="text-white text-[15px] leading-relaxed"
+                      style={{ fontFamily: 'Noto Sans JP, sans-serif' }}
+                    >
+                      {translated.japanese}
+                    </p>
+                    <p
+                      className="text-white/50 text-xs mt-1 font-medium"
+                      style={{ fontFamily: 'DM Mono, monospace' }}
+                    >
+                      {translated.romaji}
+                    </p>
+                    <button
+                      onClick={() => playJapaneseAudio(translated.japanese)}
+                      className="text-white/40 text-xs mt-1 hover:text-white/70 transition-colors flex items-center gap-1"
+                      style={{ fontFamily: 'DM Sans, sans-serif' }}
+                    >
+                      🔊 Hear it
+                    </button>
                   </div>
                 </div>
-              )
-            })}
 
-            <div className="text-center pt-0.5 pb-1">
-              <button
-                onClick={() => setShowTypeOwn(true)}
-                className="text-[10px] font-bold transition-colors hover:text-[#1B4F8A]"
-                style={{ color: '#9E9892' }}
-              >
-                ✏️ Type my own
-              </button>
-            </div>
+                <div className="bg-[#FDFBF8] rounded-[10px] border border-[#E0DAD2] overflow-hidden">
+                  <button
+                    onClick={() => setShowBreakdown(b => !b)}
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#F5F0EB] transition-colors"
+                  >
+                    <p
+                      className="text-[10px] tracking-widest uppercase text-[#9E9892] font-medium"
+                      style={{ fontFamily: 'DM Sans, sans-serif' }}
+                    >
+                      Breaking it down
+                    </p>
+                    <span className="text-[#C8C3BC] text-xs">
+                      {showBreakdown ? '▲' : '▼'}
+                    </span>
+                  </button>
+
+                  {showBreakdown && (
+                    <div className="px-4 pb-4 space-y-3 border-t border-[#E0DAD2] pt-3">
+                      <div className="space-y-2">
+                        {translated.breakdown.map((chunk, i) => (
+                          <div
+                            key={i}
+                            className="flex items-start gap-3 pb-2 border-b border-[#F5F0EB] last:border-0 last:pb-0"
+                          >
+                            <div className="shrink-0 min-w-[80px]">
+                              <p
+                                className="text-base text-[#1A1814] font-medium"
+                                style={{ fontFamily: 'Noto Sans JP, sans-serif' }}
+                              >
+                                {chunk.chunk}
+                              </p>
+                              <p
+                                className="text-[11px] text-[#9E9892]"
+                                style={{ fontFamily: 'DM Mono, monospace' }}
+                              >
+                                {chunk.reading}
+                              </p>
+                            </div>
+                            <div className="flex-1">
+                              <p
+                                className="text-sm text-[#1A1814]"
+                                style={{ fontFamily: 'DM Sans, sans-serif' }}
+                              >
+                                {chunk.meaning}
+                              </p>
+                              {chunk.note && (
+                                <p
+                                  className="text-xs text-[#7A5C2E] mt-0.5 italic"
+                                  style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                >
+                                  {chunk.note}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="bg-[#EBF0F8] rounded-[8px] px-3 py-2 border border-[#1B4F8A]/15">
+                        <p
+                          className="text-xs text-[#1B4F8A]"
+                          style={{ fontFamily: 'DM Sans, sans-serif' }}
+                        >
+                          {translated.naturalness}
+                        </p>
+                      </div>
+
+                      {translated.alternativePhrase && (
+                        <div className="bg-[#F5F0E8] rounded-[8px] px-3 py-2 border border-[#D4C4A8]">
+                          <p
+                            className="text-[10px] text-[#7A5C2E] font-medium tracking-wide uppercase mb-1"
+                            style={{ fontFamily: 'DM Sans, sans-serif' }}
+                          >
+                            You could also say
+                          </p>
+                          <p
+                            className="text-sm text-[#1A1814]"
+                            style={{ fontFamily: 'Noto Sans JP, sans-serif' }}
+                          >
+                            {translated.alternativePhrase}
+                          </p>
+                          {translated.alternativePhraseEN && (
+                            <p
+                              className="text-xs text-[#9E9892] italic mt-0.5"
+                              style={{ fontFamily: 'DM Sans, sans-serif' }}
+                            >
+                              {translated.alternativePhraseEN}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={handleSendTranslated}
+                  className="w-full bg-[#1B4F8A] hover:bg-[#4A7AB5] text-white font-semibold py-3 rounded-[10px] transition-colors"
+                  style={{ fontFamily: 'DM Sans, sans-serif' }}
+                >
+                  Send →
+                </button>
+                <div className="text-center">
+                  <button
+                    onClick={handleEditTranslation}
+                    className="text-xs font-medium underline transition-colors hover:text-[#1B4F8A]"
+                    style={{ color: '#9E9892', fontFamily: 'DM Sans, sans-serif' }}
+                  >
+                    Edit / try different wording
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* English input — only when not yet translated */}
+            {!translated && (
+              <div className="space-y-2">
+                <p
+                  className="text-xs text-[#9E9892] text-center"
+                  style={{ fontFamily: 'DM Sans, sans-serif' }}
+                >
+                  Say what you want in English — we&apos;ll translate it
+                </p>
+                <div className="bg-[#FDFBF8] rounded-[10px] border-2 border-[#E0DAD2] focus-within:border-[#1B4F8A] transition-colors overflow-hidden">
+                  <textarea
+                    value={englishInput}
+                    onChange={e => setEnglishInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault()
+                        handleTranslate()
+                      }
+                    }}
+                    placeholder="Type what you want to say in English..."
+                    rows={2}
+                    className="w-full px-4 pt-3 pb-1 text-sm text-[#1A1814] resize-none bg-transparent outline-none placeholder-[#C8C3BC]"
+                    style={{ fontFamily: 'DM Sans, sans-serif' }}
+                  />
+                  <div className="flex items-center justify-between px-4 pb-3">
+                    <p
+                      className="text-[10px] text-[#C8C3BC]"
+                      style={{ fontFamily: 'DM Sans, sans-serif' }}
+                    >
+                      Write in English — we&apos;ll translate it
+                    </p>
+                    <button
+                      onClick={handleTranslate}
+                      disabled={!englishInput.trim() || translating}
+                      className={`text-xs font-medium px-3 py-1.5 rounded-[6px] transition-all ${
+                        englishInput.trim() && !translating
+                          ? 'bg-[#1B4F8A] text-white hover:bg-[#4A7AB5]'
+                          : 'bg-[#E0DAD2] text-[#C8C3BC] cursor-not-allowed'
+                      }`}
+                      style={{ fontFamily: 'DM Sans, sans-serif' }}
+                    >
+                      {translating ? 'Translating...' : 'Translate →'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Type-your-own input */}
-        {showOptions && showTypeOwn && !isStreaming && (
-          <div className="pt-2 space-y-2">
-            <div className="flex items-end gap-2">
-              <textarea
-                ref={textareaRef}
-                value={inputText}
-                onChange={handleInputChange}
-                onKeyDown={handleKeyDown}
-                placeholder="Type in Japanese..."
-                rows={1}
-                className="flex-1 px-4 py-3 rounded-[8px] border border-[#E0DAD2] bg-[#FDFBF8] text-[15px] resize-none leading-relaxed focus:outline-none focus:border-[#1B4F8A] transition-colors placeholder:text-[#9E9892]"
-                style={{ fontFamily: 'Noto Sans JP', color: '#1A1814', maxHeight: '160px' }}
-              />
-              <button
-                onClick={() => sendText(inputText)}
-                disabled={!inputText.trim()}
-                className="w-11 h-11 rounded-full flex items-center justify-center text-white shrink-0 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 active:scale-95"
-                style={{
-                  backgroundColor: inputText.trim() ? '#1B4F8A' : '#B8CBE0',
-                  /* no cartoon shadow */
-                }}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 2L11 13" />
-                  <path d="M22 2L15 22L11 13L2 9L22 2Z" />
-                </svg>
-              </button>
-            </div>
-            <div className="text-center">
-              <button
-                onClick={() => setShowTypeOwn(false)}
-                className="text-xs font-bold underline transition-colors hover:text-[#1B4F8A]"
-                style={{ color: '#9E9892' }}
-              >
-                Back to options
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Fallback text input when no options */}
-        {!showOptions && !isStreaming && !isAnimating && messages.length > 0 && messages[messages.length - 1]?.role === 'character' && (
-          <div className="pt-2">
-            <div className="flex items-end gap-2">
-              <textarea
-                ref={textareaRef}
-                value={inputText}
-                onChange={handleInputChange}
-                onKeyDown={handleKeyDown}
-                placeholder="Type in Japanese..."
-                rows={1}
-                className="flex-1 px-4 py-3 rounded-[8px] border border-[#E0DAD2] bg-[#FDFBF8] text-[15px] resize-none leading-relaxed focus:outline-none focus:border-[#1B4F8A] transition-colors placeholder:text-[#9E9892]"
-                style={{ fontFamily: 'Noto Sans JP', color: '#1A1814', maxHeight: '160px' }}
-              />
-              <button
-                onClick={() => sendText(inputText)}
-                disabled={!inputText.trim()}
-                className="w-11 h-11 rounded-full flex items-center justify-center text-white shrink-0 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 active:scale-95"
-                style={{
-                  backgroundColor: inputText.trim() ? '#1B4F8A' : '#B8CBE0',
-                  /* no cartoon shadow */
-                }}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 2L11 13" />
-                  <path d="M22 2L15 22L11 13L2 9L22 2Z" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* End attempt button (after 3+ exchanges) */}
-        {userExchanges >= 3 && !isStreaming && !isAnimating && !diagnosing && (
+        {/* Auto-end "wrapping up" indicator */}
+        {autoEnding && !diagnosing && (
           <div className="pt-4 pb-2 text-center">
-            <Button variant="gold" size="md" onClick={onEndAttempt}>
-              End \u2192
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#EBF0F8] border border-[#1B4F8A]/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#1B4F8A] animate-pulse" />
+              <span className="text-[11px] font-semibold" style={{ color: '#1B4F8A' }}>
+                Wrapping up...
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* End attempt button (after 2+ exchanges — tight loops finish fast) */}
+        {!autoEnding && userExchanges >= 2 && !isStreaming && !isAnimating && !diagnosing && (
+          <div className="pt-4 pb-2 text-center">
+            <Button variant="gold" size="md" onClick={() => onEndAttempt(messages)}>
+              End →
             </Button>
             <p className="text-[10px] mt-1.5" style={{ color: '#9E9892' }}>
               AI will analyze your conversation
