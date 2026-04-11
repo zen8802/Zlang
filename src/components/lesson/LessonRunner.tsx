@@ -41,7 +41,7 @@ export default function LessonRunner({ lesson, onLessonComplete }: Props) {
 
   if (completed) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 gap-6 bg-[#FDFBF8]">
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 gap-6 bg-[#F5F0EB]">
         {/* Checkmark */}
         <div className="ink-in">
           <svg width="96" height="96" viewBox="0 0 96 96" fill="none">

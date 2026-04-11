@@ -37,6 +37,7 @@ interface Message {
   vocab?: VocabWord[]
   coachNote?: string
   options?: ResponseOption[]
+  hints?: string[]
   userEnglish?: string
   timestamp: number
 }
@@ -48,6 +49,7 @@ interface TranslatedResponse {
   breakdown: {
     chunk: string
     reading: string
+    romaji?: string
     meaning: string
     note?: string
   }[]
@@ -119,7 +121,7 @@ function parseCharacterResponse(text: string) {
 
   // Extract character dialogue (everything before first separator)
   // Flexible separator matching: allow spaces around hyphens and words
-  const firstSep = remaining.search(/---\s*(?:VOCAB|ROMAJI|EN|COACH|OPTIONS)\s*---/)
+  const firstSep = remaining.search(/---\s*(?:VOCAB|ROMAJI|EN|COACH|OPTIONS|HINTS)\s*---/)
   if (firstSep >= 0) {
     characterContent = remaining.slice(0, firstSep).trim()
     remaining = remaining.slice(firstSep)
@@ -130,7 +132,7 @@ function parseCharacterResponse(text: string) {
 
   // Extract vocab annotations
   const vocabList: VocabWord[] = []
-  const vocabMatch = remaining.match(/---\s*VOCAB\s*---\s*([\s\S]*?)(?=---\s*(?:ROMAJI|EN|COACH|OPTIONS)\s*---|$)/)
+  const vocabMatch = remaining.match(/---\s*VOCAB\s*---\s*([\s\S]*?)(?=---\s*(?:ROMAJI|EN|COACH|OPTIONS|HINTS)\s*---|$)/)
   if (vocabMatch) {
     const vocabLines = vocabMatch[1].trim().split('\n').filter(l => l.trim())
     for (const line of vocabLines) {
@@ -148,20 +150,31 @@ function parseCharacterResponse(text: string) {
   }
 
   // Extract romaji
-  const romajiMatch = remaining.match(/---\s*ROMAJI\s*---\s*([\s\S]*?)(?=---\s*(?:EN|COACH|OPTIONS)\s*---|$)/)
+  const romajiMatch = remaining.match(/---\s*ROMAJI\s*---\s*([\s\S]*?)(?=---\s*(?:EN|COACH|OPTIONS|HINTS)\s*---|$)/)
   if (romajiMatch) romajiContent = romajiMatch[1].trim()
 
   // Extract English translation
-  const enMatch = remaining.match(/---\s*EN\s*---\s*([\s\S]*?)(?=---\s*(?:COACH|OPTIONS)\s*---|$)/)
+  const enMatch = remaining.match(/---\s*EN\s*---\s*([\s\S]*?)(?=---\s*(?:COACH|OPTIONS|HINTS)\s*---|$)/)
   if (enMatch) englishContent = enMatch[1].trim()
 
   // Extract coach note
-  const coachMatch = remaining.match(/---\s*COACH\s*---\s*([\s\S]*?)(?=---\s*OPTIONS\s*---|$)/)
+  const coachMatch = remaining.match(/---\s*COACH\s*---\s*([\s\S]*?)(?=---\s*(?:OPTIONS|HINTS)\s*---|$)/)
   if (coachMatch) coachNote = coachMatch[1].trim()
 
   // Extract options — try multiple separator formats
-  const optionsMatch = remaining.match(/---\s*OPTIONS\s*---\s*([\s\S]*)$/)
+  const optionsMatch = remaining.match(/---\s*OPTIONS\s*---\s*([\s\S]*?)(?=---\s*HINTS\s*---|$)/)
   if (optionsMatch) optionsRaw = optionsMatch[1].trim()
+
+  // Extract hints — beginner-friendly English chips
+  const hints: string[] = []
+  const hintsMatch = remaining.match(/---\s*HINTS\s*---\s*([\s\S]*)$/)
+  if (hintsMatch) {
+    const hintLines = hintsMatch[1].trim().split('\n').map(l => l.trim()).filter(Boolean)
+    for (const line of hintLines) {
+      const cleaned = line.replace(/^[-•*\d+\.\)]+\s*/, '').trim()
+      if (cleaned) hints.push(cleaned)
+    }
+  }
 
   const options: ResponseOption[] = []
   const lines = optionsRaw.split('\n').filter((l) => l.trim())
@@ -203,7 +216,7 @@ function parseCharacterResponse(text: string) {
     console.warn('[Studio] Failed to parse options from:', optionsRaw.slice(0, 200))
   }
 
-  return { characterContent, vocabList, romajiContent, englishContent, coachNote, options }
+  return { characterContent, vocabList, romajiContent, englishContent, coachNote, options, hints }
 }
 
 // ---------------------------------------------------------------------------
@@ -436,6 +449,7 @@ export default function StudioSessionPage() {
   const [translateInput, setTranslateInput] = useState('')
   const [translating, setTranslating] = useState(false)
   const [translated, setTranslated] = useState<TranslatedResponse | null>(null)
+  const [useAlternative, setUseAlternative] = useState(false)
   const [showBreakdown, setShowBreakdown] = useState(true)
   const [activeVocab, setActiveVocab] = useState<VocabWord | null>(null)
   const [vocabPopupRect, setVocabPopupRect] = useState<DOMRect | null>(null)
@@ -452,6 +466,26 @@ export default function StudioSessionPage() {
     messages.length > 0
       ? (messages.filter((m) => m.role === 'character').slice(-1)[0]?.options ?? [])
       : []
+
+  // Hints from the latest character message — beginner-friendly English chips
+  // the learner can tap to drop into their input.
+  const latestHints: string[] = (() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'character') {
+        return messages[i].hints ?? []
+      }
+    }
+    return []
+  })()
+
+  const insertHint = (hint: string) => {
+    // Strip the parenthetical explainer ("tonkotsu (rich pork broth)" → "tonkotsu")
+    const phrase = hint.replace(/\s*\(.*\)\s*$/, '').trim()
+    setTranslateInput(prev => {
+      if (!prev.trim()) return phrase
+      return /\s$/.test(prev) ? prev + phrase : prev + ' ' + phrase
+    })
+  }
 
   // ── TTS: ElevenLabs speech with timer-based highlighting ──────────────
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -655,6 +689,7 @@ export default function StudioSessionPage() {
               vocab: parsed.vocabList.length > 0 ? parsed.vocabList : msg.vocab,
               coachNote: parsed.coachNote || msg.coachNote,
               options: parsed.options.length > 0 ? parsed.options : undefined,
+              hints: parsed.hints.length > 0 ? parsed.hints : undefined,
             }
           }
           return msg
@@ -734,6 +769,7 @@ export default function StudioSessionPage() {
           vocab: parsed.vocabList.length > 0 ? parsed.vocabList : undefined,
           coachNote: parsed.coachNote || undefined,
           options: parsed.options.length > 0 ? parsed.options : undefined,
+          hints: parsed.hints.length > 0 ? parsed.hints : undefined,
           timestamp: Date.now(),
         }
 
@@ -822,6 +858,7 @@ export default function StudioSessionPage() {
       const data = await res.json()
       if (data.translation) {
         setTranslated(data.translation)
+        setUseAlternative(false)
         setTimeout(() => speakJapanese(data.translation.japanese), 300)
       }
     } catch (err) {
@@ -832,15 +869,20 @@ export default function StudioSessionPage() {
 
   const handleSendTranslated = useCallback(() => {
     if (!translated) return
-    const jp = translated.japanese
+    const jp =
+      useAlternative && translated.alternativePhrase
+        ? translated.alternativePhrase
+        : translated.japanese
     const en = translateInput
     setTranslated(null)
+    setUseAlternative(false)
     setTranslateInput('')
     sendText(jp, en)
-  }, [translated, translateInput, sendText])
+  }, [translated, useAlternative, translateInput, sendText])
 
   const handleTryAgain = useCallback(() => {
     setTranslated(null)
+    setUseAlternative(false)
   }, [])
 
   // Select an option
@@ -891,7 +933,7 @@ export default function StudioSessionPage() {
     return (
       <div
         className="h-screen flex items-center justify-center"
-        style={{ backgroundColor: '#FDFBF8' }}
+        style={{ backgroundColor: '#F5F0EB' }}
       >
         <div className="text-center ink-in">
           <div className="w-12 h-12 border-4 border-[#1B4F8A]/20 border-t-[#1B4F8A] rounded-full animate-spin mx-auto mb-4" />
@@ -908,7 +950,7 @@ export default function StudioSessionPage() {
     return (
       <div
         className="h-screen flex items-center justify-center px-4"
-        style={{ backgroundColor: '#FDFBF8' }}
+        style={{ backgroundColor: '#F5F0EB' }}
       >
         <Card variant="elevated" padding="lg" className="max-w-sm w-full text-center">
           <p className="text-4xl mb-3">😵</p>
@@ -936,7 +978,7 @@ export default function StudioSessionPage() {
     messages[messages.length - 1]?.role === 'character'
 
   return (
-    <div className="h-screen flex flex-col" style={{ backgroundColor: '#FDFBF8' }}>
+    <div className="h-screen flex flex-col" style={{ backgroundColor: '#F5F0EB' }}>
       {/* ---- Top Bar -------------------------------------------------------- */}
       <div className="shrink-0 bg-[#FDFBF8]/80 backdrop-blur-md border-b border-[#E0DAD2]/50 safe-top z-30">
         <div className="px-4 py-2.5 flex items-center justify-between">
@@ -1204,16 +1246,34 @@ export default function StudioSessionPage() {
                       className="text-white text-[17px] leading-relaxed"
                       style={{ fontFamily: 'Noto Sans JP, sans-serif' }}
                     >
-                      {translated.japanese}
+                      {useAlternative && translated.alternativePhrase
+                        ? translated.alternativePhrase
+                        : translated.japanese}
                     </p>
-                    <p
-                      className="text-white/50 text-xs mt-1 font-medium"
-                      style={{ fontFamily: 'DM Mono, monospace' }}
-                    >
-                      {translated.romaji}
-                    </p>
+                    {!useAlternative && (
+                      <p
+                        className="text-white/50 text-xs mt-1 font-medium"
+                        style={{ fontFamily: 'DM Mono, monospace' }}
+                      >
+                        {translated.romaji}
+                      </p>
+                    )}
+                    {useAlternative && translated.alternativePhraseEN && (
+                      <p
+                        className="text-white/60 text-xs italic mt-1"
+                        style={{ fontFamily: 'DM Sans, sans-serif' }}
+                      >
+                        {translated.alternativePhraseEN}
+                      </p>
+                    )}
                     <button
-                      onClick={() => speakJapanese(translated.japanese)}
+                      onClick={() =>
+                        speakJapanese(
+                          useAlternative && translated.alternativePhrase
+                            ? translated.alternativePhrase
+                            : translated.japanese,
+                        )
+                      }
                       className="text-white/40 text-xs mt-1 hover:text-white/70 transition-colors flex items-center gap-1"
                       style={{ fontFamily: 'DM Sans, sans-serif' }}
                     >
@@ -1255,7 +1315,7 @@ export default function StudioSessionPage() {
                                 className="text-[11px] text-[#9E9892]"
                                 style={{ fontFamily: 'DM Mono, monospace' }}
                               >
-                                {chunk.reading}
+                                {chunk.romaji || chunk.reading}
                               </p>
                             </div>
                             <div className="flex-1">
@@ -1309,6 +1369,31 @@ export default function StudioSessionPage() {
                               {translated.alternativePhraseEN}
                             </p>
                           )}
+                          <button
+                            onClick={() => {
+                              setUseAlternative((v) => !v)
+                              if (translated.alternativePhrase) {
+                                setTimeout(
+                                  () =>
+                                    speakJapanese(
+                                      useAlternative
+                                        ? translated.japanese
+                                        : (translated.alternativePhrase as string),
+                                    ),
+                                  150,
+                                )
+                              }
+                            }}
+                            className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-[6px] border transition-colors"
+                            style={{
+                              fontFamily: 'DM Sans, sans-serif',
+                              backgroundColor: useAlternative ? '#7A5C2E' : '#FDFBF8',
+                              color: useAlternative ? '#FFFFFF' : '#7A5C2E',
+                              borderColor: '#D4C4A8',
+                            }}
+                          >
+                            {useAlternative ? '✓ Using this version' : 'Try this instead →'}
+                          </button>
                         </div>
                       )}
                     </div>
@@ -1341,6 +1426,34 @@ export default function StudioSessionPage() {
                 >
                   Say what you want in English — we&apos;ll translate it
                 </p>
+
+                {/* Contextual suggestion chips — only shown if the API returned hints */}
+                {latestHints.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 justify-center px-2">
+                    {latestHints.map((hint, i) => {
+                      const main = hint.replace(/\s*\(.*\)\s*$/, '').trim()
+                      const note = (hint.match(/\(([^)]*)\)\s*$/) || [])[1]
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => insertHint(hint)}
+                          className="group inline-flex items-baseline gap-1 px-2.5 py-1 rounded-full bg-[#FDFBF8] border border-[#E0DAD2] hover:border-[#1B4F8A] hover:bg-[#EBF0F8] transition-colors"
+                          style={{ fontFamily: 'DM Sans, sans-serif' }}
+                        >
+                          <span className="text-[11px] text-[#1A1814] group-hover:text-[#1B4F8A]">
+                            {main}
+                          </span>
+                          {note && (
+                            <span className="text-[10px] text-[#9E9892]">
+                              {note}
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+
                 <div className="bg-[#FDFBF8] rounded-[10px] border-2 border-[#E0DAD2] focus-within:border-[#1B4F8A] transition-colors overflow-hidden">
                   <textarea
                     value={translateInput}
@@ -1356,13 +1469,7 @@ export default function StudioSessionPage() {
                     className="w-full px-4 pt-3 pb-1 text-sm text-[#1A1814] resize-none bg-transparent outline-none placeholder-[#C8C3BC]"
                     style={{ fontFamily: 'DM Sans, sans-serif' }}
                   />
-                  <div className="flex items-center justify-between px-4 pb-3">
-                    <p
-                      className="text-[10px] text-[#C8C3BC]"
-                      style={{ fontFamily: 'DM Sans, sans-serif' }}
-                    >
-                      Write in English — we&apos;ll translate it
-                    </p>
+                  <div className="flex items-center justify-end px-4 pb-3">
                     <button
                       onClick={handleTranslate}
                       disabled={!translateInput.trim() || translating}

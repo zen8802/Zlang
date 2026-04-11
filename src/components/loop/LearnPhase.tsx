@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { useUser } from '@clerk/nextjs'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
 import ProgressBar from '@/components/ui/ProgressBar'
 import BlockRenderer from '@/components/blocks/BlockRenderer'
 import type { LessonBlock } from '@/types/lesson-blocks'
+import { useAppStore } from '@/store/useAppStore'
 
 interface LearnPhaseProps {
   sessionId: string
@@ -20,6 +22,13 @@ export default function LearnPhase({ diagnosis, lessonBlocks, onStartRetry }: Le
   const [currentBlockIndex, setCurrentBlockIndex] = useState(0)
   const [completedBlocks, setCompletedBlocks] = useState<number[]>([])
   const [xpEarned, setXpEarned] = useState(0)
+  const [showPhraseVictory, setShowPhraseVictory] = useState(false)
+
+  const addKnownHiragana = useAppStore((s) => s.addKnownHiragana)
+  const knownHiragana = useAppStore((s) => s.knownHiragana)
+  const { user } = useUser()
+
+  const finalizedRef = useRef(false)
 
   const totalBlocks = lessonBlocks.length
   const allDone = completedBlocks.length >= totalBlocks
@@ -27,6 +36,9 @@ export default function LearnPhase({ diagnosis, lessonBlocks, onStartRetry }: Le
 
   const focusText = diagnosis?.focus || diagnosis?.focusArea || null
   const learnedItems = diagnosis?.learnedItems || diagnosis?.summary || []
+
+  const targetPhrase: string | undefined = diagnosis?.targetPhrase
+  const targetPhraseEN: string | undefined = diagnosis?.targetPhraseEN
 
   const handleBlockComplete = useCallback((blockXp: number) => {
     setXpEarned(prev => prev + blockXp)
@@ -40,7 +52,88 @@ export default function LearnPhase({ diagnosis, lessonBlocks, onStartRetry }: Le
     }
   }, [currentBlockIndex, totalBlocks])
 
-  // --- Summary view when all blocks done ---
+  // When all blocks done: persist hiragana, optionally show victory, then fire onStartRetry
+  useEffect(() => {
+    if (!allDone || totalBlocks === 0) return
+    if (finalizedRef.current) return
+    finalizedRef.current = true
+
+    const newChars: string[] = diagnosis?.newHiragana ?? []
+    if (newChars.length > 0) {
+      addKnownHiragana(newChars)
+      if (typeof window !== 'undefined') {
+        try {
+          const merged = Array.from(new Set([...knownHiragana, ...newChars]))
+          window.localStorage.setItem('mirai_known_hiragana', JSON.stringify(merged))
+        } catch {}
+      }
+      if (user) {
+        void user
+          .update({
+            unsafeMetadata: {
+              ...(user.unsafeMetadata || {}),
+              knownHiragana: Array.from(new Set([...knownHiragana, ...newChars])),
+            },
+          })
+          .catch(() => {})
+      }
+    }
+
+    if (targetPhrase) {
+      setShowPhraseVictory(true)
+      const t = setTimeout(() => {
+        setShowPhraseVictory(false)
+        onStartRetry()
+      }, 2500)
+      return () => clearTimeout(t)
+    } else {
+      onStartRetry()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allDone, totalBlocks])
+
+  // --- Phrase victory full-screen ink-in moment ---
+  if (showPhraseVictory && targetPhrase) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6 animate-fade-in"
+        style={{ backgroundColor: '#F5F0EB' }}
+      >
+        <p
+          className="text-sm mb-6"
+          style={{ fontFamily: 'Shippori Mincho', color: '#6B6560' }}
+        >
+          You can now write
+        </p>
+        <p
+          className="text-center mb-4"
+          style={{
+            fontFamily: 'Noto Sans JP',
+            fontWeight: 300,
+            fontSize: '52px',
+            color: '#1A1814',
+            lineHeight: 1.2,
+          }}
+        >
+          {targetPhrase}
+        </p>
+        {targetPhraseEN && (
+          <p
+            className="text-center"
+            style={{
+              fontFamily: 'Shippori Mincho',
+              fontSize: '18px',
+              color: '#6B6560',
+            }}
+          >
+            {targetPhraseEN}
+          </p>
+        )}
+      </div>
+    )
+  }
+
+  // --- Summary view when all blocks done (fallback if victory doesn't show) ---
   if (allDone) {
     return (
       <div className="h-full overflow-y-auto px-4 py-6">

@@ -18,7 +18,8 @@ export async function GET(
         character_name, character_name_jp, character_color, character_avatar,
         character_description, character_personality, character_speech_style,
         character_relationship, voice_id, setting, opening_line,
-        phase, attempt_messages, retry_messages,
+        phase, loop_mode, user_experience_level,
+        attempt_messages, retry_messages,
         diagnosis, learn_blocks, milestone_card,
         created_at
       FROM loop_sessions
@@ -50,6 +51,8 @@ export async function GET(
       setting: row.setting,
       openingLine: row.opening_line,
       phase: row.phase,
+      loopMode: row.loop_mode || 'intermediate',
+      userExperienceLevel: row.user_experience_level ?? 5,
       attemptMessages: row.attempt_messages || [],
       retryMessages: row.retry_messages || [],
       diagnosis: row.diagnosis || null,

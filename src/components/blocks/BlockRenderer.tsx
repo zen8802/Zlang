@@ -13,6 +13,8 @@ import { AudioMatchBlockRenderer } from './AudioMatchBlockRenderer'
 import { DialogueChoiceBlockRenderer } from './DialogueChoiceBlockRenderer'
 import { DialogueTranslateBlockRenderer } from './DialogueTranslateBlockRenderer'
 import { TraceBlockRenderer } from './TraceBlockRenderer'
+import HiraganaIntroBlockRenderer from './HiraganaIntroBlockRenderer'
+import WordBankBlockRenderer from './WordBankBlockRenderer'
 
 interface Props {
   block: LessonBlock
@@ -46,6 +48,10 @@ export default function BlockRenderer({ block, onComplete }: Props) {
     case 'trace':
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return <TraceBlockRenderer block={block} onComplete={onComplete} freewriteOnly={(block as any).freewriteOnly} />
+    case 'hiragana_intro':
+      return <HiraganaIntroBlockRenderer block={block} onComplete={onComplete} />
+    case 'word_bank':
+      return <WordBankBlockRenderer block={block} onComplete={onComplete} />
     case 'video':
     case 'translation':
     case 'reading':

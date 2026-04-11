@@ -16,6 +16,13 @@ interface AppState {
   // Onboarding profile (age/gender/experience/direction) — used to tune AI translations
   userProfile: UserProfile | null
 
+  // Hiragana the learner has been formally introduced to via a hiragana_intro
+  // block. Used by the diagnose API to engineer the next lesson backward from
+  // a target phrase. Persisted to Clerk unsafeMetadata.knownHiragana so it
+  // survives across devices.
+  knownHiragana: string[]
+  worldNumber: number
+
   // User profile
   corridor: 'en-to-jp' | 'jp-to-en' | null
   uiLanguage: 'en' | 'jp'
@@ -37,6 +44,9 @@ interface AppState {
 
   // Actions
   setUserProfile: (profile: UserProfile) => void
+  addKnownHiragana: (chars: string[]) => void
+  setKnownHiragana: (chars: string[]) => void
+  setWorldNumber: (n: number) => void
   setCorridor: (corridor: 'en-to-jp' | 'jp-to-en') => void
   setUiLanguage: (lang: 'en' | 'jp') => void
   setLevel: (level: '' | 'beginner' | 'basics' | 'intermediate' | 'advanced') => void
@@ -73,6 +83,8 @@ function yesterdayStr(): string {
 
 const initialState = {
   userProfile: null as UserProfile | null,
+  knownHiragana: [] as string[],
+  worldNumber: 1,
   corridor: null as 'en-to-jp' | 'jp-to-en' | null,
   uiLanguage: 'en' as 'en' | 'jp',
   level: '' as '' | 'beginner' | 'basics' | 'intermediate' | 'advanced',
@@ -113,6 +125,18 @@ export const useAppStore = create<AppState>()(
           // Mirror the direction into corridor so the rest of the app stays in sync
           corridor: profile.direction,
         }),
+
+      addKnownHiragana: (chars) =>
+        set((state) => {
+          const next = new Set(state.knownHiragana)
+          for (const c of chars) next.add(c)
+          return { knownHiragana: Array.from(next) }
+        }),
+
+      setKnownHiragana: (chars) =>
+        set({ knownHiragana: Array.from(new Set(chars)) }),
+
+      setWorldNumber: (n) => set({ worldNumber: n }),
 
       setCorridor: (corridor) => set({ corridor }),
 

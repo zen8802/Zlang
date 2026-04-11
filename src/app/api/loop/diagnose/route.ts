@@ -1,4 +1,10 @@
 import Anthropic from '@anthropic-ai/sdk'
+import {
+  selectTargetPhrase,
+  getNewHiragana,
+  HIRAGANA_MNEMONICS,
+  HIRAGANA_ROMAJI,
+} from '@/data/hiragana-curriculum'
 
 export async function POST(request: Request) {
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -6,7 +12,23 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { sessionId, messages, isRetry } = await request.json()
+    const {
+      sessionId,
+      messages,
+      isRetry,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      userProfile,
+      knownHiragana: knownHiraganaArray,
+    }: {
+      sessionId: string
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      messages: any[]
+      isRetry?: boolean
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      userProfile?: any
+      knownHiragana?: string[]
+    } = await request.json()
+    void userProfile
 
     if (!sessionId) {
       return Response.json({ error: 'sessionId is required' }, { status: 400 })
@@ -14,6 +36,39 @@ export async function POST(request: Request) {
     if (!messages || !Array.isArray(messages) || messages.length < 2) {
       return Response.json({ error: 'At least 2 messages are required for diagnosis' }, { status: 400 })
     }
+
+    type LoopMode = 'beginner' | 'elementary' | 'intermediate'
+    let loopMode: LoopMode = 'intermediate' as LoopMode
+    let experienceLevel = 5
+    let scenarioId = 'default'
+    if (process.env.DATABASE_URL) {
+      try {
+        const { neon } = await import('@neondatabase/serverless')
+        const sql = neon(process.env.DATABASE_URL!)
+        const rows = await sql`SELECT loop_mode, user_experience_level, scenario_id FROM loop_sessions WHERE id = ${sessionId} LIMIT 1`
+        if (rows[0]) {
+          loopMode = (rows[0].loop_mode as typeof loopMode) || 'intermediate'
+          experienceLevel = rows[0].user_experience_level ?? 5
+          scenarioId = rows[0].scenario_id || 'default'
+        }
+      } catch {}
+    }
+    const isBeginnerMode = loopMode === 'beginner'
+    void experienceLevel
+
+    // Beginner curriculum pre-selection — engineer the lesson backward from
+    // a target phrase so the student actually learns something usable.
+    const knownSet = new Set<string>(Array.isArray(knownHiraganaArray) ? knownHiraganaArray : [])
+    const worldNumber = 1 // World 1 == ramen shop for now. Hardcoded until worlds ship.
+    const targetPhrase = isBeginnerMode
+      ? selectTargetPhrase(scenarioId, worldNumber, knownSet)
+      : null
+    const newChars = targetPhrase ? getNewHiragana(targetPhrase.phrase, knownSet) : []
+    const charsWithMnemonics = newChars.slice(0, 5).map((char) => ({
+      character: char,
+      romaji: HIRAGANA_ROMAJI[char] || '?',
+      mnemonic: HIRAGANA_MNEMONICS[char] || `${char} — practice until it feels natural`,
+    }))
 
     // Build transcript from conversation
     const transcript = messages
@@ -28,7 +83,150 @@ export async function POST(request: Request) {
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-    const diagnosisPrompt = `You are a Japanese language learning diagnostic engine. Analyze this conversation between a learner and a character, then generate a targeted micro-lesson.
+    const targetPhraseStr = targetPhrase?.phrase || 'ありがとう'
+    const targetEnglishStr = targetPhrase?.english || 'thank you'
+    const targetWhyStr = targetPhrase?.whyItMatters || ''
+
+    const hiraganaIntroCharsJSON = charsWithMnemonics
+      .map(
+        (c) =>
+          `    { "character": ${JSON.stringify(c.character)}, "romaji": ${JSON.stringify(c.romaji)}, "mnemonic": ${JSON.stringify(c.mnemonic)}, "appearedIn": "<quote a short phrase from the CONVERSATION above that contains ${c.character}, or the target phrase if none>" }`
+      )
+      .join(',\n')
+
+    const answerTilesJSON = Array.from(targetPhraseStr)
+      .map(
+        (ch, i) =>
+          `        { "id": "t${i + 1}", "character": ${JSON.stringify(ch)}, "isDistractor": false }`
+      )
+      .join(',\n')
+
+    const beginnerPrompt = `You are generating a Japanese lesson for a complete beginner. The student just finished their first real conversation experience — they typed in English and watched their character respond in Japanese. There are NO failures to diagnose; this is a supported-practice loop.
+
+Your job is NOT to pick what to teach. The curriculum system has already pre-selected the target phrase and the exact hiragana characters to introduce. You ONLY fill in conversation-specific bits: the "appearedIn" quotes, the flashcard vocab, the distractor tiles, and the culture note.
+
+CONVERSATION:
+${transcript}
+
+LESSON TARGET (pre-selected by curriculum — DO NOT CHANGE):
+Target phrase: ${targetPhraseStr}
+English meaning: ${targetEnglishStr}
+Why it matters: ${targetWhyStr}
+
+NEW HIRAGANA TO INTRODUCE (use these EXACT characters in this EXACT order — DO NOT change, DO NOT reorder, DO NOT substitute):
+${charsWithMnemonics.map((c, i) => `${i + 1}. ${c.character} (romaji: ${c.romaji}) — ${c.mnemonic}`).join('\n')}
+
+HARD CONSTRAINTS:
+- DO NOT change the hiragana_intro characters. Use them in this exact order. They were pre-selected by the curriculum system.
+- The word_bank answer MUST be exactly: ${targetPhraseStr}
+- The word_bank "tiles" MUST contain one tile per character of the answer (in order, isDistractor: false) PLUS 1-2 additional distractor tiles (isDistractor: true). Distractors must be single hiragana characters from the SAME hiragana row as one of the answer characters (e.g. if the answer contains か, a valid distractor is き or く).
+- The flashcard "word" field MUST be kana only (hiragana/katakana). If a word has a kanji form, mention it ONLY inside memoryHook as "also written as 漢字".
+- The trace block MUST use 1-2 hiragana picked from the NEW HIRAGANA list above — never kanji, never characters the student already knows.
+- Return EXACTLY 5 blocks in the order shown below. No extras, no omissions.
+- DO NOT include: quiz, fill_blank, matching, shadowing, dialogue_choice, image_match, audio_match, sentence, dialogue_translate.
+
+Return ONLY valid JSON (no markdown fences, no commentary) in this exact shape:
+
+{
+  "diagnosis": {
+    "failureType": "opportunity",
+    "failureSummary": "1-2 sentence description of what this lesson teaches",
+    "targetPhrase": ${JSON.stringify(targetPhraseStr)},
+    "targetPhraseEN": ${JSON.stringify(targetEnglishStr)},
+    "teachingFocus": ${JSON.stringify(`Today you learn to write: ${targetPhraseStr} (${targetEnglishStr})`)},
+    "encouragement": "warm sentence celebrating something SPECIFIC from the conversation above",
+    "retryBriefing": "Tap each line in the next screen to test your recognition."
+  },
+  "learnBlocks": [
+    {
+      "id": "block_hira_1",
+      "type": "hiragana_intro",
+      "order": 0,
+      "xpReward": 10,
+      "title": "Your first hiragana",
+      "characters": [
+${hiraganaIntroCharsJSON}
+      ]
+    },
+    {
+      "id": "block_flash_1",
+      "type": "flashcard",
+      "order": 1,
+      "xpReward": 10,
+      "cards": [
+        {
+          "word": "<kana-only word from THIS conversation>",
+          "reading": "<same kana>",
+          "romaji": "<romaji>",
+          "english": "<english>",
+          "partOfSpeech": "noun|verb|adjective|adverb|particle|phrase|greeting|counter|expression",
+          "jlptLevel": "N5",
+          "exampleJP": "<short example from or like the conversation>",
+          "exampleEN": "<english>",
+          "memoryHook": "<mnemonic; if the word has a kanji form, mention it here as 'also written as 漢字'>"
+        }
+        // 4-6 cards total, all drawn from THIS conversation, all kana-only in the "word" field
+      ]
+    },
+    {
+      "id": "block_trace_1",
+      "type": "trace",
+      "order": 2,
+      "xpReward": 15,
+      "title": "Write it",
+      "characters": [
+        {
+          "character": "<ONE of the new hiragana from the list above>",
+          "reading": "<same character>",
+          "romaji": "<romaji>",
+          "english": "the '<romaji>' sound",
+          "strokeCount": 3,
+          "memoryHook": "<mnemonic>"
+        }
+        // 1-2 characters total, visually distinctive ones from newChars only
+      ]
+    },
+    {
+      "id": "block_wb_1",
+      "type": "word_bank",
+      "order": 3,
+      "xpReward": 20,
+      "title": "Put it together",
+      "instruction": "Tap the characters in order to write the phrase.",
+      "targetPhrase": ${JSON.stringify(targetPhraseStr)},
+      "sentences": [
+        {
+          "id": "wb1",
+          "prompt": ${JSON.stringify(`How do you say '${targetEnglishStr}'?`)},
+          "answer": ${JSON.stringify(targetPhraseStr)},
+          "tiles": [
+${answerTilesJSON},
+            { "id": "td1", "character": "<single-hiragana distractor from same row as one answer char>", "isDistractor": true }
+            // add 1-2 distractor tiles total
+          ],
+          "explanation": ${JSON.stringify(targetWhyStr)}
+        }
+      ]
+    },
+    {
+      "id": "block_culture_1",
+      "type": "culture_note",
+      "order": 4,
+      "xpReward": 5,
+      "emoji": "<relevant emoji>",
+      "headline": "<cultural insight title>",
+      "body": "<2-3 sentence explanation tied to THIS conversation>",
+      "neverInTextbook": "<a surprising fact you won't find in textbooks>",
+      "relatedWords": [
+        { "word": "<kana word>", "reading": "<kana>", "meaning": "<english>" }
+      ]
+    }
+  ]
+}
+
+Remember: DO NOT change the hiragana_intro characters. DO NOT change the word_bank answer. Only fill in the conversation-specific content (appearedIn quotes, flashcards, distractor tiles, culture note, encouragement).`
+
+    const intermediatePrompt = `You are a Japanese language learning diagnostic engine. Analyze this conversation between a learner and a character, then generate a targeted micro-lesson.
 
 CONVERSATION TRANSCRIPT:
 ${transcript}
@@ -281,6 +479,8 @@ IMPORTANT RULES:
 - XP rewards: flashcard=15, dialogue_choice=15, shadowing=15, others=10, culture_note=5
 - Make the content DIRECTLY relevant to what the learner failed at in the conversation`
 
+    const diagnosisPrompt = isBeginnerMode ? beginnerPrompt : intermediatePrompt
+
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4000,
@@ -309,6 +509,15 @@ IMPORTANT RULES:
         { error: 'Claude response missing diagnosis or learnBlocks', raw: cleaned.substring(0, 1000) },
         { status: 502 }
       )
+    }
+
+    // For beginner mode, stamp the authoritative curriculum-selected values
+    // onto the diagnosis so the client can update Clerk metadata with
+    // guaranteed-correct targetPhrase + newHiragana.
+    if (isBeginnerMode && targetPhrase) {
+      diagnosis.targetPhrase = targetPhrase.phrase
+      diagnosis.targetPhraseEN = targetPhrase.english
+      diagnosis.newHiragana = newChars
     }
 
     // Save diagnosis + learn blocks to DB

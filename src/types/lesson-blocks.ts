@@ -271,6 +271,53 @@ export interface DialogueTranslateBlock extends BaseBlock {
   exchanges: DialogueTranslateExchange[]
 }
 
+// ── Word Bank ────────────────────────────────
+// Tile-based phrase assembly. The student is given the loose characters
+// (or words) of a target phrase plus 1-2 distractors, and arranges them
+// in order to write the phrase. Used as the FINAL block in beginner
+// lessons — it caps the lesson with the moment "I just wrote real Japanese".
+
+export interface WordBankTile {
+  id: string
+  text: string             // a single hiragana char or short word
+  isDistractor?: boolean
+}
+
+export interface WordBankSentence {
+  id: string
+  prompt: string           // e.g. "How do you say 'thank you'?"
+  answer: string           // the assembled phrase, e.g. "ありがとう"
+  tiles: WordBankTile[]    // shuffled at render time; non-distractors must form `answer` in order
+  explanation?: string
+}
+
+export interface WordBankBlock extends BaseBlock {
+  type: 'word_bank'
+  title: string
+  instruction?: string
+  targetPhrase?: string    // the headline phrase, used by LearnPhase victory moment
+  sentences: WordBankSentence[]
+}
+
+// ── Hiragana Intro ───────────────────────────
+// First-meet block for absolute beginners. Introduces 3-5 hiragana characters
+// the learner just encountered in their conversation. Each character has a
+// recognition phase (large display + audio + mnemonic), a stroke-order watch
+// phase via hanzi-writer, and a quick recognition micro-quiz.
+
+export interface HiraganaIntroCharacter {
+  character: string   // e.g. 'あ'
+  romaji: string      // e.g. 'a'
+  mnemonic: string    // e.g. "あ looks like an 'a' with extra flair"
+  appearedIn: string  // e.g. "ありがとう (arigatou)"
+}
+
+export interface HiraganaIntroBlock extends BaseBlock {
+  type: 'hiragana_intro'
+  title: string
+  characters: HiraganaIntroCharacter[]
+}
+
 // ── Trace ───────────────────────────────────
 
 export interface TraceBlock extends BaseBlock {
@@ -303,6 +350,8 @@ export type BlockType =
   | 'audio_match'
   | 'dialogue_choice'
   | 'dialogue_translate'
+  | 'hiragana_intro'
+  | 'word_bank'
   | 'trace'
 
 export type LessonBlock =
@@ -320,6 +369,8 @@ export type LessonBlock =
   | AudioMatchBlock
   | DialogueChoiceBlock
   | DialogueTranslateBlock
+  | HiraganaIntroBlock
+  | WordBankBlock
   | TraceBlock
 
 // ── Lesson ───────────────────────────────────

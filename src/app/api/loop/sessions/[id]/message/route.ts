@@ -1,4 +1,46 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { buildProfileContext, type UserProfilePayload } from '@/lib/userProfileContext'
+
+function levelAdaptiveRules(level: number): string {
+  if (level <= 2) {
+    return `
+LEVEL-ADAPTIVE SPEECH RULES — ABSOLUTE BEGINNER (level ${level}/10):
+- This learner has never studied Japanese. They will type in English.
+- Speak slower: use shorter sentences (max 8-10 characters per sentence).
+- Use the most common vocabulary only. Avoid idioms, slang, casual contractions.
+- A real shop owner WOULD accommodate a foreign beginner — be warm and patient.
+- React warmly to ANY Japanese attempt no matter how broken.
+- If they switch to English, respond in simple Japanese — they'll see a translation.
+- Use kanji in your dialogue WITH furigana (for recognition), but keep sentences short.
+`
+  }
+  if (level <= 4) {
+    return `
+LEVEL-ADAPTIVE SPEECH RULES — BEGINNER (level ${level}/10):
+- Speak slowly with simple, common vocabulary.
+- Sentences max 12-15 characters.
+- Use basic polite forms (です/ます).
+- React encouragingly to attempts. Naturally repeat or rephrase if they seem lost.
+`
+  }
+  if (level <= 6) {
+    return `
+LEVEL-ADAPTIVE SPEECH RULES — INTERMEDIATE (level ${level}/10):
+- Speak at a natural conversational pace.
+- Use normal vocabulary for this setting.
+- Don't simplify unless they're clearly struggling.
+- Some natural casual speech patterns are fine.
+`
+  }
+  return `
+LEVEL-ADAPTIVE SPEECH RULES — ADVANCED (level ${level}/10):
+- Speak naturally at full speed.
+- Use natural register — casual where appropriate.
+- Don't slow down or simplify.
+- React to register mismatches naturally.
+- This person should be challenged.
+`
+}
 
 export async function POST(
   request: Request,
@@ -11,7 +53,7 @@ export async function POST(
   }
 
   try {
-    const { message, messages: clientMessages } = await request.json()
+    const { message, messages: clientMessages, userProfile } = await request.json()
 
     if (!message || typeof message !== 'string') {
       return Response.json({ error: 'message is required' }, { status: 400 })
@@ -55,6 +97,7 @@ export async function POST(
       characterSpeechStyle: row.character_speech_style,
       characterRelationship: row.character_relationship,
       setting: row.setting,
+      userProfile,
     })
 
     // Use client-provided messages if available, otherwise fall back to DB
@@ -151,6 +194,7 @@ function buildAttemptSystemPrompt(opts: {
   nativeLanguage?: string
   targetLanguage?: string
   userLevel?: string
+  userProfile?: UserProfilePayload | null
 }): string {
   const {
     characterName,
@@ -163,10 +207,16 @@ function buildAttemptSystemPrompt(opts: {
     nativeLanguage = 'English',
     targetLanguage = 'Japanese',
     userLevel = 'beginner',
+    userProfile,
   } = opts
+
+  const profileContext = buildProfileContext(userProfile)
+  const level = typeof userProfile?.experience === 'number' ? userProfile.experience : 5
+  const adaptiveRules = levelAdaptiveRules(level)
 
   return `You are playing a character in a Japanese language learning conversation simulator (Loop mode — Attempt phase).
 
+${profileContext ? `LEARNER PROFILE:\n${profileContext}\n\n` : ''}${adaptiveRules}
 CHARACTER: ${characterName} (${characterNameJP})
 ${characterDescription}
 Personality: ${characterPersonality}
@@ -199,10 +249,13 @@ STRICT RULES:
 11. Never break character before the separators.
 12. Keep responses concise — 1-3 sentences of dialogue.
 13. Progress the scenario naturally. Don't wait for perfect Japanese.
-13a. CRITICAL — NEVER end your turn on a pure acknowledgment. If your natural reaction to what the learner just said would be a one-line ack like "good choice", "okay", "got it", "sounds good", "わかった", "了解(りょうかい)", "いいね", "はい" — DO NOT stop there. In the SAME message, immediately chain into the next conversation beat from the SETTING's CONVERSATION FLOW (or, if no flow is defined, the next natural step in the scenario). The learner must always have something meaningful to respond to. Examples:
-    BAD (don't do this): "おう、硬(かた)めだな！いいぞ。" — pure ack, leaves the learner with nothing to say.
-    GOOD: "おう、硬(かた)めだな！いいぞ。…はい、お待(ま)たせ！何(なに)か飲(の)み物(もの)は？" — ack + advances to the next beat (asking about a drink) so the learner has a real prompt.
-    Rule of thumb: every one of your messages must end with EITHER a question, a request, a price/total, or a clear conversational hook. If you find yourself about to send only an acknowledgment, append the next beat first.
+13a. CRITICAL — NEVER end your turn on a pure acknowledgment OR pure greeting. Every message must end with a CONCRETE QUESTION OR REQUEST the learner can directly answer. If your natural reaction would be a one-line ack like "good choice", "okay", "got it", "sounds good", "わかった", "了解(りょうかい)", "いいね", "はい" — DO NOT stop there. In the SAME message, immediately chain into the next conversation beat from the SETTING's CONVERSATION FLOW (or, if no flow is defined, the next natural step in the scenario). Examples:
+    BAD: "おう、硬(かた)めだな！いいぞ。" — pure ack, nothing to respond to.
+    BAD: "いらっしゃい！座(すわ)って！" — pure greeting, nothing to respond to.
+    GOOD: "おう、硬(かた)めだな！いいぞ。…はい、お待(ま)たせ！何(なに)か飲(の)み物(もの)は？" — ack + advances to next beat.
+    GOOD: "いらっしゃい！座(すわ)って！何(なに)にしますか？" — greeting + concrete question.
+    Acceptable endings: a question, a request, a price/total, a "what about X?" hook. UNACCEPTABLE: "welcome", "sit down", "have a seat", "good choice" — leaves the learner with nothing.
+13c. PAYMENT ENDING — when the learner asks for the bill (お会計, お勘定, "check please", "kaikei", etc.) OR hands you payment, your response MUST be exactly the closing farewell: a brief ありがとうございました line (you may add ようこそ来(き)てくれて or またお越(こ)しください). DO NOT ask another question after payment. DO NOT extend the scenario. The conversation ENDS here. The app will auto-detect the farewell and wrap up the lesson.
 14. If the learner writes in ${nativeLanguage}, gently respond in ${targetLanguage} and the coach note should say "Try responding in Japanese next time!"
 15. After ---COACH---, always add ---OPTIONS--- followed by exactly 4 response options the learner could say next.
 Each option MUST include furigana for all kanji in the same format: 漢字(かんじ).
@@ -214,5 +267,16 @@ Option 4: funny or unexpected response
 All options must be grammatically correct Japanese at the learner's level.
 16. If the learner's most recent message was written in English (mostly Latin characters, no Japanese script), after the ---OPTIONS--- section add ---JP_OF_YOURS--- on its own line followed by ONE line in this exact format:
     [Japanese] | [romaji] | [the original English]
-    This shows the learner how their English thought would naturally be said in Japanese. Do NOT add explanation or grammar notes. Just the one line. If the learner already wrote in Japanese, do NOT include this section at all.`
+    This shows the learner how their English thought would naturally be said in Japanese. Do NOT add explanation or grammar notes. Just the one line. If the learner already wrote in Japanese, do NOT include this section at all.
+17. After all the above sections, if the learner is a beginner (level 1-4 in the LEARNER PROFILE — if no profile is shown, assume beginner), add ---HINTS--- on its own line followed by 3-6 short ENGLISH chip ideas, ONE per line. Format each line as either:
+    [short english phrase]
+    or
+    [short english phrase] | [short hint in parentheses]
+    Examples for a ramen shop after the chef asks "what'll you have?":
+      tonkotsu (rich pork broth)
+      shoyu (soy sauce)
+      shio (salt — lighter)
+      with extra chashu
+      no green onions
+    Each chip UNDER 6 words, plain ENGLISH, representing a plausible English answer to the QUESTION you just asked the learner. Do NOT translate them to Japanese — the learner will type their full English sentence using one of them. ALWAYS emit HINTS on every beginner turn where you ask a concrete question. Only skip HINTS for the closing/farewell beat where the conversation is wrapping up.`
 }

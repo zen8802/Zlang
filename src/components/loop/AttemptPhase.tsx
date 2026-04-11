@@ -36,6 +36,7 @@ interface Message {
   options?: ResponseOption[]
   jpOfYours?: { japanese: string; romaji: string; english: string }
   userEnglish?: string
+  hints?: string[]
   timestamp: number
 }
 
@@ -46,6 +47,7 @@ interface TranslatedResponse {
   breakdown: {
     chunk: string
     reading: string
+    romaji?: string
     meaning: string
     note?: string
   }[]
@@ -134,7 +136,7 @@ function parseCharacterResponse(text: string) {
   let coachNote = ''
   let optionsRaw = ''
 
-  const firstSep = remaining.search(/---\s*(?:VOCAB|ROMAJI|EN|COACH|OPTIONS|JP_OF_YOURS)\s*---/)
+  const firstSep = remaining.search(/---\s*(?:VOCAB|ROMAJI|EN|COACH|OPTIONS|JP_OF_YOURS|HINTS)\s*---/)
   if (firstSep >= 0) {
     characterContent = remaining.slice(0, firstSep).trim()
     remaining = remaining.slice(firstSep)
@@ -144,7 +146,7 @@ function parseCharacterResponse(text: string) {
   }
 
   const vocabList: VocabWord[] = []
-  const vocabMatch = remaining.match(/---\s*VOCAB\s*---\s*([\s\S]*?)(?=---\s*(?:ROMAJI|EN|COACH|OPTIONS|JP_OF_YOURS)\s*---|$)/)
+  const vocabMatch = remaining.match(/---\s*VOCAB\s*---\s*([\s\S]*?)(?=---\s*(?:ROMAJI|EN|COACH|OPTIONS|JP_OF_YOURS|HINTS)\s*---|$)/)
   if (vocabMatch) {
     const vocabLines = vocabMatch[1].trim().split('\n').filter(l => l.trim())
     for (const line of vocabLines) {
@@ -161,25 +163,36 @@ function parseCharacterResponse(text: string) {
     }
   }
 
-  const romajiMatch = remaining.match(/---\s*ROMAJI\s*---\s*([\s\S]*?)(?=---\s*(?:EN|COACH|OPTIONS|JP_OF_YOURS)\s*---|$)/)
+  const romajiMatch = remaining.match(/---\s*ROMAJI\s*---\s*([\s\S]*?)(?=---\s*(?:EN|COACH|OPTIONS|JP_OF_YOURS|HINTS)\s*---|$)/)
   if (romajiMatch) romajiContent = romajiMatch[1].trim()
 
-  const enMatch = remaining.match(/---\s*EN\s*---\s*([\s\S]*?)(?=---\s*(?:COACH|OPTIONS|JP_OF_YOURS)\s*---|$)/)
+  const enMatch = remaining.match(/---\s*EN\s*---\s*([\s\S]*?)(?=---\s*(?:COACH|OPTIONS|JP_OF_YOURS|HINTS)\s*---|$)/)
   if (enMatch) englishContent = enMatch[1].trim()
 
-  const coachMatch = remaining.match(/---\s*COACH\s*---\s*([\s\S]*?)(?=---\s*(?:OPTIONS|JP_OF_YOURS)\s*---|$)/)
+  const coachMatch = remaining.match(/---\s*COACH\s*---\s*([\s\S]*?)(?=---\s*(?:OPTIONS|JP_OF_YOURS|HINTS)\s*---|$)/)
   if (coachMatch) coachNote = coachMatch[1].trim()
 
-  const optionsMatch = remaining.match(/---\s*OPTIONS\s*---\s*([\s\S]*?)(?=---\s*JP_OF_YOURS\s*---|$)/)
+  const optionsMatch = remaining.match(/---\s*OPTIONS\s*---\s*([\s\S]*?)(?=---\s*(?:JP_OF_YOURS|HINTS)\s*---|$)/)
   if (optionsMatch) optionsRaw = optionsMatch[1].trim()
 
   let jpOfYours: { japanese: string; romaji: string; english: string } | undefined
-  const jpMatch = remaining.match(/---\s*JP_OF_YOURS\s*---\s*([\s\S]*)$/)
+  const jpMatch = remaining.match(/---\s*JP_OF_YOURS\s*---\s*([\s\S]*?)(?=---\s*HINTS\s*---|$)/)
   if (jpMatch) {
     const line = jpMatch[1].trim().split('\n').find(l => l.trim()) || ''
     const parts = line.split('|').map(p => p.trim())
     if (parts.length >= 3 && parts[0]) {
       jpOfYours = { japanese: parts[0], romaji: parts[1], english: parts[2] }
+    }
+  }
+
+  const hints: string[] = []
+  const hintsMatch = remaining.match(/---\s*HINTS\s*---\s*([\s\S]*)$/)
+  if (hintsMatch) {
+    const hintLines = hintsMatch[1].trim().split('\n').map(l => l.trim()).filter(Boolean)
+    for (const line of hintLines) {
+      // Strip optional leading numbering, bullet, or quote markers
+      const cleaned = line.replace(/^[-•*\d+\.\)]+\s*/, '').trim()
+      if (cleaned) hints.push(cleaned)
     }
   }
 
@@ -215,7 +228,7 @@ function parseCharacterResponse(text: string) {
     }
   }
 
-  return { characterContent, vocabList, romajiContent, englishContent, coachNote, options, jpOfYours }
+  return { characterContent, vocabList, romajiContent, englishContent, coachNote, options, jpOfYours, hints }
 }
 
 // ---------------------------------------------------------------------------
@@ -427,6 +440,9 @@ function VocabPopup({ word, rect, onClose }: { word: VocabWord; rect: DOMRect; o
 // ---------------------------------------------------------------------------
 
 export default function AttemptPhase({ sessionId, session, diagnosing, onEndAttempt }: AttemptPhaseProps) {
+  // loopMode kept on the session for the diagnose API + RecognizePhase routing,
+  // but the conversation UI is now identical across all modes — beginners deserve
+  // the full breakdown / alternative / chips experience, not a stripped-down bar.
   const globalShowFurigana = useAppStore((s) => s.showFurigana)
   const globalShowTranslation = useAppStore((s) => s.showTranslation)
   const userProfile = useAppStore((s) => s.userProfile)
@@ -456,11 +472,91 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
   const [englishInput, setEnglishInput] = useState('')
   const [translating, setTranslating] = useState(false)
   const [translated, setTranslated] = useState<TranslatedResponse | null>(null)
+  const [useAlternative, setUseAlternative] = useState(false)
   const [showBreakdown, setShowBreakdown] = useState(true)
+
+  // Pay-flow state. Once the conversation reaches the payment beat, `payShown`
+  // sticks (so the textbox copy + End button stay updated even after the pay
+  // moment passes). `payContinued` flips when the user types past the pay
+  // prompt instead of tapping the Pay button — at that point we hide the Pay
+  // button entirely and show a clear "End Conversation" CTA after every reply.
+  const [payShown, setPayShown] = useState(false)
+  const [payContinued, setPayContinued] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const userExchanges = messages.filter(m => m.role === 'user').length
+
+  // Hints from the latest character message — beginner-friendly English chips
+  // the learner can tap to drop into their input.
+  const latestHints: string[] = (() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'character') {
+        return messages[i].hints ?? []
+      }
+    }
+    return []
+  })()
+
+  // Payment-intent detector — shows a one-tap "Pay now" button when the
+  // character is asking for money / giving the total. Tapping it sends a
+  // fixed payment phrase; the existing farewell auto-end then catches
+  // Takeshi's "ありがとうございました" and ends the conversation.
+  const showPayNow: boolean = (() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i]
+      if (m.role !== 'character') continue
+      const stripped = (m.content || '').replace(
+        /([一-龥々]+)\(([ぁ-んァ-ヶー]+)\)/g,
+        '$1',
+      )
+      const en = (m.english || '').toLowerCase()
+      // JP money/total signals
+      if (
+        stripped.includes('お会計') ||
+        stripped.includes('会計') ||
+        stripped.includes('お勘定') ||
+        stripped.includes('勘定') ||
+        stripped.includes('円です') ||
+        stripped.includes('円になります') ||
+        stripped.includes('円ね') ||
+        stripped.includes('円だ') ||
+        /\d+\s*円/.test(stripped) ||
+        /\d{2,4}\s*えん/.test(stripped)
+      ) {
+        return true
+      }
+      // EN money signals (from the ---EN--- translation)
+      if (
+        en.includes('total') ||
+        en.includes('that\'ll be') ||
+        en.includes('that will be') ||
+        en.includes('that comes to') ||
+        en.includes('yen') ||
+        en.includes('the bill')
+      ) {
+        return true
+      }
+      // Only check the most recent character message
+      return false
+    }
+    return false
+  })()
+
+  // Latch payShown true the first time the payment beat is reached.
+  useEffect(() => {
+    if (showPayNow && !payShown) setPayShown(true)
+  }, [showPayNow, payShown])
+
+  const insertHint = (hint: string) => {
+    // Strip the parenthetical explainer ("tonkotsu (rich pork broth)" → "tonkotsu")
+    const phrase = hint.replace(/\s*\(.*\)\s*$/, '').trim()
+    setEnglishInput(prev => {
+      if (!prev.trim()) return phrase
+      // Append with a space if the existing text doesn't already end with one
+      return /\s$/.test(prev) ? prev + phrase : prev + ' ' + phrase
+    })
+  }
 
   // Load existing messages
   useEffect(() => {
@@ -481,6 +577,7 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
             vocab: parsed.vocabList.length > 0 ? parsed.vocabList : undefined,
             coachNote: parsed.coachNote || undefined,
             options: parsed.options.length > 0 ? parsed.options : undefined,
+            hints: parsed.hints.length > 0 ? parsed.hints : undefined,
             timestamp: msg.timestamp || Date.now(),
           }
         }
@@ -551,6 +648,7 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
           vocab: parsed.vocabList.length > 0 ? parsed.vocabList : undefined,
           coachNote: parsed.coachNote || undefined,
           options: parsed.options.length > 0 ? parsed.options : undefined,
+          hints: parsed.hints.length > 0 ? parsed.hints : undefined,
           timestamp: Date.now(),
         }
 
@@ -588,7 +686,7 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
               const next = [...prev, characterMsg]
               // Auto-end check: farewell detected + at least 2 user exchanges
               const userCount = next.filter(m => m.role === 'user').length
-              if (containsFarewell(parsed.characterContent) && userCount >= 2) {
+              if (containsFarewell(parsed.characterContent) && userCount >= 1) {
                 setAutoEnding(true)
                 autoEndTimerRef.current = setTimeout(() => {
                   onEndAttempt(next)
@@ -655,6 +753,7 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
       const data = await res.json()
       if (data.translation) {
         setTranslated(data.translation)
+        setUseAlternative(false)
         if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
           setTimeout(() => {
             speechSynthesis.cancel()
@@ -683,16 +782,25 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
 
   const handleSendTranslated = useCallback(() => {
     if (!translated) return
-    const japanese = translated.japanese
+    const japanese =
+      useAlternative && translated.alternativePhrase
+        ? translated.alternativePhrase
+        : translated.japanese
     const english = englishInput
+    // If the learner is sending a typed message AFTER the pay beat appeared,
+    // they're choosing to keep the conversation going. Lock in payContinued
+    // so we hide the Pay button and surface a clear "End Conversation" CTA.
+    if (payShown) setPayContinued(true)
     setTranslated(null)
+    setUseAlternative(false)
     setEnglishInput('')
     setShowBreakdown(true)
     sendText(japanese, english)
-  }, [translated, englishInput, sendText])
+  }, [translated, useAlternative, englishInput, sendText, payShown])
 
   const handleEditTranslation = useCallback(() => {
     setTranslated(null)
+    setUseAlternative(false)
   }, [])
 
   // Cleanup any pending auto-end timer on unmount
@@ -919,7 +1027,7 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
           )
         })()}
 
-        {/* English-input → AI-translate flow (beginner) */}
+        {/* English-input → AI-translate flow (all modes — beginners get the same breakdown experience) */}
         {!isStreaming && !isAnimating && !diagnosing && messages.length > 0 && messages[messages.length - 1]?.role === 'character' && (
           <div className="pt-2 space-y-3">
             {/* Translation result */}
@@ -934,16 +1042,34 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
                       className="text-white text-[15px] leading-relaxed"
                       style={{ fontFamily: 'Noto Sans JP, sans-serif' }}
                     >
-                      {translated.japanese}
+                      {useAlternative && translated.alternativePhrase
+                        ? translated.alternativePhrase
+                        : translated.japanese}
                     </p>
-                    <p
-                      className="text-white/50 text-xs mt-1 font-medium"
-                      style={{ fontFamily: 'DM Mono, monospace' }}
-                    >
-                      {translated.romaji}
-                    </p>
+                    {!useAlternative && (
+                      <p
+                        className="text-white/50 text-xs mt-1 font-medium"
+                        style={{ fontFamily: 'DM Mono, monospace' }}
+                      >
+                        {translated.romaji}
+                      </p>
+                    )}
+                    {useAlternative && translated.alternativePhraseEN && (
+                      <p
+                        className="text-white/60 text-xs italic mt-1"
+                        style={{ fontFamily: 'DM Sans, sans-serif' }}
+                      >
+                        {translated.alternativePhraseEN}
+                      </p>
+                    )}
                     <button
-                      onClick={() => playJapaneseAudio(translated.japanese)}
+                      onClick={() =>
+                        playJapaneseAudio(
+                          useAlternative && translated.alternativePhrase
+                            ? translated.alternativePhrase
+                            : translated.japanese,
+                        )
+                      }
                       className="text-white/40 text-xs mt-1 hover:text-white/70 transition-colors flex items-center gap-1"
                       style={{ fontFamily: 'DM Sans, sans-serif' }}
                     >
@@ -987,7 +1113,7 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
                                 className="text-[11px] text-[#9E9892]"
                                 style={{ fontFamily: 'DM Mono, monospace' }}
                               >
-                                {chunk.reading}
+                                {chunk.romaji || chunk.reading}
                               </p>
                             </div>
                             <div className="flex-1">
@@ -1041,6 +1167,31 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
                               {translated.alternativePhraseEN}
                             </p>
                           )}
+                          <button
+                            onClick={() => {
+                              setUseAlternative((v) => !v)
+                              if (translated.alternativePhrase) {
+                                setTimeout(
+                                  () =>
+                                    playJapaneseAudio(
+                                      useAlternative
+                                        ? translated.japanese
+                                        : (translated.alternativePhrase as string),
+                                    ),
+                                  150,
+                                )
+                              }
+                            }}
+                            className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-[6px] border transition-colors"
+                            style={{
+                              fontFamily: 'DM Sans, sans-serif',
+                              backgroundColor: useAlternative ? '#7A5C2E' : '#FDFBF8',
+                              color: useAlternative ? '#FFFFFF' : '#7A5C2E',
+                              borderColor: '#D4C4A8',
+                            }}
+                          >
+                            {useAlternative ? '✓ Using this version' : 'Try this instead →'}
+                          </button>
                         </div>
                       )}
                     </div>
@@ -1073,8 +1224,73 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
                   className="text-xs text-[#9E9892] text-center"
                   style={{ fontFamily: 'DM Sans, sans-serif' }}
                 >
-                  Say what you want in English — we&apos;ll translate it
+                  {payShown
+                    ? "Want to continue the conversation? Continue by asking anything. We'll translate for you."
+                    : "Say what you want in English — we'll translate it"}
                 </p>
+
+                {/* Contextual suggestion chips — only shown if the API returned hints */}
+                {latestHints.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 justify-center px-2">
+                    {latestHints.map((hint, i) => {
+                      const main = hint.replace(/\s*\(.*\)\s*$/, '').trim()
+                      const note = (hint.match(/\(([^)]*)\)\s*$/) || [])[1]
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => insertHint(hint)}
+                          className="group inline-flex items-baseline gap-1 px-2.5 py-1 rounded-full bg-[#FDFBF8] border border-[#E0DAD2] hover:border-[#1B4F8A] hover:bg-[#EBF0F8] transition-colors"
+                          style={{ fontFamily: 'DM Sans, sans-serif' }}
+                        >
+                          <span className="text-[11px] text-[#1A1814] group-hover:text-[#1B4F8A]">
+                            {main}
+                          </span>
+                          {note && (
+                            <span className="text-[10px] text-[#9E9892]">
+                              {note}
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* One-tap Pay button — only while the pay beat is current AND
+                    the user hasn't chosen to keep the conversation going. */}
+                {showPayNow && !payContinued && (
+                  <button
+                    onClick={() => sendText('お会計(かいけい)お願(ねが)いします', 'Here you go.')}
+                    disabled={isStreaming || isAnimating}
+                    className="w-full flex flex-col items-center justify-center gap-0.5 px-4 py-3 rounded-[10px] bg-[#1B4F8A] text-white font-semibold transition-all hover:bg-[#4A7AB5] active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ fontFamily: 'DM Sans, sans-serif' }}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="text-base">💴</span>
+                      <span className="text-sm">Pay (Ends Conversation)</span>
+                    </span>
+                    <span
+                      className="text-[11px] opacity-70"
+                      style={{ fontFamily: 'Noto Sans JP, sans-serif' }}
+                    >
+                      お会計お願いします
+                    </span>
+                  </button>
+                )}
+
+                {/* Once the user opts to continue past the pay beat, surface a
+                    clear "End Conversation" CTA above the textbox. It appears
+                    after every new character reply for the rest of the loop. */}
+                {payShown && payContinued && !isStreaming && !isAnimating && !autoEnding && (
+                  <button
+                    onClick={() => onEndAttempt(messages)}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] bg-[#1B4F8A] text-white font-semibold transition-all hover:bg-[#4A7AB5] active:translate-y-px"
+                    style={{ fontFamily: 'DM Sans, sans-serif' }}
+                  >
+                    <span className="text-sm">End Conversation</span>
+                  </button>
+                )}
+
                 <div className="bg-[#FDFBF8] rounded-[10px] border-2 border-[#E0DAD2] focus-within:border-[#1B4F8A] transition-colors overflow-hidden">
                   <textarea
                     value={englishInput}
@@ -1090,13 +1306,7 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
                     className="w-full px-4 pt-3 pb-1 text-sm text-[#1A1814] resize-none bg-transparent outline-none placeholder-[#C8C3BC]"
                     style={{ fontFamily: 'DM Sans, sans-serif' }}
                   />
-                  <div className="flex items-center justify-between px-4 pb-3">
-                    <p
-                      className="text-[10px] text-[#C8C3BC]"
-                      style={{ fontFamily: 'DM Sans, sans-serif' }}
-                    >
-                      Write in English — we&apos;ll translate it
-                    </p>
+                  <div className="flex items-center justify-end px-4 pb-3">
                     <button
                       onClick={handleTranslate}
                       disabled={!englishInput.trim() || translating}
@@ -1128,8 +1338,9 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
           </div>
         )}
 
-        {/* End attempt button (after 2+ exchanges — tight loops finish fast) */}
-        {!autoEnding && userExchanges >= 2 && !isStreaming && !isAnimating && !diagnosing && (
+        {/* End attempt button (after 2+ exchanges — tight loops finish fast).
+            Hidden once the post-pay End Conversation CTA takes over. */}
+        {!autoEnding && !(payShown && payContinued) && userExchanges >= 2 && !isStreaming && !isAnimating && !diagnosing && (
           <div className="pt-4 pb-2 text-center">
             <Button variant="gold" size="md" onClick={() => onEndAttempt(messages)}>
               End →

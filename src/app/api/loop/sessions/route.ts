@@ -1,5 +1,47 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { SCENARIO_TEMPLATES, CHARACTER_ROSTER } from '@/data/scenarios'
+import { buildProfileContext, type UserProfilePayload } from '@/lib/userProfileContext'
+
+function levelAdaptiveRules(level: number): string {
+  if (level <= 2) {
+    return `
+LEVEL-ADAPTIVE SPEECH RULES — ABSOLUTE BEGINNER (level ${level}/10):
+- This learner has never studied Japanese. They will type in English.
+- Speak slower: use shorter sentences (max 8-10 characters per sentence).
+- Use the most common vocabulary only. Avoid idioms, slang, casual contractions.
+- A real shop owner WOULD accommodate a foreign beginner — be warm and patient.
+- React warmly to ANY Japanese attempt no matter how broken.
+- If they switch to English, respond in simple Japanese — they'll see a translation.
+- Use kanji in your dialogue WITH furigana (for recognition), but keep sentences short.
+`
+  }
+  if (level <= 4) {
+    return `
+LEVEL-ADAPTIVE SPEECH RULES — BEGINNER (level ${level}/10):
+- Speak slowly with simple, common vocabulary.
+- Sentences max 12-15 characters.
+- Use basic polite forms (です/ます).
+- React encouragingly to attempts. Naturally repeat or rephrase if they seem lost.
+`
+  }
+  if (level <= 6) {
+    return `
+LEVEL-ADAPTIVE SPEECH RULES — INTERMEDIATE (level ${level}/10):
+- Speak at a natural conversational pace.
+- Use normal vocabulary for this setting.
+- Don't simplify unless they're clearly struggling.
+- Some natural casual speech patterns are fine.
+`
+  }
+  return `
+LEVEL-ADAPTIVE SPEECH RULES — ADVANCED (level ${level}/10):
+- Speak naturally at full speed.
+- Use natural register — casual where appropriate.
+- Don't slow down or simplify.
+- React to register mismatches naturally.
+- This person should be challenged.
+`
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getScenarioById(id: string): any {
@@ -17,11 +59,20 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { scenarioId, customPrompt } = await request.json()
+    const { scenarioId, customPrompt, userProfile } = await request.json()
 
     if (!scenarioId) {
       return Response.json({ error: 'scenarioId is required' }, { status: 400 })
     }
+
+    // Determine the loop mode from the learner's experience level.
+    // Beginner (1-2): Experience → Learn → Recognize (no failure)
+    // Elementary (3-4): Attempt with training wheels → Learn → Retry
+    // Intermediate+ (5+): full Attempt → Fail → Learn → Retry
+    const experience: number =
+      typeof userProfile?.experience === 'number' ? userProfile.experience : 5
+    const loopMode: 'beginner' | 'elementary' | 'intermediate' =
+      experience <= 2 ? 'beginner' : experience <= 4 ? 'elementary' : 'intermediate'
 
     const scenario = getScenarioById(scenarioId)
     if (!scenario) {
@@ -125,6 +176,7 @@ Return ONLY valid JSON (no markdown fences):
       characterSpeechStyle,
       characterRelationship,
       setting,
+      userProfile,
     })
 
     const opening = await anthropic.messages.create({
@@ -159,6 +211,8 @@ Return ONLY valid JSON (no markdown fences):
       setting,
       openingLine,
       phase: 'attempt',
+      loopMode,
+      userExperienceLevel: experience,
       attemptMessages: [{ role: 'assistant', content: openingMessage }],
       retryMessages: [],
       diagnosis: null,
@@ -178,7 +232,8 @@ Return ONLY valid JSON (no markdown fences):
             character_name, character_name_jp, character_color, character_avatar,
             character_description, character_personality, character_speech_style,
             character_relationship, voice_id, setting, opening_line,
-            phase, attempt_messages, retry_messages,
+            phase, loop_mode, user_experience_level,
+            attempt_messages, retry_messages,
             diagnosis, learn_blocks, milestone_card,
             created_at
           )
@@ -187,7 +242,7 @@ Return ONLY valid JSON (no markdown fences):
             ${characterName}, ${characterNameJP}, ${characterColor}, ${characterAvatar},
             ${characterDescription}, ${characterPersonality}, ${characterSpeechStyle},
             ${characterRelationship}, ${voiceId}, ${setting}, ${openingLine},
-            'attempt',
+            'attempt', ${loopMode}, ${experience},
             ${JSON.stringify([{ role: 'assistant', content: openingMessage }])}::jsonb,
             '[]'::jsonb,
             NULL,
@@ -227,6 +282,7 @@ function buildLoopSystemPrompt(opts: {
   nativeLanguage?: string
   targetLanguage?: string
   userLevel?: string
+  userProfile?: UserProfilePayload | null
 }): string {
   const {
     characterName,
@@ -239,10 +295,16 @@ function buildLoopSystemPrompt(opts: {
     nativeLanguage = 'English',
     targetLanguage = 'Japanese',
     userLevel = 'beginner',
+    userProfile,
   } = opts
+
+  const profileContext = buildProfileContext(userProfile)
+  const level = typeof userProfile?.experience === 'number' ? userProfile.experience : 5
+  const adaptiveRules = levelAdaptiveRules(level)
 
   return `You are playing a character in a Japanese language learning conversation simulator (Loop mode — Attempt phase).
 
+${profileContext ? `LEARNER PROFILE:\n${profileContext}\n\n` : ''}${adaptiveRules}
 CHARACTER: ${characterName} (${characterNameJP})
 ${characterDescription}
 Personality: ${characterPersonality}
@@ -275,7 +337,8 @@ STRICT RULES:
 11. Never break character before the separators.
 12. Keep responses concise — 1-3 sentences of dialogue.
 13. Progress the scenario naturally. Don't wait for perfect Japanese.
-13a. CRITICAL — NEVER end your turn on a pure acknowledgment. If your natural reaction would be a one-line ack like "good choice", "okay", "got it", "わかった", "了解(りょうかい)", "いいね", "はい" — DO NOT stop there. In the SAME message, immediately chain into the next conversation beat from the SETTING's CONVERSATION FLOW (or, if no flow is defined, the next natural step in the scenario). Every message must end with EITHER a question, a request, a price/total, or a clear conversational hook. If you find yourself about to send only an acknowledgment, append the next beat first.
+13a. CRITICAL — NEVER end your turn on a pure acknowledgment OR a pure greeting. If your natural reaction would be a one-line ack like "good choice", "okay", "got it", "わかった", "了解(りょうかい)", "いいね", "はい" — DO NOT stop there. In the SAME message, immediately chain into the next conversation beat from the SETTING's CONVERSATION FLOW (or, if no flow is defined, the next natural step in the scenario). Every message must end with a CONCRETE QUESTION OR REQUEST the learner can directly answer. Examples of acceptable endings: "what'll you have?", "how firm do you want the noodles?", "that'll be 800 yen", "where are you from?". Examples of UNACCEPTABLE endings: "welcome!", "have a seat!", "sit anywhere!", "good choice!" — these give the learner nothing to respond to.
+13b. OPENING MESSAGE — your VERY FIRST message in the conversation MUST follow rule 13a even more strictly. After greeting the learner, in the SAME message, ask the FIRST question of the scenario. For a ramen shop the opening must end with the equivalent of "what'll you have today?" / 何(なに)にしますか？ — never just "welcome, sit down". The learner should be able to answer your opening message with a concrete order/preference/request immediately.
 14. If the learner writes in ${nativeLanguage}, gently respond in ${targetLanguage} and the coach note should say "Try responding in Japanese next time!"
 15. After ---COACH---, always add ---OPTIONS--- followed by exactly 4 response options the learner could say next.
 Each option MUST include furigana for all kanji in the same format: 漢字(かんじ).
@@ -284,5 +347,16 @@ Option 1: safest, most polite response
 Option 2: natural, normal response
 Option 3: bold or casual response
 Option 4: funny or unexpected response
-All options must be grammatically correct Japanese at the learner's level.`
+All options must be grammatically correct Japanese at the learner's level.
+16. After all the above sections, if the learner is a beginner (level 1-4 — assume beginner if no profile is shown), add ---HINTS--- on its own line followed by 3-6 short ENGLISH chip ideas, ONE per line. Format each line as either:
+    [short english phrase]
+    or
+    [short english phrase] | [short hint in parentheses]
+    Examples for a ramen shop after asking "what'll you have?":
+      tonkotsu (rich pork broth)
+      shoyu (soy sauce)
+      shio (salt — lighter)
+      with extra chashu
+      no green onions
+    The chips should be plausible English answers to the QUESTION you just asked the learner. Each chip UNDER 6 words, plain ENGLISH (the parenthetical hint is also English). Do NOT translate to Japanese. ALWAYS emit HINTS on the OPENING message in beginner mode — the learner needs the most help on turn 1. Only skip HINTS for the closing/farewell beat where the conversation is wrapping up.`
 }

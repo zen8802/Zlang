@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useUser } from '@clerk/nextjs'
 import { LanguageStep } from '@/components/onboarding/LanguageStep'
 import { ProfileStep } from '@/components/onboarding/ProfileStep'
 import { ExperienceStep } from '@/components/onboarding/ExperienceStep'
@@ -11,6 +12,7 @@ type Step = 'language' | 'profile' | 'experience'
 
 export default function OnboardingPage() {
   const router = useRouter()
+  const { user } = useUser()
   const setUserProfile = useAppStore((s) => s.setUserProfile)
 
   const [step, setStep] = useState<Step>('language')
@@ -28,13 +30,27 @@ export default function OnboardingPage() {
     }, 220)
   }
 
-  const finish = () => {
+  const finish = async () => {
     const profile = { direction, age, gender, experience }
     setUserProfile(profile)
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('mirai_profile', JSON.stringify(profile))
       } catch {}
+    }
+    // Persist to Clerk so the profile follows the user across devices/browsers.
+    // Fire-and-forget — we don't want to block the redirect on a slow API call.
+    if (user) {
+      void user
+        .update({
+          unsafeMetadata: {
+            ...(user.unsafeMetadata || {}),
+            miraiProfile: profile,
+          },
+        })
+        .catch(() => {
+          /* ignore — local store + localStorage already cover this session */
+        })
     }
     router.push('/dashboard')
   }

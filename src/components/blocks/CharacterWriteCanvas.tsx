@@ -27,6 +27,9 @@ function playAudio(char: string) {
 }
 
 const CANVAS_SIZE = 300
+// Cap DPR at 3 — beyond that there's no perceptual gain and OCR exports get huge
+const DPR =
+  typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 3) : 1
 
 export function CharacterWriteCanvas({
   targetCharacter, targetRomaji, targetEnglish,
@@ -37,94 +40,147 @@ export function CharacterWriteCanvas({
   const lastPointRef = useRef<{ x: number; y: number } | null>(null)
   const hasDrawnRef = useRef(false)
   const checkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const dprRef = useRef(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1)
 
   const [state, setState] = useState<RecognitionState>('idle')
   const [recognizedChar, setRecognizedChar] = useState<string | null>(null)
   const [attempts, setAttempts] = useState(0)
 
-  // Scale canvas for retina
+  // Canvas setup — runs ONCE on mount.
+  // The canvas backing store is CANVAS_SIZE × DPR physical pixels, but the
+  // CSS box stays at CANVAS_SIZE logical pixels. ctx.scale(DPR, DPR) makes
+  // every drawing op operate in logical-pixel coordinates — so the pointer
+  // handlers can use plain (clientX - rect.left) without any extra math.
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
-    if (ctx) ctx.scale(dprRef.current, dprRef.current)
-  }, [])
+    if (!ctx) return
 
-  const getPoint = useCallback((e: React.TouchEvent | React.MouseEvent) => {
-    const canvas = canvasRef.current
-    if (!canvas) return { x: 0, y: 0 }
-    const rect = canvas.getBoundingClientRect()
-    const scaleX = CANVAS_SIZE / rect.width
-    const scaleY = CANVAS_SIZE / rect.height
-    if ('touches' in e && e.touches.length > 0) {
-      return { x: (e.touches[0].clientX - rect.left) * scaleX, y: (e.touches[0].clientY - rect.top) * scaleY }
-    }
-    const me = e as React.MouseEvent
-    return { x: (me.clientX - rect.left) * scaleX, y: (me.clientY - rect.top) * scaleY }
-  }, [])
+    canvas.width = CANVAS_SIZE * DPR
+    canvas.height = CANVAS_SIZE * DPR
+    canvas.style.width = `${CANVAS_SIZE}px`
+    canvas.style.height = `${CANVAS_SIZE}px`
 
-  const startDraw = useCallback((e: React.TouchEvent | React.MouseEvent) => {
-    e.preventDefault()
-    if (state === 'checking' || state === 'correct') return
-    if (checkTimerRef.current) clearTimeout(checkTimerRef.current)
-    if (state === 'wrong' || state === 'error') { clearCanvas(); setState('idle') }
-
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')!
-    const point = getPoint(e)
-    isDrawingRef.current = true
-    hasDrawnRef.current = true
-    lastPointRef.current = point
-    ctx.beginPath()
-    ctx.moveTo(point.x, point.y)
-  }, [state, getPoint])
-
-  const draw = useCallback((e: React.TouchEvent | React.MouseEvent) => {
-    e.preventDefault()
-    if (!isDrawingRef.current) return
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')!
-    const point = getPoint(e)
-    const prev = lastPointRef.current || point
-
-    ctx.lineWidth = 5
+    ctx.scale(DPR, DPR)
+    ctx.lineWidth = 4
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
     ctx.strokeStyle = '#1A1814'
-    const mid = { x: (prev.x + point.x) / 2, y: (prev.y + point.y) / 2 }
-    ctx.quadraticCurveTo(prev.x, prev.y, mid.x, mid.y)
-    ctx.stroke()
-    ctx.beginPath()
-    ctx.moveTo(point.x, point.y)
-    lastPointRef.current = point
-  }, [getPoint])
-
-  const stopDraw = useCallback((e: React.TouchEvent | React.MouseEvent) => {
-    e.preventDefault()
-    if (!isDrawingRef.current) return
-    isDrawingRef.current = false
-    lastPointRef.current = null
-    const ctx = canvasRef.current?.getContext('2d')
-    if (ctx) ctx.beginPath()
-
-    // Auto-check 1.2s after pen lift
-    if (hasDrawnRef.current) {
-      checkTimerRef.current = setTimeout(() => checkDrawing(), 1200)
-    }
+    ctx.fillStyle = '#1A1814'
   }, [])
+
+  // Logical-pixel coordinates from a pointer event. getBoundingClientRect()
+  // already accounts for scroll, CSS transforms, and zoom. We do NOT multiply
+  // by DPR — the context is already pre-scaled.
+  const getPoint = useCallback(
+    (e: React.PointerEvent): { x: number; y: number } => {
+      const canvas = canvasRef.current
+      if (!canvas) return { x: 0, y: 0 }
+      const rect = canvas.getBoundingClientRect()
+      // rect.width/height equal the CSS size (CANVAS_SIZE) when no transform
+      // is applied. The ratio handles odd cases like browser zoom.
+      const x = (e.clientX - rect.left) * (CANVAS_SIZE / rect.width)
+      const y = (e.clientY - rect.top) * (CANVAS_SIZE / rect.height)
+      return { x, y }
+    },
+    [],
+  )
+
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      e.preventDefault()
+      if (state === 'checking' || state === 'correct') return
+      if (checkTimerRef.current) clearTimeout(checkTimerRef.current)
+      if (state === 'wrong' || state === 'error') {
+        clearCanvas()
+        setState('idle')
+      }
+
+      const canvas = canvasRef.current
+      if (!canvas) return
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+
+      // Capture pointer so move/up still fire if cursor leaves canvas
+      try {
+        ;(e.target as HTMLCanvasElement).setPointerCapture(e.pointerId)
+      } catch {}
+
+      const point = getPoint(e)
+      isDrawingRef.current = true
+      hasDrawnRef.current = true
+      lastPointRef.current = point
+
+      ctx.beginPath()
+      ctx.moveTo(point.x, point.y)
+      // Draw a dot for taps with no movement
+      ctx.arc(point.x, point.y, ctx.lineWidth / 2, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.beginPath()
+      ctx.moveTo(point.x, point.y)
+    },
+    [state, getPoint],
+  )
+
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      e.preventDefault()
+      if (!isDrawingRef.current) return
+      const canvas = canvasRef.current
+      if (!canvas) return
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+
+      const point = getPoint(e)
+      const prev = lastPointRef.current || point
+      const mid = { x: (prev.x + point.x) / 2, y: (prev.y + point.y) / 2 }
+
+      ctx.quadraticCurveTo(prev.x, prev.y, mid.x, mid.y)
+      ctx.stroke()
+      ctx.beginPath()
+      ctx.moveTo(mid.x, mid.y)
+
+      lastPointRef.current = point
+    },
+    [getPoint],
+  )
+
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent) => {
+      e.preventDefault()
+      if (!isDrawingRef.current) return
+
+      const canvas = canvasRef.current
+      const ctx = canvas?.getContext('2d')
+      if (ctx && lastPointRef.current) {
+        const point = getPoint(e)
+        ctx.lineTo(point.x, point.y)
+        ctx.stroke()
+        ctx.beginPath()
+      }
+
+      isDrawingRef.current = false
+      lastPointRef.current = null
+
+      if (hasDrawnRef.current) {
+        checkTimerRef.current = setTimeout(() => checkDrawing(), 1200)
+      }
+    },
+    [getPoint],
+  )
 
   const clearCanvas = useCallback(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const ctx = canvas.getContext('2d')!
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-    // Re-scale after clear
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    // Save the DPR scale, clear the physical pixels, restore the scale
+    ctx.save()
     ctx.setTransform(1, 0, 0, 1, 0, 0)
-    ctx.scale(dprRef.current, dprRef.current)
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.restore()
     hasDrawnRef.current = false
+    lastPointRef.current = null
     if (checkTimerRef.current) clearTimeout(checkTimerRef.current)
   }, [])
 
@@ -196,8 +252,6 @@ export function CharacterWriteCanvas({
 
   const handleRetry = () => { clearCanvas(); setState('idle'); setRecognizedChar(null) }
 
-  const DPR = dprRef.current
-
   return (
     <div className="space-y-4">
       {/* Prompt */}
@@ -236,15 +290,22 @@ export function CharacterWriteCanvas({
             <line x1={CANVAS_SIZE - 6} y1={6} x2={6} y2={CANVAS_SIZE - 6} stroke="#E0DAD2" strokeWidth={0.5} strokeDasharray="5,8" />
           </svg>
 
-          {/* Drawing canvas */}
+          {/* Drawing canvas — physical size set in the mount effect */}
           <canvas
             ref={canvasRef}
-            width={CANVAS_SIZE * DPR}
-            height={CANVAS_SIZE * DPR}
-            style={{ width: CANVAS_SIZE, height: CANVAS_SIZE, touchAction: 'none', cursor: state === 'correct' ? 'default' : 'crosshair', opacity: state === 'correct' ? 0.4 : 1 }}
+            style={{
+              width: CANVAS_SIZE,
+              height: CANVAS_SIZE,
+              touchAction: 'none',
+              cursor: state === 'correct' ? 'default' : 'crosshair',
+              opacity: state === 'correct' ? 0.4 : 1,
+            }}
             className="absolute inset-0"
-            onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={stopDraw}
-            onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerLeave={handlePointerUp}
+            onPointerCancel={handlePointerUp}
           />
 
           {/* Checking overlay */}

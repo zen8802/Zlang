@@ -2,10 +2,14 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import type { TraceBlock } from '@/types/lesson-blocks'
 import Button from '@/components/ui/Button'
 import { CharacterWriteCanvas } from './CharacterWriteCanvas'
+import { CharacterAnimator, getCharType } from './CharacterAnimator'
+import { useAppStore } from '@/store/useAppStore'
+
+const BEGINNER_KANJI = ['一','二','三','四','五','日','月','山','川','木','火','水','人','口','大','小']
 
 interface Props {
   block: TraceBlock
@@ -28,7 +32,31 @@ export function TraceBlockRenderer({ block, onComplete }: Props) {
 
   const writerRef = useRef<any>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const currentChar = block.characters[charIndex]
+
+  const userProfile = useAppStore((s) => s.userProfile)
+  const isAbsoluteBeginner = (userProfile?.experience ?? 1) <= 4
+
+  const safeCharacters = useMemo(() => {
+    return block.characters.map(char => {
+      if (!isAbsoluteBeginner) return char
+      const code = char.character.charCodeAt(0)
+      const isHiragana = code >= 0x3041 && code <= 0x3096
+      const isKatakana = code >= 0x30a0 && code <= 0x30ff
+      const isBeginnerKanji = BEGINNER_KANJI.includes(char.character)
+      if (isHiragana || isKatakana || isBeginnerKanji) return char
+      // Complex kanji — substitute first character of the reading
+      const fallback = (char.reading || char.character).slice(0, 1)
+      return {
+        ...char,
+        character: fallback,
+        memoryHook: `This is the hiragana for ${char.english}. The kanji comes later.`,
+      }
+    })
+  }, [block.characters, isAbsoluteBeginner])
+
+  const currentChar = safeCharacters[charIndex]
+  const currentCharType = currentChar ? getCharType(currentChar.character) : 'kanji'
+  const isKanji = currentCharType === 'kanji'
 
   const playAudio = useCallback((char: string) => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -42,11 +70,13 @@ export function TraceBlockRenderer({ block, onComplete }: Props) {
 
   const initWriter = useCallback(() => {
     if (!HanziWriter || !containerRef.current) return
+    // Only use hanzi-writer for kanji — kana is handled by CharacterAnimator
+    if (getCharType(safeCharacters[charIndex].character) !== 'kanji') return
 
     writerRef.current = null
     containerRef.current.innerHTML = ''
 
-    const char = block.characters[charIndex].character
+    const char = safeCharacters[charIndex].character
 
     try {
       writerRef.current = HanziWriter.create(containerRef.current, char, {
@@ -89,11 +119,12 @@ export function TraceBlockRenderer({ block, onComplete }: Props) {
       console.error('HanziWriter init error:', e)
       setReady(true)
     }
-  }, [charIndex, block.characters, playAudio])
+  }, [charIndex, safeCharacters, playAudio])
 
-  // Load HanziWriter dynamically
+  // Load HanziWriter dynamically (kanji only)
   useEffect(() => {
     if (typeof window === 'undefined') return
+    if (!isKanji) return
     import('hanzi-writer').then(mod => {
       HanziWriter = mod.default || mod
       initWriter()
@@ -101,29 +132,42 @@ export function TraceBlockRenderer({ block, onComplete }: Props) {
       console.error('Failed to load hanzi-writer:', e)
       setReady(true)
     })
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isKanji])
 
   // Re-init on character change
   useEffect(() => {
-    if (HanziWriter) {
-      setReady(false)
-      setPhase('watch')
-      setCorrectStrokes(0)
-      setMistakes(0)
-      initWriter()
-    }
-  }, [charIndex, initWriter])
-
-  const watchAgain = () => {
-    if (!writerRef.current) return
     setPhase('watch')
     setCorrectStrokes(0)
-    writerRef.current.hideCharacter()
-    writerRef.current.showOutline()
-    writerRef.current.animateCharacter({
-      strokeAnimationSpeed: 0.8,
-      delayBetweenStrokes: 500,
-    })
+    setMistakes(0)
+    if (isKanji) {
+      if (HanziWriter) {
+        setReady(false)
+        initWriter()
+      }
+    } else {
+      // Kana: CharacterAnimator handles rendering; mark ready so buttons show
+      setReady(true)
+      setTotalStrokes(0)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [charIndex, isKanji])
+
+  const [kanaReplayKey, setKanaReplayKey] = useState(0)
+  const watchAgain = () => {
+    setPhase('watch')
+    setCorrectStrokes(0)
+    if (isKanji) {
+      if (!writerRef.current) return
+      writerRef.current.hideCharacter()
+      writerRef.current.showOutline()
+      writerRef.current.animateCharacter({
+        strokeAnimationSpeed: 0.8,
+        delayBetweenStrokes: 500,
+      })
+    } else {
+      setKanaReplayKey(k => k + 1)
+    }
   }
 
   const startPractice = () => {
@@ -151,7 +195,7 @@ export function TraceBlockRenderer({ block, onComplete }: Props) {
         playAudio(currentChar.character)
 
         setTimeout(() => {
-          if (charIndex < block.characters.length - 1) {
+          if (charIndex < safeCharacters.length - 1) {
             setCharIndex(i => i + 1)
           } else {
             setAllDone(true)
@@ -166,7 +210,7 @@ export function TraceBlockRenderer({ block, onComplete }: Props) {
     <div className="text-center space-y-5 page-enter">
       <div className="text-6xl">✍️</div>
       <p className="font-semibold text-2xl text-[#1B4F8A]">
-        {block.characters.map(c => c.character).join('・')} practiced!
+        {safeCharacters.map(c => c.character).join('・')} practiced!
       </p>
       <Button variant="primary" size="lg" fullWidth onClick={() => onComplete(block.xpReward)}>
         Continue +{block.xpReward} XP
@@ -182,7 +226,7 @@ export function TraceBlockRenderer({ block, onComplete }: Props) {
           {phase === 'watch' ? 'Watch the stroke order' : phase === 'correct' ? '✓ Perfect!' : 'Now you try'}
         </h3>
         <span className="text-sm text-[#9E9892] font-semibold">
-          {charIndex + 1} / {block.characters.length}
+          {charIndex + 1} / {safeCharacters.length}
         </span>
       </div>
 
@@ -215,13 +259,26 @@ export function TraceBlockRenderer({ block, onComplete }: Props) {
             <line x1={4} y1={140} x2={276} y2={140} stroke="#C8C3BC" strokeWidth={0.8} strokeDasharray="6,4" />
           </svg>
 
-          {/* HanziWriter renders here */}
-          <div ref={containerRef} className="absolute inset-0" />
-
-          {/* Loading */}
-          {!ready && (
-            <div className="absolute inset-0 flex items-center justify-center bg-[#FDFBF8]/80">
-              <div className="text-4xl" style={{ fontFamily: 'Noto Sans JP' }}>{currentChar.character}</div>
+          {/* HanziWriter (kanji) or CharacterAnimator (kana) renders here */}
+          {isKanji ? (
+            <>
+              <div ref={containerRef} className="absolute inset-0" />
+              {!ready && (
+                <div className="absolute inset-0 flex items-center justify-center bg-[#FDFBF8]/80">
+                  <div className="text-4xl" style={{ fontFamily: 'Noto Sans JP' }}>{currentChar.character}</div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="absolute inset-0">
+              <CharacterAnimator
+                key={`${currentChar.character}-${kanaReplayKey}`}
+                character={currentChar.character}
+                width={280}
+                height={280}
+                strokeColor="#1B4F8A"
+                autoAnimate={phase === 'watch'}
+              />
             </div>
           )}
 
@@ -278,9 +335,11 @@ export function TraceBlockRenderer({ block, onComplete }: Props) {
             <button onClick={watchAgain} className="text-sm text-[#1B4F8A] font-semibold py-2 hover:underline">
               ↺ Watch again
             </button>
-            <button onClick={startPractice} className="text-sm text-[#9E9892] font-semibold py-2 hover:underline">
-              Practice strokes
-            </button>
+            {isKanji && (
+              <button onClick={startPractice} className="text-sm text-[#9E9892] font-semibold py-2 hover:underline">
+                Practice strokes
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -311,7 +370,7 @@ export function TraceBlockRenderer({ block, onComplete }: Props) {
           onSuccess={() => {
             setPhase('correct')
             setTimeout(() => {
-              if (charIndex < block.characters.length - 1) {
+              if (charIndex < safeCharacters.length - 1) {
                 setCharIndex(i => i + 1)
               } else {
                 setAllDone(true)
@@ -319,7 +378,7 @@ export function TraceBlockRenderer({ block, onComplete }: Props) {
             }, 1500)
           }}
           onSkip={() => {
-            if (charIndex < block.characters.length - 1) {
+            if (charIndex < safeCharacters.length - 1) {
               setCharIndex(i => i + 1)
             } else {
               setAllDone(true)

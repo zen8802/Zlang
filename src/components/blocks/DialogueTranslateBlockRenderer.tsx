@@ -12,6 +12,7 @@ interface TranslatedResponse {
   breakdown: {
     chunk: string
     reading: string
+    romaji?: string
     meaning: string
     note?: string
   }[]
@@ -39,6 +40,7 @@ export function DialogueTranslateBlockRenderer({ block, onComplete }: Props) {
   const [userInput, setUserInput] = useState('')
   const [translating, setTranslating] = useState(false)
   const [translated, setTranslated] = useState<TranslatedResponse | null>(null)
+  const [useAlternative, setUseAlternative] = useState(false)
   const [completedExchanges, setCompletedExchanges] = useState<CompletedExchange[]>([])
   const [done, setDone] = useState(false)
   const [showBreakdown, setShowBreakdown] = useState(true)
@@ -65,6 +67,7 @@ export function DialogueTranslateBlockRenderer({ block, onComplete }: Props) {
     if (!userInput.trim() || translating) return
     setTranslating(true)
     setShowBreakdown(true)
+    setUseAlternative(false)
 
     try {
       const res = await fetch('/api/lessons/translate-response', {
@@ -94,12 +97,20 @@ export function DialogueTranslateBlockRenderer({ block, onComplete }: Props) {
   const handleContinue = () => {
     if (!translated) return
 
+    const sentJapanese =
+      useAlternative && translated.alternativePhrase
+        ? translated.alternativePhrase
+        : translated.japanese
+    // Romaji is only available for the primary translation. Falling back to ''
+    // for the alternative is fine — it's only used in the conversation replay.
+    const sentRomaji = useAlternative ? '' : translated.romaji
+
     const newCompleted: CompletedExchange = {
       characterLine: current.characterLine,
       characterLineEN: current.characterLineEN,
       userEN: userInput,
-      userJP: translated.japanese,
-      userRomaji: translated.romaji,
+      userJP: sentJapanese,
+      userRomaji: sentRomaji,
     }
 
     setCompletedExchanges(prev => [...prev, newCompleted])
@@ -108,6 +119,7 @@ export function DialogueTranslateBlockRenderer({ block, onComplete }: Props) {
       setExchangeIndex(i => i + 1)
       setUserInput('')
       setTranslated(null)
+      setUseAlternative(false)
     } else {
       setDone(true)
     }
@@ -345,16 +357,34 @@ export function DialogueTranslateBlockRenderer({ block, onComplete }: Props) {
                 className="text-white text-lg leading-relaxed"
                 style={{ fontFamily: 'Noto Sans JP, sans-serif' }}
               >
-                {translated.japanese}
+                {useAlternative && translated.alternativePhrase
+                  ? translated.alternativePhrase
+                  : translated.japanese}
               </p>
-              <p
-                className="text-white/50 text-xs mt-1 font-medium"
-                style={{ fontFamily: 'DM Mono, monospace' }}
-              >
-                {translated.romaji}
-              </p>
+              {!useAlternative && (
+                <p
+                  className="text-white/50 text-xs mt-1 font-medium"
+                  style={{ fontFamily: 'DM Mono, monospace' }}
+                >
+                  {translated.romaji}
+                </p>
+              )}
+              {useAlternative && translated.alternativePhraseEN && (
+                <p
+                  className="text-white/60 text-xs italic mt-1"
+                  style={{ fontFamily: 'DM Sans, sans-serif' }}
+                >
+                  {translated.alternativePhraseEN}
+                </p>
+              )}
               <button
-                onClick={() => playAudio(translated.japanese)}
+                onClick={() =>
+                  playAudio(
+                    useAlternative && translated.alternativePhrase
+                      ? translated.alternativePhrase
+                      : translated.japanese,
+                  )
+                }
                 className="text-white/40 text-xs mt-1 hover:text-white/70 transition-colors flex items-center gap-1"
                 style={{ fontFamily: 'DM Sans, sans-serif' }}
               >
@@ -398,7 +428,7 @@ export function DialogueTranslateBlockRenderer({ block, onComplete }: Props) {
                           className="text-[11px] text-[#9E9892]"
                           style={{ fontFamily: 'DM Mono, monospace' }}
                         >
-                          {chunk.reading}
+                          {chunk.romaji || chunk.reading}
                         </p>
                       </div>
                       <div className="flex-1">
@@ -452,6 +482,31 @@ export function DialogueTranslateBlockRenderer({ block, onComplete }: Props) {
                         {translated.alternativePhraseEN}
                       </p>
                     )}
+                    <button
+                      onClick={() => {
+                        setUseAlternative((v) => !v)
+                        if (translated.alternativePhrase) {
+                          setTimeout(
+                            () =>
+                              playAudio(
+                                useAlternative
+                                  ? translated.japanese
+                                  : (translated.alternativePhrase as string),
+                              ),
+                            150,
+                          )
+                        }
+                      }}
+                      className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-[6px] border transition-colors"
+                      style={{
+                        fontFamily: 'DM Sans, sans-serif',
+                        backgroundColor: useAlternative ? '#7A5C2E' : '#FDFBF8',
+                        color: useAlternative ? '#FFFFFF' : '#7A5C2E',
+                        borderColor: '#D4C4A8',
+                      }}
+                    >
+                      {useAlternative ? '✓ Using this version' : 'Try this instead →'}
+                    </button>
                   </div>
                 )}
               </div>
@@ -492,13 +547,7 @@ export function DialogueTranslateBlockRenderer({ block, onComplete }: Props) {
               className="w-full px-4 pt-3 pb-1 text-sm text-[#1A1814] resize-none bg-transparent outline-none placeholder-[#C8C3BC]"
               style={{ fontFamily: 'DM Sans, sans-serif' }}
             />
-            <div className="flex items-center justify-between px-4 pb-3">
-              <p
-                className="text-[10px] text-[#C8C3BC]"
-                style={{ fontFamily: 'DM Sans, sans-serif' }}
-              >
-                Write in English — we&apos;ll translate it
-              </p>
+            <div className="flex items-center justify-end px-4 pb-3">
               <button
                 onClick={handleTranslate}
                 disabled={!userInput.trim() || translating}

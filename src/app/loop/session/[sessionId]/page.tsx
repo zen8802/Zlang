@@ -7,7 +7,9 @@ import Button from '@/components/ui/Button'
 import AttemptPhase from '@/components/loop/AttemptPhase'
 import LearnPhase from '@/components/loop/LearnPhase'
 import RetryPhase from '@/components/loop/RetryPhase'
+import RecognizePhase from '@/components/loop/RecognizePhase'
 import MilestoneCard from '@/components/loop/MilestoneCard'
+import { useAppStore } from '@/store/useAppStore'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Phase = 'loading' | 'attempt' | 'diagnosing' | 'learn' | 'retry' | 'complete'
@@ -25,6 +27,9 @@ interface LoopSession {
   voiceId: string
   characterDescription: string
   phase: Phase
+  loopMode?: 'beginner' | 'elementary' | 'intermediate'
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  attemptMessages?: any[]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   messages: any[]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -56,6 +61,9 @@ export default function LoopSessionPage() {
   const [phase, setPhase] = useState<Phase>('loading')
   const [error, setError] = useState<string | null>(null)
 
+  const userProfile = useAppStore((s) => s.userProfile)
+  const knownHiragana = useAppStore((s) => s.knownHiragana)
+
   // Load session
   useEffect(() => {
     async function load() {
@@ -86,7 +94,7 @@ export default function LoopSessionPage() {
       const res = await fetch(`/api/loop/diagnose`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, messages: transcript }),
+        body: JSON.stringify({ sessionId, messages: transcript, userProfile, knownHiragana }),
       })
       if (!res.ok) throw new Error('Diagnosis failed')
       const data = await res.json()
@@ -102,7 +110,7 @@ export default function LoopSessionPage() {
       setError('Diagnosis failed. Please try again.')
       setPhase('attempt')
     }
-  }, [sessionId])
+  }, [sessionId, userProfile, knownHiragana])
 
   // Transition to retry
   const handleStartRetry = useCallback(() => {
@@ -134,7 +142,7 @@ export default function LoopSessionPage() {
   // ---- Loading state ----
   if (phase === 'loading') {
     return (
-      <div className="h-screen flex items-center justify-center" style={{ backgroundColor: '#FDFBF8' }}>
+      <div className="h-screen flex items-center justify-center" style={{ backgroundColor: '#F5F0EB' }}>
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-[#1B4F8A]/20 border-t-[#1B4F8A] rounded-full animate-spin mx-auto mb-4" />
           <p className="text-sm font-bold" style={{ color: '#6B6560' }}>
@@ -148,7 +156,7 @@ export default function LoopSessionPage() {
   // ---- Error state ----
   if (error && !session) {
     return (
-      <div className="h-screen flex items-center justify-center px-4" style={{ backgroundColor: '#FDFBF8' }}>
+      <div className="h-screen flex items-center justify-center px-4" style={{ backgroundColor: '#F5F0EB' }}>
         <Card variant="elevated" padding="lg" className="max-w-sm w-full text-center">
           <p className="text-4xl mb-3">😵</p>
           <p className="font-bold mb-2" style={{ color: '#1A1814' }}>
@@ -176,7 +184,7 @@ export default function LoopSessionPage() {
   })
 
   return (
-    <div className="h-screen flex flex-col" style={{ backgroundColor: '#FDFBF8' }}>
+    <div className="h-screen flex flex-col" style={{ backgroundColor: '#F5F0EB' }}>
       {/* Phase indicator strip */}
       {phase !== 'complete' && (
         <div className="shrink-0 bg-[#FDFBF8]/80 backdrop-blur-md border-b border-[#E0DAD2]/50 safe-top z-30">
@@ -198,7 +206,19 @@ export default function LoopSessionPage() {
 
             {/* Phase steps */}
             <div className="flex items-center gap-1">
-              {PHASE_STEPS.map((step, idx) => {
+              {PHASE_STEPS.map((baseStep, idx) => {
+                const step =
+                  session?.loopMode === 'beginner'
+                    ? {
+                        ...baseStep,
+                        label:
+                          baseStep.key === 'attempt'
+                            ? 'Experience'
+                            : baseStep.key === 'retry'
+                              ? 'Recognize'
+                              : baseStep.label,
+                      }
+                    : baseStep
                 const isActive = idx === currentStepIndex
                 const isDone = idx < currentStepIndex || currentPhase === 'complete'
                 return (
@@ -251,7 +271,15 @@ export default function LoopSessionPage() {
           />
         )}
 
-        {phase === 'retry' && (
+        {phase === 'retry' && session?.loopMode === 'beginner' && (
+          <RecognizePhase
+            session={session}
+            messages={session.attemptMessages || session.messages || []}
+            onComplete={handleRetryDone}
+          />
+        )}
+
+        {phase === 'retry' && session?.loopMode !== 'beginner' && (
           <RetryPhase
             sessionId={sessionId}
             session={session}

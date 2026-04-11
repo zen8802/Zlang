@@ -31,6 +31,35 @@ export async function POST(req: NextRequest) {
 
     const profileContext = buildProfileContext(userProfile)
 
+    const lvl = typeof userProfile?.experience === 'number' ? userProfile.experience : 5
+    const beginnerRules = lvl <= 4 ? `
+
+CRITICAL RULES FOR BEGINNER TRANSLATION (level 1-4):
+
+1. OUTPUT IN KANA FIRST
+   Prefer hiragana and katakana over kanji in the "japanese" field.
+   Wrong: 豚骨ラーメンをください
+   Right: とんこつラーメンをください
+   The user must be able to TYPE this, and they only know kana.
+
+2. SIMPLE GRAMMAR ONLY
+   Level 1: [noun]をください
+   Level 2: [noun]が[adjective]です
+   Level 3: [noun]を[verb]ます
+   Level 4: introduce て-form
+   NEVER passive, causative, or conditionals.
+
+3. SENTENCE LENGTH
+   Level 1-2: maximum 8 characters
+   Level 3-4: maximum 15 characters
+   Split longer thoughts into two short sentences.
+
+4. THE BREAKDOWN
+   Each chunk's "chunk" field should be the kana form.
+   If the word has a kanji form worth knowing, put it in the "note":
+   "also written as 豚骨"
+` : ''
+
     const res = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 800,
@@ -39,7 +68,7 @@ export async function POST(req: NextRequest) {
           role: 'user',
           content: `You are a Japanese language teacher helping a learner.
 
-${profileContext ? `LEARNER PROFILE:\n${profileContext}\n\n` : ''}Setting: ${setting}
+${profileContext ? `LEARNER PROFILE:\n${profileContext}\n${beginnerRules}\n` : `${beginnerRules}\n`}Setting: ${setting}
 ${characterName} just said: 「${characterLine}」("${characterLineEN}")
 
 Previous exchanges:
@@ -66,8 +95,9 @@ Return ONLY valid JSON (no markdown fences, no commentary):
   "romaji": "romaji transliteration",
   "breakdown": [
     {
-      "chunk": "word or phrase",
-      "reading": "hiragana",
+      "chunk": "word or phrase as it appears in the japanese sentence (kana or kana+kanji)",
+      "reading": "the hiragana reading of just this chunk",
+      "romaji": "the romaji transliteration of just this chunk (REQUIRED — never omit)",
       "meaning": "English meaning",
       "note": "optional grammar note — only if genuinely interesting/important"
     }

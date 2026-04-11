@@ -72,7 +72,18 @@ Option 1: safest, most polite response
 Option 2: natural, normal response
 Option 3: bold or casual response
 Option 4: funny or unexpected response
-All options must be grammatically correct Japanese at the learner's level.`
+All options must be grammatically correct Japanese at the learner's level.
+10. After all the above sections, if and ONLY if (a) the learner appears to be a beginner (assume beginner unless told otherwise), AND (b) the current conversational moment has concrete domain vocabulary that would genuinely help them respond (e.g. food flavors, common toppings, station names, payment phrases), add ---HINTS--- on its own line followed by 3-5 short ENGLISH chip ideas, ONE per line. Format each line as either:
+    [short english phrase]
+    or
+    [short english phrase] | [short hint in parentheses]
+    Examples for a ramen shop after the chef asks "what'll you have?":
+      tonkotsu (rich pork broth)
+      shoyu (soy sauce)
+      shio (salt — lighter)
+      with extra chashu
+      no green onions
+    Rules: each chip UNDER 6 words, plain ENGLISH (the parenthetical hint is also English). Do NOT translate to Japanese. Skip this section entirely for ack messages, farewells, open-ended chitchat, or when no concrete vocabulary applies. Quality over quantity — omit if unsure.`
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const stored = rows[0].messages as any[]

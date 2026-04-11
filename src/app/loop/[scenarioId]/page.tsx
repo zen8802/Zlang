@@ -7,6 +7,7 @@ import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import { SCENARIO_TEMPLATES } from '@/data/scenarios'
 import type { ScenarioTemplate } from '@/data/scenarios'
+import { useAppStore } from '@/store/useAppStore'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const DIFFICULTY_BADGE: Record<string, { color: 'green' | 'blue' | 'gold'; label: string }> = {
@@ -26,6 +27,7 @@ export default function LoopScenarioPage() {
   const params = useParams()
   const router = useRouter()
   const scenarioId = params.scenarioId as string
+  const userProfile = useAppStore((s) => s.userProfile)
 
   const [isStarting, setIsStarting] = useState(false)
   const [customSituation, setCustomSituation] = useState('')
@@ -42,6 +44,7 @@ export default function LoopScenarioPage() {
         body: JSON.stringify({
           scenarioId: isCustom ? 'custom' : scenarioId,
           customSituation: isCustom ? customSituation : undefined,
+          userProfile,
         }),
       })
       const data = await res.json()
@@ -58,7 +61,7 @@ export default function LoopScenarioPage() {
   // ---- Custom scenario mode ----
   if (isCustom) {
     return (
-      <div className="min-h-screen pb-24" style={{ backgroundColor: '#FDFBF8' }}>
+      <div className="min-h-screen pb-24" style={{ backgroundColor: '#F5F0EB' }}>
         <div className="max-w-lg mx-auto px-4 pt-8">
           {/* Back */}
           <button
@@ -120,7 +123,7 @@ export default function LoopScenarioPage() {
   // ---- Preset scenario not found ----
   if (!scenario) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#FDFBF8' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F5F0EB' }}>
         <Card variant="elevated" padding="lg" className="max-w-sm w-full text-center mx-4">
           <p className="text-4xl mb-3">🤔</p>
           <p className="font-bold mb-2" style={{ color: '#1A1814' }}>
@@ -141,7 +144,7 @@ export default function LoopScenarioPage() {
   const diff = DIFFICULTY_BADGE[scenario.difficulty] || DIFFICULTY_BADGE.beginner
 
   return (
-    <div className="min-h-screen pb-24" style={{ backgroundColor: '#FDFBF8' }}>
+    <div className="min-h-screen pb-24" style={{ backgroundColor: '#F5F0EB' }}>
       <div className="max-w-lg mx-auto px-4 pt-8">
         {/* Back */}
         <button
