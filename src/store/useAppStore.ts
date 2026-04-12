@@ -28,15 +28,12 @@ interface AppState {
   uiLanguage: 'en' | 'jp'
   level: '' | 'beginner' | 'basics' | 'intermediate' | 'advanced'
 
-  // Progress
-  xpToday: number
-  xpTotal: number
-  streak: number
-  lastActiveDate: string
-  lessonsCompleted: string[]
-  skillLevels: Record<string, number> // 0-5 for each skill
-  humorIQ: number
-  dojoSessions: number
+  // Daily login streak — increments at midnight EST. Replaces the old XP
+  // system. The reset/streak logic uses an EST calendar day so a user in any
+  // timezone gets the same "new day" boundary. The XP system was deleted; a
+  // more comprehensive progression system will replace it later.
+  loginStreak: number
+  lastLoginEstDate: string // 'YYYY-MM-DD' in America/New_York
 
   // Learning preferences
   showFurigana: boolean
@@ -50,12 +47,8 @@ interface AppState {
   setCorridor: (corridor: 'en-to-jp' | 'jp-to-en') => void
   setUiLanguage: (lang: 'en' | 'jp') => void
   setLevel: (level: '' | 'beginner' | 'basics' | 'intermediate' | 'advanced') => void
-  addXP: (amount: number) => void
-  completeLesson: (lessonId: string) => void
-  updateSkill: (skill: string, amount: number) => void
-  updateStreak: () => void
-  incrementHumorIQ: (amount: number) => void
-  incrementDojoSessions: () => void
+  /** Call once per app open. Bumps the streak if today (EST) hasn't been counted yet. */
+  registerLogin: () => void
   setShowFurigana: (show: boolean) => void
   setShowTranslation: (show: boolean) => void
   resetProgress: () => void
@@ -63,18 +56,24 @@ interface AppState {
 }
 
 // ---------------------------------------------------------------------------
-// Date helpers (no external library)
+// EST (America/New_York) date helpers — used by the daily login streak.
+// Boundaries always at midnight EST regardless of the user's local timezone.
 // ---------------------------------------------------------------------------
 
-function todayStr(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+function estDateStr(date: Date = new Date()): string {
+  // en-CA gives ISO-style YYYY-MM-DD
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date)
 }
 
-function yesterdayStr(): string {
-  const d = new Date()
-  d.setDate(d.getDate() - 1)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+function estYesterdayStr(): string {
+  // 24h ago in UTC, then convert to EST date — close enough for streak purposes
+  const d = new Date(Date.now() - 24 * 60 * 60 * 1000)
+  return estDateStr(d)
 }
 
 // ---------------------------------------------------------------------------
@@ -89,21 +88,9 @@ const initialState = {
   uiLanguage: 'en' as 'en' | 'jp',
   level: '' as '' | 'beginner' | 'basics' | 'intermediate' | 'advanced',
 
-  xpToday: 0,
-  xpTotal: 0,
-  streak: 0,
-  lastActiveDate: '',
-  lessonsCompleted: [] as string[],
-  skillLevels: {
-    pronunciation: 0,
-    vocabulary: 0,
-    grammar: 0,
-    culture: 0,
-    listening: 0,
-    speaking: 0,
-  } as Record<string, number>,
-  humorIQ: 0,
-  dojoSessions: 0,
+  loginStreak: 0,
+  lastLoginEstDate: '',
+
   showFurigana: true,
   showTranslation: true,
 }
@@ -144,74 +131,31 @@ export const useAppStore = create<AppState>()(
 
       setLevel: (level) => set({ level }),
 
-      // -- Progress actions ---------------------------------------------------
+      // -- Daily login streak (EST midnight) ---------------------------------
 
-      addXP: (amount) =>
-        set((state) => ({
-          xpToday: state.xpToday + amount,
-          xpTotal: state.xpTotal + amount,
-        })),
-
-      completeLesson: (lessonId) =>
-        set((state) => ({
-          lessonsCompleted: state.lessonsCompleted.includes(lessonId)
-            ? state.lessonsCompleted
-            : [...state.lessonsCompleted, lessonId],
-        })),
-
-      updateSkill: (skill, amount) =>
-        set((state) => ({
-          skillLevels: {
-            ...state.skillLevels,
-            [skill]: Math.min(5, Math.max(0, (state.skillLevels[skill] ?? 0) + amount)),
-          },
-        })),
-
-      updateStreak: () => {
-        const { lastActiveDate, streak } = get()
-        const today = todayStr()
-        const yesterday = yesterdayStr()
-
-        if (lastActiveDate === today) {
-          // Already active today — nothing to do
+      registerLogin: () => {
+        const { lastLoginEstDate, loginStreak } = get()
+        const today = estDateStr()
+        if (lastLoginEstDate === today) {
+          // Already logged in today (EST) — nothing to do.
           return
         }
-
-        if (lastActiveDate === yesterday) {
-          // Continue the streak
-          set({ streak: streak + 1, lastActiveDate: today, xpToday: 0 })
+        const yesterday = estYesterdayStr()
+        if (lastLoginEstDate === yesterday) {
+          set({ loginStreak: loginStreak + 1, lastLoginEstDate: today })
         } else {
-          // Streak broken (or first ever session) — reset to 1
-          set({ streak: 1, lastActiveDate: today, xpToday: 0 })
+          // Streak broken (or first login ever) — start fresh at 1.
+          set({ loginStreak: 1, lastLoginEstDate: today })
         }
       },
-
-      incrementHumorIQ: (amount) =>
-        set((state) => ({ humorIQ: state.humorIQ + amount })),
-
-      incrementDojoSessions: () =>
-        set((state) => ({ dojoSessions: state.dojoSessions + 1 })),
 
       setShowFurigana: (show) => set({ showFurigana: show }),
       setShowTranslation: (show) => set({ showTranslation: show }),
 
       resetProgress: () =>
         set({
-          xpToday: 0,
-          xpTotal: 0,
-          streak: 0,
-          lastActiveDate: '',
-          lessonsCompleted: [],
-          skillLevels: {
-            pronunciation: 0,
-            vocabulary: 0,
-            grammar: 0,
-            culture: 0,
-            listening: 0,
-            speaking: 0,
-          },
-          humorIQ: 0,
-          dojoSessions: 0,
+          loginStreak: 0,
+          lastLoginEstDate: '',
         }),
 
       resetAll: () => set({ ...initialState }),
@@ -1074,9 +1018,9 @@ const translations: Record<string, { en: string; jp: string }> = {
     en: 'Dashboard',
     jp: 'ダッシュボード',
   },
-  'nav.lessons': {
-    en: 'Lessons',
-    jp: 'レッスン',
+  'nav.collection': {
+    en: 'Words',
+    jp: '単語',
   },
   'nav.share': {
     en: 'Share',

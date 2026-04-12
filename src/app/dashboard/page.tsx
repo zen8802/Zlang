@@ -1,68 +1,112 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useAppStore, t } from '@/store/useAppStore'
+import { useAppStore } from '@/store/useAppStore'
 import Navbar from '@/components/layout/Navbar'
 import { SCENARIO_TEMPLATES } from '@/data/scenarios'
 import { CollectionWidget } from '@/components/collection/CollectionWidget'
 
-interface DbLesson {
-  id: string
-  title: string
-  order: number
-  unit: number
-  estimated_minutes: number
-  jlpt_level: string
-}
-
 export default function DashboardPage() {
   const router = useRouter()
   const corridor = useAppStore((s) => s.corridor)
-  const uiLanguage = useAppStore((s) => s.uiLanguage)
-  const lessonsCompleted = useAppStore((s) => s.lessonsCompleted)
-  const xpTotal = useAppStore((s) => s.xpTotal)
-  const streak = useAppStore((s) => s.streak)
-  const xpToday = useAppStore((s) => s.xpToday)
+  const loginStreak = useAppStore((s) => s.loginStreak)
+  const registerLogin = useAppStore((s) => s.registerLogin)
 
-  const [allLessons, setAllLessons] = useState<DbLesson[]>([])
-  const [loadingLessons, setLoadingLessons] = useState(true)
+  // Stamp today's login the first time the dashboard mounts.
+  useEffect(() => {
+    registerLogin()
+  }, [registerLogin])
 
   useEffect(() => {
-    if (!corridor) { router.replace('/'); return }
-    fetch('/api/admin/lessons')
-      .then(r => r.json())
-      .then(data => {
-        const published = ((data.lessons || []) as DbLesson[])
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .filter((l: any) => l.is_published !== false)
-          .sort((a: DbLesson, b: DbLesson) => a.unit - b.unit || a.order - b.order)
-        setAllLessons(published)
-      })
-      .catch(() => setAllLessons([]))
-      .finally(() => setLoadingLessons(false))
+    if (!corridor) router.replace('/')
   }, [corridor, router])
 
   if (!corridor) return null
-
-  const nextLesson = allLessons.find(l => !lessonsCompleted.includes(l.id)) || null
-  const totalLessons = allLessons.length
-  const completedCount = lessonsCompleted.filter(id => allLessons.some(l => l.id === id)).length
-  const lessonProgress = totalLessons > 0 ? completedCount / totalLessons : 0
-  const allDone = !nextLesson && !loadingLessons
 
   return (
     <div className="min-h-screen pb-24" style={{ backgroundColor: '#F5F0EB' }}>
       <Navbar />
 
       <main className="max-w-lg mx-auto px-4 pt-4">
+        {/* ── Daily login streak — replaces the deleted XP system ───────── */}
+        <div
+          className="bg-[#FDFBF8] rounded-[10px] border border-[#E0DAD2] p-5 mb-4"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p
+                className="text-[10px] tracking-widest uppercase text-[#9E9892] font-medium mb-1"
+                style={{ fontFamily: 'DM Sans, sans-serif' }}
+              >
+                Daily login
+              </p>
+              <p
+                className="text-[#1A1814]"
+                style={{ fontFamily: 'Shippori Mincho, serif', fontSize: '16px' }}
+              >
+                {loginStreak === 0
+                  ? 'Welcome — your streak starts today'
+                  : loginStreak === 1
+                    ? 'First day — keep it going tomorrow'
+                    : `${loginStreak} days in a row`}
+              </p>
+            </div>
+            <div className="text-right">
+              <p
+                className="text-[#1B4F8A]"
+                style={{ fontFamily: 'Shippori Mincho, serif', fontSize: '36px', lineHeight: 1 }}
+              >
+                {loginStreak}
+                <span style={{ fontSize: '18px', color: '#9E9892' }}> 日</span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Word Dictionary card — opens the collection ──────────────── */}
+        <Link href="/collection" className="block mb-4">
+          <div
+            className="bg-[#FDFBF8] rounded-[10px] border border-[#E0DAD2] p-5 hover:border-[#1B4F8A]/30 hover:shadow-[0_2px_12px_rgba(26,24,20,0.08)] active:translate-y-px transition-all"
+          >
+            <div className="flex items-center gap-4">
+              <div
+                className="w-12 h-12 rounded-[10px] flex items-center justify-center text-2xl shrink-0"
+                style={{ backgroundColor: '#EBF0F8' }}
+              >
+                📖
+              </div>
+              <div className="flex-1 min-w-0">
+                <p
+                  className="text-[10px] tracking-widest uppercase text-[#9E9892] font-medium mb-0.5"
+                  style={{ fontFamily: 'DM Sans, sans-serif' }}
+                >
+                  Word Dictionary
+                </p>
+                <p
+                  className="text-[#1A1814]"
+                  style={{ fontFamily: 'Shippori Mincho, serif', fontSize: '16px' }}
+                >
+                  Your collection
+                </p>
+                <p
+                  className="text-[#9E9892] text-xs mt-0.5"
+                  style={{ fontFamily: 'DM Sans, sans-serif' }}
+                >
+                  Words you&apos;ve met in real conversation
+                </p>
+              </div>
+              <span className="text-[#C8C3BC]">→</span>
+            </div>
+          </div>
+        </Link>
+
+        {/* Recently-collected card preview (only shows when the user has cards) */}
         <CollectionWidget />
 
-        {/* Custom scenario entry — describe any conversation you actually need */}
-        <div
-          className="bg-[#FDFBF8] rounded-[10px] border border-[#E0DAD2] p-4 mb-4"
-        >
+        {/* ── Custom scenario entry — describe any conversation ─────────── */}
+        <div className="bg-[#FDFBF8] rounded-[10px] border border-[#E0DAD2] p-4 mb-4">
           <p
             className="text-[10px] tracking-widest uppercase text-[#9E9892] font-medium mb-1"
             style={{ fontFamily: 'DM Sans, sans-serif' }}
@@ -84,102 +128,28 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* Hero streak + XP card */}
-        <div
-          className="bg-[#FDFBF8] rounded-[10px] p-6 mb-4"
-          style={{
-            boxShadow: '0 1px 4px rgba(26,24,20,0.06)',
-            border: '1px solid #E0DAD2',
-          }}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div>
-                <p
-                  className="text-3xl font-semibold"
-                  style={{ fontFamily: 'DM Sans', color: '#6B6560' }}
-                >
-                  {streak}<span style={{ fontSize: '20px' }}>日</span>
-                </p>
-                <p className="text-xs" style={{ color: '#9E9892' }}>
-                  {t('dashboard.dayStreak', uiLanguage)}
-                </p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p
-                className="text-2xl font-semibold"
-                style={{ color: '#1B4F8A' }}
-              >
-                {xpTotal.toLocaleString()}
-              </p>
-              <p className="text-xs" style={{ color: '#9E9892' }}>
-                {t('dashboard.totalXP', uiLanguage)}
-              </p>
-            </div>
-          </div>
-
-          {/* Today's goal progress */}
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <span className="text-xs" style={{ color: '#9E9892' }}>
-                {t('dashboard.todayXP', uiLanguage)}
-              </span>
-              <span className="text-xs" style={{ color: '#9E9892' }}>
-                {xpToday} / 100 XP
-              </span>
-            </div>
-            <div className="w-full h-[2px] rounded-full overflow-hidden bg-[#E0DAD2]">
-              <div
-                className="h-full rounded-full transition-all duration-700"
-                style={{
-                  width: `${Math.min(100, xpToday)}%`,
-                  backgroundColor: '#1B4F8A',
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Continue lesson button */}
-          {allDone ? (
-            <div className="text-center py-4 mt-4">
-              <p className="text-sm font-semibold" style={{ fontFamily: 'Shippori Mincho', color: '#1B4F8A' }}>
-                {t('dashboard.curriculumComplete', uiLanguage)}
-              </p>
-            </div>
-          ) : nextLesson ? (
-            <div className="mt-4">
-              <p className="text-xs mb-1" style={{ color: '#9E9892' }}>
-                {t('dashboard.unit', uiLanguage)} {nextLesson.unit} · Lesson {nextLesson.order}
-              </p>
-              <p
-                className="text-sm font-bold mb-3"
-                style={{ color: '#1A1814' }}
-              >
-                {nextLesson.title}
-              </p>
-              <Link href={`/lesson/${nextLesson.id}`}>
-                <button
-                  className="w-full py-4 rounded-[8px] text-base font-bold text-white hover:brightness-110 active:translate-y-px transition-all"
-                  style={{ backgroundColor: '#1B4F8A' }}
-                >
-                  {t('dashboard.startLesson', uiLanguage)} →
-                </button>
-              </Link>
-            </div>
-          ) : null}
-        </div>
-
-        {/* Loop Hero — Jump into a conversation */}
+        {/* ── Loop hero — Jump In ───────────────────────────────────────── */}
         <div className="mb-4">
-          <h2 className="mb-1" style={{ fontFamily: 'DM Sans', fontSize: '13px', letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#9E9892' }}>
+          <h2
+            className="mb-1"
+            style={{
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '13px',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: '#9E9892',
+            }}
+          >
             Jump in
           </h2>
-          <p className="text-xs mb-3" style={{ fontFamily: 'DM Sans', color: '#6B6560' }}>
+          <p
+            className="text-xs mb-3"
+            style={{ fontFamily: 'DM Sans, sans-serif', color: '#6B6560' }}
+          >
             Try, learn, retry — the fastest way to real Japanese
           </p>
           <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
-            {SCENARIO_TEMPLATES.slice(0, 6).map(scenario => (
+            {SCENARIO_TEMPLATES.slice(0, 6).map((scenario) => (
               <Link key={scenario.id} href={`/loop/${scenario.id}`}>
                 <div
                   className="w-[130px] shrink-0 bg-[#FDFBF8] rounded-[10px] p-4 text-center cursor-pointer transition-all duration-150 hover:border-[#1B4F8A] active:translate-y-px"
@@ -207,9 +177,7 @@ export default function DashboardPage() {
             <Link href="/loop/custom">
               <div
                 className="w-[130px] shrink-0 bg-[#FDFBF8] rounded-[10px] p-4 text-center cursor-pointer transition-all duration-150 hover:border-[#1B4F8A] active:translate-y-px border-2 border-dashed border-[#E0DAD2]"
-                style={{
-                  boxShadow: '0 1px 4px rgba(26,24,20,0.06)',
-                }}
+                style={{ boxShadow: '0 1px 4px rgba(26,24,20,0.06)' }}
               >
                 <span className="text-3xl block mb-2">+</span>
                 <span
@@ -226,69 +194,6 @@ export default function DashboardPage() {
                 </span>
               </div>
             </Link>
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex-1 h-px bg-[#E0DAD2]" />
-          <span style={{ fontFamily: 'DM Sans', fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#9E9892' }}>
-            or study specific skills
-          </span>
-          <div className="flex-1 h-px bg-[#E0DAD2]" />
-        </div>
-
-        {/* Quick Actions */}
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold mb-3" style={{ color: '#1A1814' }}>
-            {t('dashboard.quickActions', uiLanguage)}
-          </h2>
-          <div className="grid grid-cols-2 gap-3">
-            <Link href="/studio">
-              <div className="bg-[#FDFBF8] rounded-[10px] p-5 text-center cursor-pointer transition-all duration-150 hover:border-[#1B4F8A]" style={{ boxShadow: '0 1px 4px rgba(26,24,20,0.06)', border: '1px solid #E0DAD2' }}>
-                <span className="text-3xl block mb-2">🎭</span>
-                <span className="text-sm font-bold" style={{ color: '#1A1814' }}>Scenario Studio</span>
-              </div>
-            </Link>
-            <Link href="/lessons">
-              <div className="bg-[#FDFBF8] rounded-[10px] p-5 text-center cursor-pointer transition-all duration-150 hover:border-[#1B4F8A]" style={{ boxShadow: '0 1px 4px rgba(26,24,20,0.06)', border: '1px solid #E0DAD2' }}>
-                <span className="text-3xl block mb-2">📚</span>
-                <span className="text-sm font-bold" style={{ color: '#1A1814' }}>All Lessons</span>
-              </div>
-            </Link>
-          </div>
-        </div>
-
-        {/* Progress */}
-        <div
-          className="bg-[#FDFBF8] rounded-[10px] p-6 mb-4"
-          style={{
-            boxShadow: '0 1px 4px rgba(26,24,20,0.06)',
-            border: '1px solid #E0DAD2',
-          }}
-        >
-          <h2
-            className="text-lg font-semibold mb-3"
-            style={{ color: '#1A1814' }}
-          >
-            {t('dashboard.yourProgress', uiLanguage)}
-          </h2>
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm" style={{ color: '#6B6560' }}>
-              {t('dashboard.lessonsCompleted', uiLanguage)}
-            </span>
-            <span className="text-sm font-bold" style={{ color: '#1B4F8A' }}>
-              {completedCount}/{totalLessons}
-            </span>
-          </div>
-          <div className="w-full h-[2px] rounded-full overflow-hidden bg-[#E0DAD2]">
-            <div
-              className="h-full rounded-full transition-all duration-700"
-              style={{
-                width: `${lessonProgress * 100}%`,
-                backgroundColor: '#1B4F8A',
-              }}
-            />
           </div>
         </div>
       </main>

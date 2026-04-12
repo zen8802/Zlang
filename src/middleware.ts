@@ -4,37 +4,20 @@ const isPublicRoute = createRouteMatcher([
   '/',
   '/sign-in(.*)',
   '/sign-up(.*)',
-  '/api/claude(.*)',
-  '/api/youtube(.*)',
-  '/api/chat(.*)',
-  '/api/clips(.*)',
-  '/api/transcribe(.*)',
-  '/lessons(.*)',
-  '/share(.*)',
-  '/studio(.*)',
-  '/api/studio(.*)',
-  '/admin(.*)',
   '/loop(.*)',
   '/api/loop(.*)',
+  '/api/lessons(.*)',
+  '/api/japanese(.*)',
+  '/api/scenarios(.*)',
+  '/api/collection(.*)',
+  '/api/vocabulary(.*)',
 ])
 
-export default clerkMiddleware(async (auth, req) => {
+export default clerkMiddleware(async (_auth, req) => {
   // Public routes don't need auth
   if (isPublicRoute(req)) return
 
-  // Lesson pages: lesson 1 of each corridor is free
-  // Lesson IDs look like 'en-jp-1-1' or 'jp-en-1-1'
-  // The URL is /lesson/en-jp-1-1
-  const url = req.nextUrl.pathname
-  if (url.startsWith('/lesson/')) {
-    const lessonId = url.replace('/lesson/', '')
-    // First lesson of each corridor is free (ends with -1-1)
-    if (lessonId.endsWith('-1-1')) return
-  }
-
-  // Everything else: protect if user isn't signed in
-  // But don't hard-block — let the client-side gate handle the redirect
-  // This allows the page to render and show the gate UI
+  // Everything else: client-side gates (OnboardingGuard) handle redirects.
 })
 
 export const config = {

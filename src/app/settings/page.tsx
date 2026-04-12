@@ -30,9 +30,8 @@ export default function SettingsPage() {
   const setCorridor = useAppStore((s) => s.setCorridor)
   const level = useAppStore((s) => s.level)
   const setLevel = useAppStore((s) => s.setLevel)
-  const xpTotal = useAppStore((s) => s.xpTotal)
-  const streak = useAppStore((s) => s.streak)
-  const lessonsCompleted = useAppStore((s) => s.lessonsCompleted)
+  const loginStreak = useAppStore((s) => s.loginStreak)
+  const knownHiragana = useAppStore((s) => s.knownHiragana)
   const showFurigana = useAppStore((s) => s.showFurigana)
   const setShowFurigana = useAppStore((s) => s.setShowFurigana)
   const showTranslation = useAppStore((s) => s.showTranslation)
@@ -283,28 +282,22 @@ export default function SettingsPage() {
             </h2>
 
             {/* Stats grid */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="text-center py-3 rounded-xl bg-black/[0.03] border border-black/[0.06]">
-                <p className="text-2xl font-bold text-accent tabular-nums">{xpTotal}</p>
+                <p className="text-2xl font-bold text-foreground tabular-nums">
+                  {loginStreak}
+                  <span className="text-sm ml-0.5">日</span>
+                </p>
                 <p className="text-xs text-foreground/40 mt-0.5">
-                  {uiLanguage === 'en' ? 'Total XP' : '合計XP'}
+                  {uiLanguage === 'en' ? 'Login streak' : 'ログイン連続'}
                 </p>
               </div>
               <div className="text-center py-3 rounded-xl bg-black/[0.03] border border-black/[0.06]">
                 <p className="text-2xl font-bold text-foreground tabular-nums">
-                  {streak}
-                  <span className="text-sm ml-0.5">🔥</span>
+                  {knownHiragana.length}
                 </p>
                 <p className="text-xs text-foreground/40 mt-0.5">
-                  {uiLanguage === 'en' ? 'Day Streak' : '日連続'}
-                </p>
-              </div>
-              <div className="text-center py-3 rounded-xl bg-black/[0.03] border border-black/[0.06]">
-                <p className="text-2xl font-bold text-foreground tabular-nums">
-                  {lessonsCompleted.length}
-                </p>
-                <p className="text-xs text-foreground/40 mt-0.5">
-                  {uiLanguage === 'en' ? 'Lessons' : 'レッスン'}
+                  {uiLanguage === 'en' ? 'Hiragana known' : 'ひらがな'}
                 </p>
               </div>
             </div>
@@ -412,8 +405,8 @@ export default function SettingsPage() {
         </p>
         <p className="text-xs text-foreground/40 mb-5">
           {uiLanguage === 'en'
-            ? 'This will reset your XP, streak, lesson progress, and skill levels. Your account settings will be preserved.'
-            : 'XP、ストリーク、レッスンの進捗、スキルレベルがリセットされます。アカウント設定は保持されます。'}
+            ? 'This will reset your daily login streak. Your account settings will be preserved.'
+            : 'ログイン連続日数がリセットされます。アカウント設定は保持されます。'}
         </p>
         <div className="flex gap-3">
           <Button variant="secondary" fullWidth onClick={() => setShowResetModal(false)}>
