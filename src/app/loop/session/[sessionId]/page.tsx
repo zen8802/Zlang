@@ -9,10 +9,11 @@ import LearnPhase from '@/components/loop/LearnPhase'
 import RetryPhase from '@/components/loop/RetryPhase'
 import RecognizePhase from '@/components/loop/RecognizePhase'
 import MilestoneCard from '@/components/loop/MilestoneCard'
+import CardUnlockReveal from '@/components/collection/CardUnlockReveal'
 import { useAppStore } from '@/store/useAppStore'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Phase = 'loading' | 'attempt' | 'diagnosing' | 'learn' | 'retry' | 'complete'
+type Phase = 'loading' | 'attempt' | 'cards' | 'diagnosing' | 'learn' | 'retry' | 'complete'
 
 interface LoopSession {
   id: string
@@ -60,6 +61,14 @@ export default function LoopSessionPage() {
   const [session, setSession] = useState<LoopSession | null>(null)
   const [phase, setPhase] = useState<Phase>('loading')
   const [error, setError] = useState<string | null>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [cardResults, setCardResults] = useState<{ newUnlocks: any[]; strengthened: any[]; mastered: any[] }>({
+    newUnlocks: [],
+    strengthened: [],
+    mastered: [],
+  })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [pendingAttemptMessages, setPendingAttemptMessages] = useState<any[]>([])
 
   const userProfile = useAppStore((s) => s.userProfile)
   const knownHiragana = useAppStore((s) => s.knownHiragana)
@@ -81,12 +90,11 @@ export default function LoopSessionPage() {
     if (sessionId) load()
   }, [sessionId])
 
-  // Transition to diagnosis phase
+  // Run diagnosis on attempt messages
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleEndAttempt = useCallback(async (messages: any[]) => {
+  const runDiagnosis = useCallback(async (messages: any[]) => {
     setPhase('diagnosing')
     try {
-      // Convert UI roles ('character'/'user') to Claude roles ('assistant'/'user')
       const transcript = (messages || []).map(m => ({
         role: m.role === 'character' ? 'assistant' : 'user',
         content: m.content || '',
@@ -111,6 +119,34 @@ export default function LoopSessionPage() {
       setPhase('attempt')
     }
   }, [sessionId, userProfile, knownHiragana])
+
+  // Transition to cards phase — extract vocabulary, then diagnosis after Continue
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleEndAttempt = useCallback(async (messages: any[]) => {
+    setPendingAttemptMessages(messages || [])
+    setPhase('cards')
+    try {
+      const transcript = (messages || []).map(m => ({
+        role: m.role === 'character' ? 'assistant' : 'user',
+        content: m.content || '',
+      }))
+      const res = await fetch(`/api/vocabulary/track`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: transcript, scenarioId: session?.scenarioId }),
+      })
+      if (!res.ok) throw new Error('Vocabulary track failed')
+      const data = await res.json()
+      setCardResults({
+        newUnlocks: data.newUnlocks || [],
+        strengthened: data.strengthened || [],
+        mastered: data.mastered || [],
+      })
+    } catch (err) {
+      console.error('Vocabulary track error:', err)
+      setCardResults({ newUnlocks: [], strengthened: [], mastered: [] })
+    }
+  }, [session?.scenarioId])
 
   // Transition to retry
   const handleStartRetry = useCallback(() => {
@@ -259,6 +295,15 @@ export default function LoopSessionPage() {
             session={session}
             diagnosing={phase === 'diagnosing'}
             onEndAttempt={handleEndAttempt}
+          />
+        )}
+
+        {phase === 'cards' && (
+          <CardUnlockReveal
+            newUnlocks={cardResults.newUnlocks}
+            strengthened={cardResults.strengthened}
+            mastered={cardResults.mastered}
+            onContinue={() => runDiagnosis(pendingAttemptMessages)}
           />
         )}
 

@@ -48,6 +48,59 @@ function getScenarioById(id: string): any {
   return SCENARIO_TEMPLATES.find(s => s.id === id) || null
 }
 
+/**
+ * Map an AI-generated custom scenario object into the same shape that
+ * SCENARIO_TEMPLATES uses, so the rest of the route can consume it
+ * unchanged. Cultural context, dramatic question, registry note, and
+ * cultural trap are folded into the `setting` so the system prompt
+ * builder picks them up automatically.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function customScenarioToTemplate(custom: any): any {
+  const character = custom?.character || {}
+  const culturalContext = Array.isArray(custom?.culturalContext)
+    ? custom.culturalContext.filter(Boolean).join(' ')
+    : ''
+  const enrichmentLines = [
+    custom?.dramaticQuestion ? `DRAMATIC TENSION: ${custom.dramaticQuestion}` : '',
+    custom?.culturalTrap ? `WATCH OUT: ${custom.culturalTrap}` : '',
+    custom?.registryNote ? `REGISTER: ${custom.registryNote}` : '',
+    culturalContext ? `CULTURE: ${culturalContext}` : '',
+    custom?.tone ? `TONE: ${custom.tone}` : '',
+    custom?.userGoal ? `USER GOAL: ${custom.userGoal}` : '',
+  ].filter(Boolean)
+  const enrichedSetting = enrichmentLines.length
+    ? `${custom?.setting || ''}\n\n${enrichmentLines.join('\n')}`
+    : custom?.setting || ''
+
+  return {
+    id: custom?.id || `custom_${Date.now()}`,
+    title: custom?.title || 'Your Scenario',
+    titleJP: custom?.titleJP || 'カスタム',
+    description: custom?.description || '',
+    emoji: custom?.emoji || '✨',
+    difficulty: custom?.difficulty || 'intermediate',
+    estimatedMinutes: custom?.estimatedMinutes || 5,
+    color: '#1B4F8A',
+    character: {
+      name: character.name || 'Custom Character',
+      nameJP: character.nameJP || 'カスタム',
+      description: character.description || '',
+      personality: character.personality || '',
+      speechStyle: character.speechStyle || '',
+      relationship: character.relationship || '',
+      avatar: character.avatar || '/characters/custom.png',
+      voiceId: character.voiceId || 'JOcmGzB8OFjY8MhjHHEf',
+    },
+    setting: enrichedSetting,
+    settingJP: custom?.settingJP || '',
+    openingLine: custom?.openingLine || '',
+    openingLineEN: custom?.openingLineEN || '',
+    culturalNotes: Array.isArray(custom?.culturalContext) ? custom.culturalContext : [],
+    tweaks: [],
+  }
+}
+
 function resolveCharacterFromRoster(name: string) {
   const lower = name.toLowerCase()
   return CHARACTER_ROSTER.find(c => lower.includes(c.name.toLowerCase())) || null
@@ -59,9 +112,11 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { scenarioId, customPrompt, userProfile } = await request.json()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { scenarioId, customPrompt, customScenario, userProfile }: any =
+      await request.json()
 
-    if (!scenarioId) {
+    if (!scenarioId && !customScenario) {
       return Response.json({ error: 'scenarioId is required' }, { status: 400 })
     }
 
@@ -74,7 +129,44 @@ export async function POST(request: Request) {
     const loopMode: 'beginner' | 'elementary' | 'intermediate' =
       experience <= 2 ? 'beginner' : experience <= 4 ? 'elementary' : 'intermediate'
 
-    const scenario = getScenarioById(scenarioId)
+    // Resolve the scenario from one of three sources, in priority order:
+    //   1. customScenario object passed inline (fresh AI generation)
+    //   2. scenarioId starting with `custom_` → fetch saved scenario from DB
+    //   3. scenarioId matching a SCENARIO_TEMPLATES preset
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let scenario: any = null
+
+    if (customScenario && typeof customScenario === 'object') {
+      scenario = customScenarioToTemplate(customScenario)
+    } else if (
+      typeof scenarioId === 'string' &&
+      scenarioId.startsWith('custom_') &&
+      process.env.DATABASE_URL
+    ) {
+      try {
+        const { neon } = await import('@neondatabase/serverless')
+        const sqlLookup = neon(process.env.DATABASE_URL!)
+        const rows = (await sqlLookup`
+          SELECT scenario_data FROM custom_scenarios WHERE id = ${scenarioId} LIMIT 1
+        `) as Array<{ scenario_data: unknown }>
+        if (rows[0]?.scenario_data) {
+          scenario = customScenarioToTemplate(rows[0].scenario_data)
+          // Bump play count
+          await sqlLookup`
+            UPDATE custom_scenarios
+            SET times_played = times_played + 1, last_played_at = NOW()
+            WHERE id = ${scenarioId}
+          `
+        }
+      } catch (lookupErr) {
+        console.error('Custom scenario lookup failed:', lookupErr)
+      }
+    }
+
+    if (!scenario) {
+      scenario = getScenarioById(scenarioId)
+    }
+
     if (!scenario) {
       return Response.json({ error: `Scenario "${scenarioId}" not found` }, { status: 404 })
     }
@@ -193,9 +285,13 @@ Return ONLY valid JSON (no markdown fences):
 
     const openingMessage = opening.content[0].type === 'text' ? opening.content[0].text : ''
 
+    // For inline custom scenarios, use the scenario's own id rather than
+    // whatever the client sent in scenarioId.
+    const effectiveScenarioId: string = scenario?.id || scenarioId
+
     const sessionData = {
       id: sessionId,
-      scenarioId,
+      scenarioId: effectiveScenarioId,
       scenarioTitle,
       scenarioTitleJP,
       scenarioEmoji,
@@ -238,7 +334,7 @@ Return ONLY valid JSON (no markdown fences):
             created_at
           )
           VALUES (
-            ${sessionId}, ${scenarioId}, ${scenarioTitle}, ${scenarioTitleJP}, ${scenarioEmoji},
+            ${sessionId}, ${effectiveScenarioId}, ${scenarioTitle}, ${scenarioTitleJP}, ${scenarioEmoji},
             ${characterName}, ${characterNameJP}, ${characterColor}, ${characterAvatar},
             ${characterDescription}, ${characterPersonality}, ${characterSpeechStyle},
             ${characterRelationship}, ${voiceId}, ${setting}, ${openingLine},

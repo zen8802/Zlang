@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useAppStore, t } from '@/store/useAppStore'
 import Navbar from '@/components/layout/Navbar'
 import { SCENARIO_TEMPLATES } from '@/data/scenarios'
+import { CollectionWidget } from '@/components/collection/CollectionWidget'
 
 interface DbLesson {
   id: string
@@ -56,6 +57,33 @@ export default function DashboardPage() {
       <Navbar />
 
       <main className="max-w-lg mx-auto px-4 pt-4">
+        <CollectionWidget />
+
+        {/* Custom scenario entry — describe any conversation you actually need */}
+        <div
+          className="bg-[#FDFBF8] rounded-[10px] border border-[#E0DAD2] p-4 mb-4"
+        >
+          <p
+            className="text-[10px] tracking-widest uppercase text-[#9E9892] font-medium mb-1"
+            style={{ fontFamily: 'DM Sans, sans-serif' }}
+          >
+            Your situation
+          </p>
+          <p
+            className="text-[#1A1814] mb-3"
+            style={{ fontFamily: 'Shippori Mincho, serif', fontSize: '16px' }}
+          >
+            Practice any conversation you actually need
+          </p>
+          <button
+            onClick={() => router.push('/loop/custom')}
+            className="w-full py-3 rounded-[8px] border-2 border-dashed border-[#1B4F8A]/30 text-[#1B4F8A] text-sm font-medium hover:bg-[#EBF0F8] transition-colors"
+            style={{ fontFamily: 'DM Sans, sans-serif' }}
+          >
+            Describe your scenario →
+          </button>
+        </div>
+
         {/* Hero streak + XP card */}
         <div
           className="bg-[#FDFBF8] rounded-[10px] p-6 mb-4"

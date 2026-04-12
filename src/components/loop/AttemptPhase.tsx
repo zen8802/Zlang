@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
+import * as wanakana from 'wanakana'
 import Button from '@/components/ui/Button'
 import { useAppStore } from '@/store/useAppStore'
 
@@ -483,6 +484,19 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
   const [payShown, setPayShown] = useState(false)
   const [payContinued, setPayContinued] = useState(false)
 
+  // Wanakana IME mode — when on, the input textarea is bound to wanakana
+  // (romaji → hiragana on the fly) and submission sends the typed Japanese
+  // directly into the conversation, bypassing the English-translate flow.
+  // Default to ON for level 3+ (intermediate); OFF for absolute beginners.
+  const initialKana = (userProfile?.experience ?? 1) >= 3
+  const [kanaMode, setKanaMode] = useState(initialKana)
+  const englishInputRef = useRef<HTMLTextAreaElement>(null)
+  const [kanjiCandidates, setKanjiCandidates] = useState<
+    { text: string; reading: string }[]
+  >([])
+  const [showKanjiCandidates, setShowKanjiCandidates] = useState(false)
+  const lastFetchedKanaRef = useRef<string>('')
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const userExchanges = messages.filter(m => m.role === 'user').length
@@ -557,6 +571,84 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
       return /\s$/.test(prev) ? prev + phrase : prev + ' ' + phrase
     })
   }
+
+  // Bind / unbind wanakana to the existing English textarea when kanaMode flips.
+  useEffect(() => {
+    const input = englishInputRef.current
+    if (!input) return
+    if (!kanaMode) return
+    try {
+      wanakana.bind(input, {
+        IMEMode: 'toHiragana',
+        useObsoleteKana: false,
+        convertLongVowelMark: true,
+      })
+    } catch {}
+    return () => {
+      try {
+        wanakana.unbind(input)
+      } catch {}
+    }
+  }, [kanaMode])
+
+  // Get the trailing run of hiragana from the input — used for kanji lookup.
+  const getLastHiraganaSegment = useCallback((text: string): string => {
+    const match = text.match(/[ぁ-ん]+$/)
+    return match ? match[0] : ''
+  }, [])
+
+  // Fetch kanji candidates whenever the trailing hiragana run grows past 2 chars.
+  // Debounced 250ms so quick typing doesn't burn API calls.
+  useEffect(() => {
+    if (!kanaMode) {
+      setKanjiCandidates([])
+      setShowKanjiCandidates(false)
+      lastFetchedKanaRef.current = ''
+      return
+    }
+    if (!englishInput.trim()) {
+      setKanjiCandidates([])
+      setShowKanjiCandidates(false)
+      lastFetchedKanaRef.current = ''
+      return
+    }
+    const last = getLastHiraganaSegment(englishInput)
+    if (last.length < 2) {
+      setKanjiCandidates([])
+      setShowKanjiCandidates(false)
+      return
+    }
+    if (lastFetchedKanaRef.current === last) return
+    const t = setTimeout(async () => {
+      lastFetchedKanaRef.current = last
+      try {
+        const res = await fetch(
+          `/api/japanese/convert?reading=${encodeURIComponent(last)}`,
+        )
+        const data = await res.json()
+        if (Array.isArray(data?.candidates) && data.candidates.length > 0) {
+          setKanjiCandidates(data.candidates)
+          setShowKanjiCandidates(true)
+        }
+      } catch {}
+    }, 250)
+    return () => clearTimeout(t)
+  }, [englishInput, kanaMode, getLastHiraganaSegment])
+
+  const applyKanjiCandidate = useCallback(
+    (candidate: { text: string; reading: string }) => {
+      const last = getLastHiraganaSegment(englishInput)
+      if (!last) return
+      const next =
+        englishInput.slice(0, englishInput.length - last.length) + candidate.text
+      setEnglishInput(next)
+      setKanjiCandidates([])
+      setShowKanjiCandidates(false)
+      lastFetchedKanaRef.current = ''
+      englishInputRef.current?.focus()
+    },
+    [englishInput, getLastHiraganaSegment],
+  )
 
   // Load existing messages
   useEffect(() => {
@@ -707,6 +799,19 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
     },
     [isStreaming, sessionId, onEndAttempt, userProfile],
   )
+
+  // Send the typed Japanese (kana mode) directly into the conversation,
+  // bypassing the English-translate flow. Pay-flow latching still applies.
+  const handleSendKana = useCallback(() => {
+    const text = englishInput.trim()
+    if (!text || isStreaming || isAnimating) return
+    if (payShown) setPayContinued(true)
+    setEnglishInput('')
+    setKanjiCandidates([])
+    setShowKanjiCandidates(false)
+    lastFetchedKanaRef.current = ''
+    sendText(text)
+  }, [englishInput, isStreaming, isAnimating, payShown, sendText])
 
   // Translate English → Japanese via API
   const handleTranslate = useCallback(async () => {
@@ -1224,9 +1329,11 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
                   className="text-xs text-[#9E9892] text-center"
                   style={{ fontFamily: 'DM Sans, sans-serif' }}
                 >
-                  {payShown
-                    ? "Want to continue the conversation? Continue by asking anything. We'll translate for you."
-                    : "Say what you want in English — we'll translate it"}
+                  {kanaMode
+                    ? 'Type romaji — we convert to kana. Tap a kanji suggestion to swap it.'
+                    : payShown
+                      ? "Want to continue the conversation? Continue by asking anything. We'll translate for you."
+                      : "Say what you want in English — we'll translate it"}
                 </p>
 
                 {/* Contextual suggestion chips — only shown if the API returned hints */}
@@ -1291,36 +1398,135 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
                   </button>
                 )}
 
+                {/* Kanji candidate bar — only when typing in kana mode */}
+                {kanaMode && showKanjiCandidates && kanjiCandidates.length > 0 && (
+                  <div className="flex gap-1 px-2 py-1.5 overflow-x-auto scrollbar-hide rounded-[8px] bg-[#F5F0EB] border border-[#E0DAD2]">
+                    {kanjiCandidates.map((c, i) => (
+                      <button
+                        key={`${c.text}-${i}`}
+                        onClick={() => applyKanjiCandidate(c)}
+                        className={`shrink-0 px-2.5 py-1 rounded-[6px] text-sm transition-all border ${
+                          i === 0
+                            ? 'bg-[#1B4F8A] text-white border-[#1B4F8A]'
+                            : 'bg-[#FDFBF8] text-[#1A1814] border-[#E0DAD2] hover:border-[#1B4F8A]'
+                        }`}
+                        style={{ fontFamily: 'Noto Sans JP, sans-serif' }}
+                      >
+                        <span>{c.text}</span>
+                        {c.reading && i > 0 && c.reading !== c.text && (
+                          <span
+                            className="text-[10px] text-[#9E9892] ml-1"
+                            style={{ fontFamily: 'DM Mono, monospace' }}
+                          >
+                            {c.reading}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => setShowKanjiCandidates(false)}
+                      className="shrink-0 px-2 py-1 text-[#9E9892] text-xs"
+                      style={{ fontFamily: 'DM Sans, sans-serif' }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+
                 <div className="bg-[#FDFBF8] rounded-[10px] border-2 border-[#E0DAD2] focus-within:border-[#1B4F8A] transition-colors overflow-hidden">
                   <textarea
+                    ref={englishInputRef}
                     value={englishInput}
                     onChange={e => setEnglishInput(e.target.value)}
                     onKeyDown={e => {
+                      // In kana mode, space picks the top kanji candidate
+                      if (
+                        kanaMode &&
+                        e.key === ' ' &&
+                        showKanjiCandidates &&
+                        kanjiCandidates.length > 0
+                      ) {
+                        e.preventDefault()
+                        applyKanjiCandidate(kanjiCandidates[0])
+                        return
+                      }
+                      if (kanaMode && e.key === 'Escape') {
+                        setShowKanjiCandidates(false)
+                        return
+                      }
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault()
-                        handleTranslate()
+                        if (kanaMode && showKanjiCandidates) {
+                          setShowKanjiCandidates(false)
+                          return
+                        }
+                        if (kanaMode) {
+                          handleSendKana()
+                        } else {
+                          handleTranslate()
+                        }
                       }
                     }}
-                    placeholder="Type what you want to say in English..."
+                    placeholder={
+                      kanaMode
+                        ? 'romaji → かな  (space for kanji)'
+                        : 'Type what you want to say in English...'
+                    }
                     rows={2}
+                    lang={kanaMode ? 'ja' : 'en'}
                     className="w-full px-4 pt-3 pb-1 text-sm text-[#1A1814] resize-none bg-transparent outline-none placeholder-[#C8C3BC]"
-                    style={{ fontFamily: 'DM Sans, sans-serif' }}
+                    style={{
+                      fontFamily: kanaMode
+                        ? 'Noto Sans JP, sans-serif'
+                        : 'DM Sans, sans-serif',
+                    }}
                   />
-                  <div className="flex items-center justify-end px-4 pb-3">
+                  <div className="flex items-center justify-between gap-2 px-4 pb-3">
+                    {/* Wanakana toggle — left of the send button */}
                     <button
-                      onClick={handleTranslate}
-                      disabled={!englishInput.trim() || translating}
+                      onClick={() => setKanaMode((v) => !v)}
+                      title={
+                        kanaMode
+                          ? 'Switch to English (we translate)'
+                          : 'Type Japanese directly (romaji → kana)'
+                      }
+                      className={`text-[11px] font-medium h-7 px-2.5 rounded-[6px] transition-all border flex items-center gap-1 ${
+                        kanaMode
+                          ? 'bg-[#1B4F8A] text-white border-[#1B4F8A]'
+                          : 'bg-[#FDFBF8] text-[#6B6560] border-[#E0DAD2] hover:border-[#1B4F8A] hover:text-[#1B4F8A]'
+                      }`}
+                      style={{ fontFamily: 'DM Sans, sans-serif' }}
+                    >
+                      <span style={{ fontFamily: 'Noto Sans JP, sans-serif' }}>
+                        あ
+                      </span>
+                      <span>{kanaMode ? 'on' : 'off'}</span>
+                    </button>
+
+                    <button
+                      onClick={kanaMode ? handleSendKana : handleTranslate}
+                      disabled={!englishInput.trim() || translating || (kanaMode && (isStreaming || isAnimating))}
                       className={`text-xs font-medium px-3 py-1.5 rounded-[6px] transition-all ${
-                        englishInput.trim() && !translating
+                        englishInput.trim() && !translating && !(kanaMode && (isStreaming || isAnimating))
                           ? 'bg-[#1B4F8A] text-white hover:bg-[#4A7AB5]'
                           : 'bg-[#E0DAD2] text-[#C8C3BC] cursor-not-allowed'
                       }`}
                       style={{ fontFamily: 'DM Sans, sans-serif' }}
                     >
-                      {translating ? 'Translating...' : 'Translate →'}
+                      {kanaMode ? 'Send →' : translating ? 'Translating...' : 'Translate →'}
                     </button>
                   </div>
                 </div>
+
+                {/* Romaji preview while typing in kana mode */}
+                {kanaMode && englishInput && (
+                  <p
+                    className="text-[10px] text-[#9E9892] ml-1 -mt-1"
+                    style={{ fontFamily: 'DM Mono, monospace' }}
+                  >
+                    {wanakana.toRomaji(englishInput)}
+                  </p>
+                )}
               </div>
             )}
           </div>
