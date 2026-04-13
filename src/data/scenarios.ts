@@ -75,7 +75,7 @@ export const SCENARIO_TEMPLATES: ScenarioTemplate[] = [
       speechStyle: 'Casual masculine Japanese. Uses だ/だよ endings, omits particles sometimes. Throws in おう and よし.',
       relationship: 'Shop owner to customer',
       voiceId: 'JOcmGzB8OFjY8MhjHHEf',
-      avatar: '/Takeshi1.png',
+      avatar: '/character/Takeshi.png',
     },
     conversationFlow: [
       'Welcome the learner into the shop and seat them at the counter.',
@@ -191,9 +191,9 @@ export const SCENARIO_TEMPLATES: ScenarioTemplate[] = [
 // ---------------------------------------------------------------------------
 
 export const CHARACTER_ROSTER = [
-  { id: 'takeshi', name: 'Takeshi', nameJP: 'たけし', emoji: '🍜', voiceId: 'JOcmGzB8OFjY8MhjHHEf', avatar: '/Takeshi1.png', description: 'Gruff but friendly ramen chef in his 50s', personality: 'Warm, loud, proud. Short punchy sentences.', speechStyle: 'Casual masculine Japanese. だ/だよ endings, omits particles.' },
-  { id: 'yuki', name: 'Yuki', nameJP: 'ゆき', emoji: '🏪', voiceId: 'EkK6wL8GaH8IgBZTTDGJ', avatar: '/Yuki1.png', description: 'Cheerful college student, curious and enthusiastic', personality: 'Energetic, giggly, asks lots of questions.', speechStyle: 'Young casual-polite. ～んですか, ～だよね, some slang.' },
-  { id: 'kenji', name: 'Kenji', nameJP: 'けんじ', emoji: '🍻', voiceId: '8BU0fsFBiPt1cbGZ5lK9', avatar: '/Kenji1.png', description: 'Outgoing coworker in his 30s who loves food', personality: 'Fun, loud after a beer, great organizer.', speechStyle: 'Casual-polite mix. ～しない？ suggestions, English loanwords.' },
+  { id: 'takeshi', name: 'Takeshi', nameJP: 'たけし', emoji: '🍜', voiceId: 'JOcmGzB8OFjY8MhjHHEf', avatar: '/character/Takeshi.png', description: 'Gruff but friendly ramen chef in his 50s', personality: 'Warm, loud, proud. Short punchy sentences.', speechStyle: 'Casual masculine Japanese. だ/だよ endings, omits particles.' },
+  { id: 'yuki', name: 'Yuki', nameJP: 'ゆき', emoji: '🏪', voiceId: 'EkK6wL8GaH8IgBZTTDGJ', avatar: '/character/Yuki.png', description: 'Cheerful college student, curious and enthusiastic', personality: 'Energetic, giggly, asks lots of questions.', speechStyle: 'Young casual-polite. ～んですか, ～だよね, some slang.' },
+  { id: 'kenji', name: 'Kenji', nameJP: 'けんじ', emoji: '🍻', voiceId: '8BU0fsFBiPt1cbGZ5lK9', avatar: '/character/Kenji.png', description: 'Outgoing coworker in his 30s who loves food', personality: 'Fun, loud after a beer, great organizer.', speechStyle: 'Casual-polite mix. ～しない？ suggestions, English loanwords.' },
   { id: 'mika', name: 'Mika', nameJP: 'みか', emoji: '💕', voiceId: 'RWZ1lnBIIgPBTpyCnKn2', avatar: '/characters/mika.png', description: 'Kind woman, warm and patient', personality: 'Gentle, thoughtful, speaks slowly and clearly.', speechStyle: 'Polite feminine Japanese. ～ですよ, ～ましょうか, のよ.' },
   { id: 'suzuki', name: 'Mr. Suzuki', nameJP: '鈴木さん', emoji: '💼', voiceId: 'SOuiRq8aXqyALuq5QIQ8', avatar: '/characters/suzuki.png', description: 'Calm professional, formal and thorough', personality: 'Serious, observant, occasionally smiles.', speechStyle: 'Formal business Japanese. ～でございます, ～いただけますか.' },
   { id: 'ren', name: 'Ren', nameJP: 'れん', emoji: '🕹️', voiceId: 'LIisRj2veIKEBdr6KZ5y', avatar: '/characters/ren.png', description: 'Upbeat young guy, passionate about games and manga', personality: 'Competitive, playful, dramatic reactions.', speechStyle: 'Very casual masculine. ～じゃん, まじかよ, やった.' },

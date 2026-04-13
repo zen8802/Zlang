@@ -161,3 +161,21 @@ rt {
 .character-animator [style*="animation"] {
   animation-timing-function: ease-in-out !important;
 }
+
+/* Mascot animations */
+@keyframes mascotBreathe {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-4px); }
+}
+.mascot-breathe {
+  animation: mascotBreathe 3.2s ease-in-out infinite;
+}
+@keyframes mascotBounce {
+  0%   { transform: translateY(20px) scale(0.8); opacity: 0; }
+  60%  { transform: translateY(-8px) scale(1.05); opacity: 1; }
+  80%  { transform: translateY(2px) scale(0.98); }
+  100% { transform: translateY(0) scale(1); }
+}
+.mascot-bounce-in {
+  animation: mascotBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}

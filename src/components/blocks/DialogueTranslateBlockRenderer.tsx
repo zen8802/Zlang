@@ -451,13 +451,30 @@ export function DialogueTranslateBlockRenderer({ block, onComplete }: Props) {
                   ))}
                 </div>
 
-                <div className="bg-[#EBF0F8] rounded-[8px] px-3 py-2 border border-[#1B4F8A]/15">
-                  <p
-                    className="text-xs text-[#1B4F8A]"
-                    style={{ fontFamily: 'DM Sans, sans-serif' }}
+                {/* Mascot naturalness note */}
+                <div className="flex items-start gap-2.5">
+                  <div
+                    className="flex-1 rounded-[10px_10px_10px_2px] px-3.5 py-2.5 border"
+                    style={{ backgroundColor: '#FDFBF8', borderColor: '#E0DAD2' }}
                   >
-                    💬 {translated.naturalness}
-                  </p>
+                    <p
+                      className="text-xs text-[#1A1814] leading-relaxed"
+                      style={{ fontFamily: 'DM Sans, sans-serif' }}
+                    >
+                      {translated.naturalness}
+                    </p>
+                  </div>
+                  <div
+                    className="w-14 h-14 shrink-0 rounded-full border-2 border-white overflow-hidden flex items-center justify-center mt-0.5"
+                    style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(26,24,20,0.08)' }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/mascot/talking-1.png"
+                      alt=""
+                      className="w-12 h-12 object-contain"
+                    />
+                  </div>
                 </div>
 
                 {translated.alternativePhrase && (

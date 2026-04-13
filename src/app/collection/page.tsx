@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import { useAppStore } from '@/store/useAppStore'
 import { HIRAGANA_GRID, KATAKANA_GRID, ROW_LABELS, COL_LABELS } from '@/data/hiragana-grid'
 import type { KanaCell } from '@/data/hiragana-grid'
@@ -94,26 +93,18 @@ export default function CollectionPage() {
         >
           Your Collection
         </p>
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <Image
-              src="/CollectionLogo.png"
-              alt="Collection"
-              width={36}
-              height={36}
-              className="w-9 h-9 rounded-[6px] object-cover"
-            />
-            <h1
-              style={{
-                fontFamily: 'Shippori Mincho',
-                fontSize: '28px',
-                color: '#1A1814',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              言葉コレクション
-            </h1>
-          </div>
+        <div className="flex justify-between items-baseline">
+          <h1
+            style={{
+              fontFamily: 'Shippori Mincho',
+              fontSize: '28px',
+              color: '#1A1814',
+              letterSpacing: '-0.02em',
+              marginTop: '2px',
+            }}
+          >
+            言葉コレクション
+          </h1>
           <span
             style={{
               fontFamily: 'DM Sans',
