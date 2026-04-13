@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useAppStore } from '@/store/useAppStore'
 import Navbar from '@/components/layout/Navbar'
 import { SCENARIO_TEMPLATES } from '@/data/scenarios'
@@ -71,11 +72,14 @@ export default function DashboardPage() {
             className="bg-[#FDFBF8] rounded-[10px] border border-[#E0DAD2] p-5 hover:border-[#1B4F8A]/30 hover:shadow-[0_2px_12px_rgba(26,24,20,0.08)] active:translate-y-px transition-all"
           >
             <div className="flex items-center gap-4">
-              <div
-                className="w-12 h-12 rounded-[10px] flex items-center justify-center text-2xl shrink-0"
-                style={{ backgroundColor: '#EBF0F8' }}
-              >
-                📖
+              <div className="w-12 h-12 rounded-[10px] overflow-hidden shrink-0">
+                <Image
+                  src="/CollectionLogoMain.png"
+                  alt="Word Collection"
+                  width={48}
+                  height={48}
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div className="flex-1 min-w-0">
                 <p

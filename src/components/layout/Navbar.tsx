@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useAppStore, t } from '@/store/useAppStore'
 import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
@@ -118,8 +119,8 @@ export default function Navbar() {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#FDFBF8] border-t border-[#E0DAD2] z-40 pb-[env(safe-area-inset-bottom)]">
         <div className="flex justify-around px-2 py-2">
           {[
-            { key: 'nav.dashboard', href: '/dashboard', icon: '🏠', label: t('nav.dashboard', uiLanguage) },
-            { key: 'nav.collection', href: '/collection', icon: '📖', label: t('nav.collection', uiLanguage) },
+            { key: 'nav.dashboard', href: '/dashboard', icon: '🏠', image: null, label: t('nav.dashboard', uiLanguage) },
+            { key: 'nav.collection', href: '/collection', icon: null, image: '/CollectionLogo.png', label: t('nav.collection', uiLanguage) },
           ].map((item) => {
             const isActive =
               pathname === item.href || pathname?.startsWith(item.href + '/')
@@ -131,7 +132,17 @@ export default function Navbar() {
                   isActive ? 'text-[#1B4F8A]' : 'text-[#9E9892] hover:text-[#6B6560]'
                 }`}
               >
-                <span className="text-xl">{item.icon}</span>
+                {item.image ? (
+                  <Image
+                    src={item.image}
+                    alt={item.label}
+                    width={24}
+                    height={24}
+                    className={`w-6 h-6 rounded-[4px] object-cover ${isActive ? 'opacity-100' : 'opacity-60'}`}
+                  />
+                ) : (
+                  <span className="text-xl">{item.icon}</span>
+                )}
                 <span className="text-[10px] font-bold" style={{ fontFamily: 'DM Sans, sans-serif' }}>
                   {item.label}
                 </span>

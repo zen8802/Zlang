@@ -72,6 +72,8 @@ export default function LoopSessionPage() {
 
   const userProfile = useAppStore((s) => s.userProfile)
   const knownHiragana = useAppStore((s) => s.knownHiragana)
+  const addDiscoveredKana = useAppStore((s) => s.addDiscoveredKana)
+  const addDiscoveredKanji = useAppStore((s) => s.addDiscoveredKanji)
 
   // Load session
   useEffect(() => {
@@ -146,7 +148,28 @@ export default function LoopSessionPage() {
       console.error('Vocabulary track error:', err)
       setCardResults({ newUnlocks: [], strengthened: [], mastered: [] })
     }
-  }, [session?.scenarioId])
+
+    // Scan conversation for hiragana/katakana characters and track discoveries
+    const allText = (messages || []).map((m: { content?: string }) => m.content || '').join('')
+    const newH: string[] = []
+    const newK: string[] = []
+    for (const ch of allText) {
+      const code = ch.charCodeAt(0)
+      if (code >= 0x3041 && code <= 0x3096) newH.push(ch)
+      if (code >= 0x30a0 && code <= 0x30ff) newK.push(ch)
+    }
+    if (newH.length > 0 || newK.length > 0) {
+      addDiscoveredKana(newH, newK)
+    }
+
+    // Scan for kanji characters
+    const newKanji: string[] = []
+    for (const ch of allText) {
+      const code = ch.charCodeAt(0)
+      if (code >= 0x4e00 && code <= 0x9fff) newKanji.push(ch)
+    }
+    if (newKanji.length > 0) addDiscoveredKanji(newKanji)
+  }, [session?.scenarioId, addDiscoveredKana, addDiscoveredKanji])
 
   // Transition to retry
   const handleStartRetry = useCallback(() => {

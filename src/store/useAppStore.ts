@@ -28,10 +28,14 @@ interface AppState {
   uiLanguage: 'en' | 'jp'
   level: '' | 'beginner' | 'basics' | 'intermediate' | 'advanced'
 
-  // Daily login streak — increments at midnight EST. Replaces the old XP
-  // system. The reset/streak logic uses an EST calendar day so a user in any
-  // timezone gets the same "new day" boundary. The XP system was deleted; a
-  // more comprehensive progression system will replace it later.
+  // Kana discovery — tracks ALL hiragana/katakana characters the user has
+  // seen in ANY conversation. Broader than `knownHiragana` (formally-introduced
+  // in a lesson). Powered by scanning conversation text after each loop session.
+  discoveredHiragana: string[]
+  discoveredKatakana: string[]
+  discoveredKanji: string[]
+
+  // Daily login streak — increments at midnight EST.
   loginStreak: number
   lastLoginEstDate: string // 'YYYY-MM-DD' in America/New_York
 
@@ -43,6 +47,8 @@ interface AppState {
   setUserProfile: (profile: UserProfile) => void
   addKnownHiragana: (chars: string[]) => void
   setKnownHiragana: (chars: string[]) => void
+  addDiscoveredKana: (hiragana: string[], katakana: string[]) => void
+  addDiscoveredKanji: (chars: string[]) => void
   setWorldNumber: (n: number) => void
   setCorridor: (corridor: 'en-to-jp' | 'jp-to-en') => void
   setUiLanguage: (lang: 'en' | 'jp') => void
@@ -83,6 +89,9 @@ function estYesterdayStr(): string {
 const initialState = {
   userProfile: null as UserProfile | null,
   knownHiragana: [] as string[],
+  discoveredHiragana: [] as string[],
+  discoveredKatakana: [] as string[],
+  discoveredKanji: [] as string[],
   worldNumber: 1,
   corridor: null as 'en-to-jp' | 'jp-to-en' | null,
   uiLanguage: 'en' as 'en' | 'jp',
@@ -122,6 +131,25 @@ export const useAppStore = create<AppState>()(
 
       setKnownHiragana: (chars) =>
         set({ knownHiragana: Array.from(new Set(chars)) }),
+
+      addDiscoveredKana: (hiragana, katakana) =>
+        set((state) => {
+          const hSet = new Set(state.discoveredHiragana)
+          for (const c of hiragana) hSet.add(c)
+          const kSet = new Set(state.discoveredKatakana)
+          for (const c of katakana) kSet.add(c)
+          return {
+            discoveredHiragana: Array.from(hSet),
+            discoveredKatakana: Array.from(kSet),
+          }
+        }),
+
+      addDiscoveredKanji: (chars) =>
+        set((state) => {
+          const next = new Set(state.discoveredKanji)
+          for (const c of chars) next.add(c)
+          return { discoveredKanji: Array.from(next) }
+        }),
 
       setWorldNumber: (n) => set({ worldNumber: n }),
 
