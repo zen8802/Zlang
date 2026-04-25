@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import Image from 'next/image'
 import * as wanakana from 'wanakana'
 import Button from '@/components/ui/Button'
 import { useAppStore } from '@/store/useAppStore'
+import { ALL_EXPRESSIONS } from '@/data/vocabulary-seed'
+import { findNewPhrasesInText } from '@/lib/dialogue-highlighter'
 
 // ---------------------------------------------------------------------------
 // Types (copied from studio session)
@@ -38,6 +40,7 @@ interface Message {
   jpOfYours?: { japanese: string; romaji: string; english: string }
   userEnglish?: string
   hints?: string[]
+  translationData?: TranslatedResponse
   timestamp: number
 }
 
@@ -107,6 +110,10 @@ interface AttemptPhaseProps {
   session: any
   diagnosing: boolean
   onEndAttempt: (messages: Message[]) => void
+  /** Top-5 kana selected for this lesson — gold underlined in character speech */
+  sessionLessonKana?: string[]
+  /** New phrase expressions found in this conversation — green underlined */
+  sessionNewPhrases?: string[]
 }
 
 // ---------------------------------------------------------------------------
@@ -299,16 +306,104 @@ function DialogueText({
   vocab,
   showFurigana,
   onWordClick,
+  lessonKana = [],
+  newPhrases = [],
 }: {
   text: string
   vocab?: VocabWord[]
   showFurigana: boolean
   onWordClick: (word: VocabWord, rect: DOMRect) => void
+  lessonKana?: string[]
+  newPhrases?: string[]
 }) {
+  const lessonKanaSet = new Set(lessonKana)
+  // Sort phrases by length desc so longer matches win
+  const sortedNewPhrases = Array.from(new Set(newPhrases)).sort(
+    (a, b) => b.length - a.length,
+  )
+
+  // ── Three-layer highlighting ────────────────────────────────────────
+  // Layer 1: Gold bōten dots (text-emphasis) — per new kana character
+  // Layer 2: Green background-image gradient — continuous phrase underline
+  // Layer 3: Dictionary text-decoration dotted — from parent vocab span
+  // These never collide — each uses a different CSS mechanism.
+
+  const renderWithHighlights = (_content: React.ReactNode, plainSegmentText: string): React.ReactNode => {
+    if (lessonKana.length === 0 && newPhrases.length === 0) return _content
+
+    // Try to find and split around phrase boundaries
+    for (const phrase of sortedNewPhrases) {
+      const idx = plainSegmentText.indexOf(phrase)
+      if (idx >= 0) {
+        const before = plainSegmentText.slice(0, idx)
+        const after = plainSegmentText.slice(idx + phrase.length)
+        return (
+          <>
+            {before && renderCharsWithBoten(before)}
+            {renderPhraseSpan(phrase)}
+            {after && renderWithHighlights(null, after)}
+          </>
+        )
+      }
+    }
+
+    return renderCharsWithBoten(plainSegmentText)
+  }
+
+  // Individual characters — gold bōten dots on new kana
+  const renderCharsWithBoten = (text: string): React.ReactNode => (
+    <>
+      {Array.from(text).map((char, ci) => {
+        const code = char.charCodeAt(0)
+        const isKana =
+          (code >= 0x3041 && code <= 0x3096) ||
+          (code >= 0x30a0 && code <= 0x30ff)
+
+        if (isKana && lessonKanaSet.has(char)) {
+          return (
+            <span key={ci} className="char-gold">{char}</span>
+          )
+        }
+        return <span key={ci}>{char}</span>
+      })}
+    </>
+  )
+
+  // Continuous green line over the entire phrase via background-image.
+  // Gold bōten dots on individual new kana chars inside.
+  const renderPhraseSpan = (phrase: string): React.ReactNode => (
+    <span
+      style={{
+        backgroundImage: 'linear-gradient(#2D9E6B, #2D9E6B)',
+        backgroundSize: '100% 1.5px',
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'bottom 0px left 0px',
+        paddingBottom: '8px',
+      }}
+    >
+      {Array.from(phrase).map((char, ci) => {
+        const code = char.charCodeAt(0)
+        const isKana =
+          (code >= 0x3041 && code <= 0x3096) ||
+          (code >= 0x30a0 && code <= 0x30ff)
+
+        if (isKana && lessonKanaSet.has(char)) {
+          return (
+            <span key={ci} className="char-gold">{char}</span>
+          )
+        }
+        return <span key={ci}>{char}</span>
+      })}
+    </span>
+  )
   if (!vocab || vocab.length === 0) {
+    const plain = stripFurigana(text)
+    const hasHighlights = lessonKana.length > 0 || newPhrases.length > 0
     return (
       <span style={{ fontFamily: 'Noto Sans JP' }}>
-        {renderWithFurigana(text, showFurigana)}
+        {hasHighlights
+          ? renderWithHighlights(null, plain)
+          : renderWithFurigana(text, showFurigana)}
       </span>
     )
   }
@@ -343,16 +438,28 @@ function DialogueText({
   return (
     <span style={{ fontFamily: 'Noto Sans JP' }}>
       {segments.map((seg, i) => {
+        const hasHighlights = lessonKana.length > 0 || newPhrases.length > 0
+
         if (!seg.isVocab) {
           return (
             <span key={i}>
-              {showFurigana ? renderWithFurigana(findOriginalChunk(text, seg.text), showFurigana) : seg.text}
+              {hasHighlights
+                ? renderWithHighlights(null, seg.text)
+                : showFurigana
+                  ? renderWithFurigana(findOriginalChunk(text, seg.text), showFurigana)
+                  : seg.text}
             </span>
           )
         }
 
-        const posStyle = POS_COLORS[seg.vocabData.pos] || POS_COLORS.noun
-        const originalWord = seg.vocabData.word
+        const posColor = (POS_COLORS[seg.vocabData.pos] || POS_COLORS.noun).underline
+
+        // Check if any char in this vocab word is a gold-highlighted kana.
+        // If so, the dictionary line must sit BELOW the gold line entirely.
+        const segHasGold = hasHighlights && Array.from(seg.text).some((ch) => {
+          const c = ch.charCodeAt(0)
+          return ((c >= 0x3041 && c <= 0x3096) || (c >= 0x30a0 && c <= 0x30ff)) && lessonKanaSet.has(ch)
+        })
 
         return (
           <span
@@ -363,11 +470,20 @@ function DialogueText({
             }}
             className="cursor-pointer rounded-sm px-[1px] hover:opacity-80"
             style={{
-              borderBottom: `2px solid ${posStyle.underline}`,
-              paddingBottom: '1px',
+              // POS-colored dashed line via repeating-linear-gradient.
+              // Dashes scale cleanly to any width — no clipped dots.
+              backgroundImage: `repeating-linear-gradient(90deg, ${posColor} 0px, ${posColor} 3px, transparent 3px, transparent 6px)`,
+              backgroundSize: '100% 1.5px',
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'bottom 0px left 0px',
+              paddingBottom: segHasGold ? '8px' : '4px',
             }}
           >
-            {showFurigana ? renderWithFurigana(originalWord, true) : seg.text}
+            {hasHighlights
+              ? renderWithHighlights(null, seg.text)
+              : showFurigana
+                ? renderWithFurigana(seg.vocabData.word, true)
+                : seg.text}
           </span>
         )
       })}
@@ -440,7 +556,7 @@ function VocabPopup({ word, rect, onClose }: { word: VocabWord; rect: DOMRect; o
 // AttemptPhase component
 // ---------------------------------------------------------------------------
 
-export default function AttemptPhase({ sessionId, session, diagnosing, onEndAttempt }: AttemptPhaseProps) {
+export default function AttemptPhase({ sessionId, session, diagnosing, onEndAttempt, sessionLessonKana = [], sessionNewPhrases = [] }: AttemptPhaseProps) {
   // loopMode kept on the session for the diagnose API + RecognizePhase routing,
   // but the conversation UI is now identical across all modes — beginners deserve
   // the full breakdown / alternative / chips experience, not a stripped-down bar.
@@ -476,6 +592,9 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
   const [useAlternative, setUseAlternative] = useState(false)
   const [showBreakdown, setShowBreakdown] = useState(true)
 
+  // Tapping a previously-sent user message expands its breakdown inline.
+  const [expandedMessageId, setExpandedMessageId] = useState<string | null>(null)
+
   // Pay-flow state. Once the conversation reaches the payment beat, `payShown`
   // sticks (so the textbox copy + End button stay updated even after the pay
   // moment passes). `payContinued` flips when the user types past the pay
@@ -500,6 +619,53 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const userExchanges = messages.filter(m => m.role === 'user').length
+
+  // ── LIVE highlighting — computed from all character messages so far ────
+  // Gold underline: every kana in character speech that the user hasn't learned yet
+  const discoveredH = useAppStore((s) => s.discoveredHiragana)
+  const discoveredK = useAppStore((s) => s.discoveredKatakana)
+
+  const liveNewKana = useMemo(() => {
+    const learnedSet = new Set([...discoveredH, ...discoveredK])
+    const charText = messages
+      .filter((m) => m.role === 'character')
+      .map((m) => m.content || '')
+      .join('')
+    // Preserve first-appearance order, deduplicated, capped at 5
+    const found: string[] = []
+    const seen = new Set<string>()
+    for (const ch of Array.from(charText)) {
+      if (found.length >= 5) break
+      const code = ch.charCodeAt(0)
+      const isKana = (code >= 0x3041 && code <= 0x3096) || (code >= 0x30a0 && code <= 0x30ff)
+      if (isKana && !learnedSet.has(ch) && !seen.has(ch)) {
+        found.push(ch)
+        seen.add(ch)
+      }
+    }
+    return found
+  }, [messages, discoveredH, discoveredK])
+
+  // Green underline: expression phrases from ALL_EXPRESSIONS that appear in
+  // character speech and aren't already in the user's collection.
+  // (We don't have the user's known phrases client-side, so we highlight ALL
+  // expression matches as green — the worst case is a phrase the user already
+  // collected gets a green underline, which is still useful reinforcement.)
+  const liveNewPhrases = useMemo(() => {
+    const charText = messages
+      .filter((m) => m.role === 'character')
+      .map((m) => m.content || '')
+      .join(' ')
+    return findNewPhrasesInText(charText, [], ALL_EXPRESSIONS)
+  }, [messages])
+
+  // Merge live-computed with any post-diagnosis data from the parent
+  const effectiveLessonKana = sessionLessonKana.length > 0
+    ? sessionLessonKana
+    : liveNewKana
+  const effectiveNewPhrases = sessionNewPhrases.length > 0
+    ? sessionNewPhrases
+    : liveNewPhrases
 
   // Hints from the latest character message — beginner-friendly English chips
   // the learner can tap to drop into their input.
@@ -695,7 +861,7 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
 
   // Send message
   const sendText = useCallback(
-    async (text: string, userEnglish?: string) => {
+    async (text: string, userEnglish?: string, translationData?: TranslatedResponse) => {
       if (!text.trim() || isStreaming) return
 
       const userMsg: Message = {
@@ -703,6 +869,7 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
         role: 'user',
         content: text.trim(),
         userEnglish: userEnglish?.trim() || undefined,
+        translationData: translationData || undefined,
         timestamp: Date.now(),
       }
 
@@ -892,15 +1059,15 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
         ? translated.alternativePhrase
         : translated.japanese
     const english = englishInput
-    // If the learner is sending a typed message AFTER the pay beat appeared,
-    // they're choosing to keep the conversation going. Lock in payContinued
-    // so we hide the Pay button and surface a clear "End Conversation" CTA.
+    // Stash the full translation data on the message so the user can
+    // tap a sent message later to re-view the breakdown.
+    const savedTranslation = { ...translated }
     if (payShown) setPayContinued(true)
     setTranslated(null)
     setUseAlternative(false)
     setEnglishInput('')
     setShowBreakdown(true)
-    sendText(japanese, english)
+    sendText(japanese, english, savedTranslation)
   }, [translated, useAlternative, englishInput, sendText, payShown])
 
   const handleEditTranslation = useCallback(() => {
@@ -1004,6 +1171,8 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
                           setActiveVocab(activeVocab?.word === word.word ? null : word)
                           setVocabPopupRect(rect)
                         }}
+                        lessonKana={effectiveLessonKana}
+                        newPhrases={effectiveNewPhrases}
                       />
                     </p>
                     {showRomaji && msg.romaji && (
@@ -1029,10 +1198,18 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
               </div>
             ) : (
               <>
+                {/* User message bubble — tappable to expand breakdown */}
                 <div className="flex justify-end">
-                  <div
-                    className="max-w-[85%] px-4 py-3 text-white"
+                  <button
+                    className="max-w-[85%] px-4 py-3 text-white text-left"
                     style={{ backgroundColor: '#1B4F8A', borderRadius: '12px 2px 12px 12px' }}
+                    onClick={() => {
+                      if (msg.translationData) {
+                        setExpandedMessageId(
+                          expandedMessageId === msg.id ? null : msg.id,
+                        )
+                      }
+                    }}
                   >
                     <p
                       className="text-[15px] leading-relaxed whitespace-pre-wrap"
@@ -1040,8 +1217,82 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
                     >
                       {renderWithFurigana(msg.content, showFurigana)}
                     </p>
-                  </div>
+                    {msg.translationData && (
+                      <p
+                        className="text-[10px] text-white/40 mt-1"
+                        style={{ fontFamily: 'DM Sans, sans-serif' }}
+                      >
+                        {expandedMessageId === msg.id ? 'tap to collapse' : 'tap to see breakdown'}
+                      </p>
+                    )}
+                  </button>
                 </div>
+
+                {/* Expanded breakdown for a previously-sent message */}
+                {expandedMessageId === msg.id && msg.translationData && (
+                  <div className="flex justify-end mt-2">
+                    <div className="max-w-[90%] bg-[#FDFBF8] rounded-[10px] border border-[#E0DAD2] overflow-hidden ink-in">
+                      <div className="px-4 py-3 space-y-2">
+                        {msg.translationData.breakdown.map((chunk, ci) => (
+                          <div
+                            key={ci}
+                            className="flex items-start gap-3 pb-2 border-b border-[#F5F0EB] last:border-0 last:pb-0"
+                          >
+                            <div className="shrink-0 min-w-[70px]">
+                              <p className="text-base text-[#1A1814] font-medium" style={{ fontFamily: 'Noto Sans JP, sans-serif' }}>
+                                {chunk.chunk}
+                              </p>
+                              <p className="text-[11px] text-[#9E9892]" style={{ fontFamily: 'DM Mono, monospace' }}>
+                                {chunk.romaji || chunk.reading}
+                              </p>
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm text-[#1A1814]" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                                {chunk.meaning}
+                              </p>
+                              {chunk.note && (
+                                <p className="text-xs text-[#7A5C2E] mt-0.5 italic" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                                  {chunk.note}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Mascot naturalness note */}
+                      {msg.translationData.naturalness && (
+                        <div className="px-4 pb-3">
+                          <div className="flex items-start gap-2.5">
+                            <div
+                              className="flex-1 rounded-[10px_10px_10px_2px] px-3.5 py-2.5 border"
+                              style={{ backgroundColor: '#FDFBF8', borderColor: '#E0DAD2' }}
+                            >
+                              <p className="text-xs text-[#1A1814] leading-relaxed" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                                {msg.translationData.naturalness}
+                              </p>
+                            </div>
+                            <div
+                              className="w-14 h-14 shrink-0 rounded-full border-2 border-white overflow-hidden flex items-center justify-center mt-0.5"
+                              style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(26,24,20,0.08)' }}
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src="/mascot/talking-1.png" alt="" className="w-12 h-12 object-contain" />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {/* Close */}
+                      <button
+                        onClick={() => setExpandedMessageId(null)}
+                        className="w-full py-2 border-t border-[#E0DAD2] text-[#9E9892] text-xs hover:text-[#6B6560] transition-colors"
+                        style={{ fontFamily: 'DM Sans, sans-serif' }}
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {msg.jpOfYours && (
                   <div className="flex justify-end mt-1">
                     <div className="max-w-[85%] px-3 py-1.5 rounded-[6px] bg-[#EBF0F8] border border-[#1B4F8A]/15">
@@ -1135,54 +1386,11 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
         {/* English-input → AI-translate flow (all modes — beginners get the same breakdown experience) */}
         {!isStreaming && !isAnimating && !diagnosing && messages.length > 0 && messages[messages.length - 1]?.role === 'character' && (
           <div className="pt-2 space-y-3">
-            {/* Translation result */}
+            {/* Translation result — breakdown FIRST, then the unsent bubble, then send */}
             {translated && (
               <div className="space-y-3 ink-in">
-                <div className="flex justify-end">
-                  <div
-                    className="bg-[#1B4F8A] px-4 py-3 max-w-[85%]"
-                    style={{ borderRadius: '10px 2px 10px 10px' }}
-                  >
-                    <p
-                      className="text-white text-[15px] leading-relaxed"
-                      style={{ fontFamily: 'Noto Sans JP, sans-serif' }}
-                    >
-                      {useAlternative && translated.alternativePhrase
-                        ? translated.alternativePhrase
-                        : translated.japanese}
-                    </p>
-                    {!useAlternative && (
-                      <p
-                        className="text-white/50 text-xs mt-1 font-medium"
-                        style={{ fontFamily: 'DM Mono, monospace' }}
-                      >
-                        {translated.romaji}
-                      </p>
-                    )}
-                    {useAlternative && translated.alternativePhraseEN && (
-                      <p
-                        className="text-white/60 text-xs italic mt-1"
-                        style={{ fontFamily: 'DM Sans, sans-serif' }}
-                      >
-                        {translated.alternativePhraseEN}
-                      </p>
-                    )}
-                    <button
-                      onClick={() =>
-                        playJapaneseAudio(
-                          useAlternative && translated.alternativePhrase
-                            ? translated.alternativePhrase
-                            : translated.japanese,
-                        )
-                      }
-                      className="text-white/40 text-xs mt-1 hover:text-white/70 transition-colors flex items-center gap-1"
-                      style={{ fontFamily: 'DM Sans, sans-serif' }}
-                    >
-                      🔊 Hear it
-                    </button>
-                  </div>
-                </div>
 
+                {/* 1. Breakdown card — the explanation comes first */}
                 <div className="bg-[#FDFBF8] rounded-[10px] border border-[#E0DAD2] overflow-hidden">
                   <button
                     onClick={() => setShowBreakdown(b => !b)}
@@ -1192,7 +1400,7 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
                       className="text-[10px] tracking-widest uppercase text-[#9E9892] font-medium"
                       style={{ fontFamily: 'DM Sans, sans-serif' }}
                     >
-                      Breaking it down
+                      {englishInput || 'Breaking it down'}
                     </p>
                     <span className="text-[#C8C3BC] text-xs">
                       {showBreakdown ? '▲' : '▼'}
@@ -1208,31 +1416,19 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
                             className="flex items-start gap-3 pb-2 border-b border-[#F5F0EB] last:border-0 last:pb-0"
                           >
                             <div className="shrink-0 min-w-[80px]">
-                              <p
-                                className="text-base text-[#1A1814] font-medium"
-                                style={{ fontFamily: 'Noto Sans JP, sans-serif' }}
-                              >
+                              <p className="text-base text-[#1A1814] font-medium" style={{ fontFamily: 'Noto Sans JP, sans-serif' }}>
                                 {chunk.chunk}
                               </p>
-                              <p
-                                className="text-[11px] text-[#9E9892]"
-                                style={{ fontFamily: 'DM Mono, monospace' }}
-                              >
+                              <p className="text-[11px] text-[#9E9892]" style={{ fontFamily: 'DM Mono, monospace' }}>
                                 {chunk.romaji || chunk.reading}
                               </p>
                             </div>
                             <div className="flex-1">
-                              <p
-                                className="text-sm text-[#1A1814]"
-                                style={{ fontFamily: 'DM Sans, sans-serif' }}
-                              >
+                              <p className="text-sm text-[#1A1814]" style={{ fontFamily: 'DM Sans, sans-serif' }}>
                                 {chunk.meaning}
                               </p>
                               {chunk.note && (
-                                <p
-                                  className="text-xs text-[#7A5C2E] mt-0.5 italic"
-                                  style={{ fontFamily: 'DM Sans, sans-serif' }}
-                                >
+                                <p className="text-xs text-[#7A5C2E] mt-0.5 italic" style={{ fontFamily: 'DM Sans, sans-serif' }}>
                                   {chunk.note}
                                 </p>
                               )}
@@ -1247,10 +1443,7 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
                           className="flex-1 rounded-[10px_10px_10px_2px] px-3.5 py-2.5 border"
                           style={{ backgroundColor: '#FDFBF8', borderColor: '#E0DAD2' }}
                         >
-                          <p
-                            className="text-xs text-[#1A1814] leading-relaxed"
-                            style={{ fontFamily: 'DM Sans, sans-serif' }}
-                          >
+                          <p className="text-xs text-[#1A1814] leading-relaxed" style={{ fontFamily: 'DM Sans, sans-serif' }}>
                             {translated.naturalness}
                           </p>
                         </div>
@@ -1259,33 +1452,20 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
                           style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(26,24,20,0.08)' }}
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src="/mascot/talking-1.png"
-                            alt=""
-                            className="w-12 h-12 object-contain"
-                          />
+                          <img src="/mascot/talking-1.png" alt="" className="w-12 h-12 object-contain" />
                         </div>
                       </div>
 
                       {translated.alternativePhrase && (
                         <div className="bg-[#F5F0E8] rounded-[8px] px-3 py-2 border border-[#D4C4A8]">
-                          <p
-                            className="text-[10px] text-[#7A5C2E] font-medium tracking-wide uppercase mb-1"
-                            style={{ fontFamily: 'DM Sans, sans-serif' }}
-                          >
+                          <p className="text-[10px] text-[#7A5C2E] font-medium tracking-wide uppercase mb-1" style={{ fontFamily: 'DM Sans, sans-serif' }}>
                             You could also say
                           </p>
-                          <p
-                            className="text-sm text-[#1A1814]"
-                            style={{ fontFamily: 'Noto Sans JP, sans-serif' }}
-                          >
+                          <p className="text-sm text-[#1A1814]" style={{ fontFamily: 'Noto Sans JP, sans-serif' }}>
                             {translated.alternativePhrase}
                           </p>
                           {translated.alternativePhraseEN && (
-                            <p
-                              className="text-xs text-[#9E9892] italic mt-0.5"
-                              style={{ fontFamily: 'DM Sans, sans-serif' }}
-                            >
+                            <p className="text-xs text-[#9E9892] italic mt-0.5" style={{ fontFamily: 'DM Sans, sans-serif' }}>
                               {translated.alternativePhraseEN}
                             </p>
                           )}
@@ -1320,6 +1500,49 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
                   )}
                 </div>
 
+                {/* 2. The unsent message bubble — pulsing glow to show it's a draft */}
+                <div className="flex justify-end">
+                  <div
+                    className="max-w-[85%] px-4 py-3 animate-pulse-subtle"
+                    style={{
+                      backgroundColor: '#1B4F8A',
+                      borderRadius: '10px 2px 10px 10px',
+                      boxShadow: '0 0 12px rgba(27,79,138,0.35), 0 0 4px rgba(27,79,138,0.2)',
+                    }}
+                  >
+                    <p
+                      className="text-white text-[15px] leading-relaxed"
+                      style={{ fontFamily: 'Noto Sans JP, sans-serif' }}
+                    >
+                      {useAlternative && translated.alternativePhrase
+                        ? translated.alternativePhrase
+                        : translated.japanese}
+                    </p>
+                    {!useAlternative && (
+                      <p
+                        className="text-white/50 text-xs mt-1 font-medium"
+                        style={{ fontFamily: 'DM Mono, monospace' }}
+                      >
+                        {translated.romaji}
+                      </p>
+                    )}
+                    <button
+                      onClick={() =>
+                        playJapaneseAudio(
+                          useAlternative && translated.alternativePhrase
+                            ? translated.alternativePhrase
+                            : translated.japanese,
+                        )
+                      }
+                      className="text-white/40 text-xs mt-1 hover:text-white/70 transition-colors flex items-center gap-1"
+                      style={{ fontFamily: 'DM Sans, sans-serif' }}
+                    >
+                      🔊 Hear it
+                    </button>
+                  </div>
+                </div>
+
+                {/* 3. Send + edit buttons */}
                 <button
                   onClick={handleSendTranslated}
                   className="w-full bg-[#1B4F8A] hover:bg-[#4A7AB5] text-white font-semibold py-3 rounded-[10px] transition-colors"

@@ -4,7 +4,7 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import type { HiraganaIntroBlock } from '@/types/lesson-blocks'
-import { CharacterAnimator } from './CharacterAnimator'
+import { StrokeAnimation } from '@/components/japanese/StrokeAnimation'
 
 interface Props {
   block: HiraganaIntroBlock
@@ -38,10 +38,11 @@ export default function HiraganaIntroBlockRenderer({ block, onComplete }: Props)
   const [charIndex, setCharIndex] = useState(0)
   const [phase, setPhase] = useState<Phase>('recognize')
   const [allDone, setAllDone] = useState(false)
-  const [, setWriterReady] = useState(false)
+  // animationDone is set by StrokeAnimation onComplete
   const [wrongPick, setWrongPick] = useState<string | null>(null)
   const [correctPick, setCorrectPick] = useState<string | null>(null)
   const [watchReplayKey, setWatchReplayKey] = useState(0)
+  const [, setAnimationDone] = useState(false)
 
   const currentChar = block.characters[charIndex]
 
@@ -62,11 +63,11 @@ export default function HiraganaIntroBlockRenderer({ block, onComplete }: Props)
 
   // Reset ready flag when entering watch phase for a new character
   useEffect(() => {
-    if (phase === 'watch') setWriterReady(false)
+    if (phase === 'watch') setAnimationDone(false)
   }, [phase, currentChar.character])
 
   const replayWriter = () => {
-    setWriterReady(false)
+    setAnimationDone(false)
     setWatchReplayKey(k => k + 1)
   }
 
@@ -241,26 +242,26 @@ export default function HiraganaIntroBlockRenderer({ block, onComplete }: Props)
           </p>
 
           <div className="flex justify-center">
-            <div
-              className="relative bg-[#FDFBF8] rounded-[8px] overflow-hidden border border-[#E0DAD2]"
-              style={{ width: 280, height: 280 }}
-            >
-              <svg className="absolute inset-0 pointer-events-none" width={280} height={280}>
-                <line x1={140} y1={4} x2={140} y2={276} stroke="#C8C3BC" strokeWidth={0.8} strokeDasharray="6,4" />
-                <line x1={4} y1={140} x2={276} y2={140} stroke="#C8C3BC" strokeWidth={0.8} strokeDasharray="6,4" />
-              </svg>
-              <div className="absolute inset-0">
-                <CharacterAnimator
-                  key={`${currentChar.character}-${watchReplayKey}`}
-                  character={currentChar.character}
-                  width={280}
-                  height={280}
-                  strokeColor="#1B4F8A"
-                  autoAnimate={phase === 'watch'}
-                  onAnimationComplete={() => setWriterReady(true)}
-                />
-              </div>
-            </div>
+            <StrokeAnimation
+              key={`${currentChar.character}-${watchReplayKey}`}
+              character={currentChar.character}
+              size={220}
+              autoPlay={true}
+              loop={false}
+              showGrid={true}
+              strokeColor="#1A1814"
+              speed={0.7}
+              delayBetweenStrokes={280}
+              onComplete={() => {
+                setAnimationDone(true)
+                if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+                  const u = new SpeechSynthesisUtterance(currentChar.character)
+                  u.lang = 'ja-JP'
+                  u.rate = 0.6
+                  window.speechSynthesis.speak(u)
+                }
+              }}
+            />
           </div>
 
           <div className="flex justify-center">

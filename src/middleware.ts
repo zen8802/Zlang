@@ -11,6 +11,8 @@ const isPublicRoute = createRouteMatcher([
   '/api/scenarios(.*)',
   '/api/collection(.*)',
   '/api/vocabulary(.*)',
+  '/saved-lessons(.*)',
+  '/api/saved-lessons(.*)',
 ])
 
 export default clerkMiddleware(async (_auth, req) => {

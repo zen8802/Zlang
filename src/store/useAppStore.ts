@@ -1050,6 +1050,10 @@ const translations: Record<string, { en: string; jp: string }> = {
     en: 'Words',
     jp: '単語',
   },
+  'nav.saved': {
+    en: 'Saved',
+    jp: '保存',
+  },
   'nav.share': {
     en: 'Share',
     jp: 'シェア',

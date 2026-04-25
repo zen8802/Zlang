@@ -28,6 +28,8 @@ export default function CollectionPage() {
   const [selectedChar, setSelectedChar] = useState<KanaCell | null>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [wordsByCategory, setWordsByCategory] = useState<Record<string, { card: any; userCard: any | null }[]>>({})
+  const [seenHiragana, setSeenHiragana] = useState<Set<string>>(new Set())
+  const [seenKatakana, setSeenKatakana] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
 
   const tabBarRef = useRef<HTMLDivElement>(null)
@@ -39,6 +41,8 @@ export default function CollectionPage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .then((data: any) => {
         setWordsByCategory(data.wordsByCategory || {})
+        setSeenHiragana(new Set(data.hiraganaSeen || []))
+        setSeenKatakana(new Set(data.katakanaSeen || []))
         setLoading(false)
       })
       .catch(() => {
@@ -69,8 +73,8 @@ export default function CollectionPage() {
 
   const tabs: { key: TabKey; label: string; count: string }[] = [
     { key: 'kana', label: 'Kana', count: `${kanaCount}/92` },
-    { key: 'phrases', label: 'Phrases', count: `${phrasesCollected}/${phrases.length}` },
     { key: 'kanji', label: 'Kanji', count: `${kanjiDiscoveredCount}/80` },
+    { key: 'phrases', label: 'Phrases', count: `${phrasesCollected}/${phrases.length}` },
   ]
 
   const activeTabIndex = tabs.findIndex((t) => t.key === activeTab)
@@ -236,6 +240,7 @@ export default function CollectionPage() {
               <HiraganaGridView
                 grid={HIRAGANA_GRID}
                 discovered={discoveredHSet}
+                seen={seenHiragana}
                 rowLabels={ROW_LABELS}
                 colLabels={COL_LABELS}
                 selectedChar={selectedChar}
@@ -248,6 +253,7 @@ export default function CollectionPage() {
               <HiraganaGridView
                 grid={KATAKANA_GRID}
                 discovered={discoveredKSet}
+                seen={seenKatakana}
                 rowLabels={ROW_LABELS}
                 colLabels={COL_LABELS}
                 selectedChar={selectedChar}

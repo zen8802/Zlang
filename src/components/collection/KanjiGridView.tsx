@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import type { KyouikuKanji } from '@/data/kyouiku-kanji'
 import { GRADE_LABELS } from '@/data/kyouiku-kanji'
+import { StrokeAnimation } from '@/components/japanese/StrokeAnimation'
 
 interface Props {
   grade1Kanji: KyouikuKanji[]
@@ -80,8 +81,8 @@ export default function KanjiGridView({ grade1Kanji, discoveredKanji, userExperi
         </div>
       )}
 
-      {/* 5-column grid */}
-      <div className="grid grid-cols-5 gap-2">
+      {/* 5-column grid — top-down, right-to-left like traditional Japanese */}
+      <div className="grid gap-2" style={{ gridTemplateRows: 'repeat(16, 1fr)', gridAutoFlow: 'column', gridTemplateColumns: 'repeat(5, 1fr)', direction: 'rtl' }}>
         {grade1Kanji.map((kanji) => {
           const isDiscovered = discoveredKanji.has(kanji.character)
           const isSelected = selectedKanji?.character === kanji.character
@@ -102,8 +103,8 @@ export default function KanjiGridView({ grade1Kanji, discoveredKanji, userExperi
                       border: '1.5px solid #E0DAD2',
                     }
                   : {
-                      backgroundColor: '#DDD7CF',
-                      border: '1.5px solid #D4CFC8',
+                      backgroundColor: '#2C2924',
+                      border: '1.5px solid #1A1814',
                     }
               }
             >
@@ -138,7 +139,7 @@ export default function KanjiGridView({ grade1Kanji, discoveredKanji, userExperi
                       fontFamily: 'Noto Sans JP',
                       fontSize: '22px',
                       fontWeight: 300,
-                      color: 'rgba(26,24,20,0.10)',
+                      color: 'rgba(255,255,255,0.07)',
                       lineHeight: 1,
                     }}
                   >
@@ -148,7 +149,7 @@ export default function KanjiGridView({ grade1Kanji, discoveredKanji, userExperi
                     style={{
                       fontFamily: 'DM Mono',
                       fontSize: '8px',
-                      color: 'rgba(26,24,20,0.15)',
+                      color: 'rgba(255,255,255,0.07)',
                       marginTop: '2px',
                     }}
                   >
@@ -172,25 +173,23 @@ export default function KanjiGridView({ grade1Kanji, discoveredKanji, userExperi
                   border: '1px solid #E0DAD2',
                 }
               : {
-                  backgroundColor: '#DDD7CF',
-                  border: '1px solid #D4CFC8',
+                  backgroundColor: '#2C2924',
+                  border: '1px solid #1A1814',
                 }
           }
         >
           {discoveredKanji.has(selectedKanji.character) ? (
             <>
               <div className="flex items-start gap-4">
-                <span
-                  style={{
-                    fontFamily: 'Noto Sans JP',
-                    fontSize: '48px',
-                    fontWeight: 300,
-                    color: '#1A1814',
-                    lineHeight: 1,
-                  }}
-                >
-                  {selectedKanji.character}
-                </span>
+                <StrokeAnimation
+                  character={selectedKanji.character}
+                  size={100}
+                  autoPlay={true}
+                  loop={false}
+                  showGrid={true}
+                  strokeColor="#1A1814"
+                  speed={0.6}
+                />
                 <div className="flex-1 min-w-0">
                   <div
                     style={{
@@ -322,7 +321,7 @@ export default function KanjiGridView({ grade1Kanji, discoveredKanji, userExperi
                   fontFamily: 'Noto Sans JP',
                   fontSize: '32px',
                   fontWeight: 300,
-                  color: 'rgba(26,24,20,0.15)',
+                  color: 'rgba(255,255,255,0.10)',
                   lineHeight: 1,
                 }}
               >
@@ -333,7 +332,7 @@ export default function KanjiGridView({ grade1Kanji, discoveredKanji, userExperi
                 style={{
                   fontFamily: 'DM Sans',
                   fontSize: '12px',
-                  color: 'rgba(26,24,20,0.35)',
+                  color: 'rgba(255,255,255,0.3)',
                 }}
               >
                 Not yet discovered

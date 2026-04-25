@@ -6,7 +6,8 @@ import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import type { TraceBlock } from '@/types/lesson-blocks'
 import Button from '@/components/ui/Button'
 import { CharacterWriteCanvas } from './CharacterWriteCanvas'
-import { CharacterAnimator, getCharType } from './CharacterAnimator'
+import { getCharType } from './CharacterAnimator'
+import { StrokeAnimation } from '@/components/japanese/StrokeAnimation'
 import { useAppStore } from '@/store/useAppStore'
 
 const BEGINNER_KANJI = ['一','二','三','四','五','日','月','山','川','木','火','水','人','口','大','小']
@@ -146,8 +147,8 @@ export function TraceBlockRenderer({ block, onComplete }: Props) {
         initWriter()
       }
     } else {
-      // Kana: CharacterAnimator handles rendering; mark ready so buttons show
-      setReady(true)
+      // Kana: StrokeAnimation handles rendering; onComplete will set ready
+      setReady(false)
       setTotalStrokes(0)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -270,14 +271,20 @@ export function TraceBlockRenderer({ block, onComplete }: Props) {
               )}
             </>
           ) : (
-            <div className="absolute inset-0">
-              <CharacterAnimator
+            <div className="absolute inset-0 flex items-center justify-center">
+              <StrokeAnimation
                 key={`${currentChar.character}-${kanaReplayKey}`}
                 character={currentChar.character}
-                width={280}
-                height={280}
-                strokeColor="#1B4F8A"
-                autoAnimate={phase === 'watch'}
+                size={240}
+                autoPlay={true}
+                loop={false}
+                showGrid={true}
+                strokeColor="#1A1814"
+                speed={0.6}
+                delayBetweenStrokes={350}
+                onComplete={() => {
+                  setReady(true)
+                }}
               />
             </div>
           )}

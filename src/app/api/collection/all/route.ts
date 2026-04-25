@@ -40,6 +40,19 @@ export async function GET() {
 
   const sql = neon(process.env.DATABASE_URL)
 
+  // Ensure user row exists
+  await sql`INSERT INTO users (clerk_id) VALUES (${effectiveUserId}) ON CONFLICT (clerk_id) DO NOTHING`
+
+  // Fetch user's kana discovery data
+  const userQuery = sql`
+    SELECT discovered_hiragana, discovered_katakana, discovered_kanji,
+           seen_hiragana, seen_katakana, seen_kanji
+    FROM users WHERE clerk_id = ${effectiveUserId}
+  `
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const userRows = (await userQuery) as any[]
+  const userRow = userRows[0] || null
+
   // Fetch all vocabulary cards with optional user card data
   const rows = (await sql`
     SELECT
@@ -111,6 +124,11 @@ export async function GET() {
   }
 
   return NextResponse.json({
+    hiragana: userRow?.discovered_hiragana || [],
+    hiraganaSeen: userRow?.seen_hiragana || [],
+    katakana: userRow?.discovered_katakana || [],
+    katakanaSeen: userRow?.seen_katakana || [],
+    kanji: userRow?.discovered_kanji || [],
     wordsByCategory,
     stats: {
       collected,

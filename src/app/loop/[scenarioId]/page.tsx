@@ -16,11 +16,18 @@ const DIFFICULTY_BADGE: Record<string, { color: 'green' | 'blue' | 'gold'; label
   advanced: { color: 'gold', label: 'Advanced' },
 }
 
-const HOW_IT_WORKS = [
-  { step: 1, emoji: '💬', title: 'Jump in', desc: 'Start a conversation in Japanese — just pick an option.' },
-  { step: 2, emoji: '😅', title: 'Struggle', desc: 'Make mistakes, get stuck — that\'s the point.' },
-  { step: 3, emoji: '📖', title: 'Learn', desc: 'AI analyzes your gaps and teaches exactly what you need.' },
-  { step: 4, emoji: '🔄', title: 'Retry', desc: 'Same scenario, but now you know the words. Nail it.' },
+const HOW_IT_WORKS_BEGINNER = [
+  { emoji: '💬', title: 'Experience the conversation', desc: 'Type what you want to say in English. We translate it into natural Japanese for you.' },
+  { emoji: '📖', title: 'Get a personal lesson', desc: 'AI builds a lesson from exactly what happened in your conversation. Nothing generic.' },
+  { emoji: '👁️', title: 'See how much you remember', desc: 'The conversation replays with translations hidden. Tap to reveal what you understood.' },
+  { emoji: '🃏', title: 'Collect words you discovered', desc: 'Every Japanese word you encounter gets added to your collection automatically.' },
+]
+
+const HOW_IT_WORKS_INTERMEDIATE = [
+  { emoji: '💬', title: 'Jump straight in', desc: 'No warmup. No vocab list. The character starts talking and you respond.' },
+  { emoji: '😅', title: 'Struggle productively', desc: 'Freeze up, make mistakes, work around gaps. That discomfort is the learning.' },
+  { emoji: '🎯', title: 'Get a surgical lesson', desc: 'AI diagnoses exactly what held you back and teaches only that. Nothing else.' },
+  { emoji: '🔄', title: 'Retry with new knowledge', desc: 'Same scenario, same character. This time you have the words. Use them.' },
 ]
 
 export default function LoopScenarioPage() {
@@ -211,35 +218,47 @@ export default function LoopScenarioPage() {
           </div>
         </Card>
 
-        {/* How this works */}
-        <Card variant="flat" padding="lg" className="mb-6">
-          <h3
-            className="text-sm font-semibold mb-3 flex items-center gap-1.5"
-            style={{ color: '#1A1814' }}
-          >
-            <span>🔄</span> How this works
-          </h3>
-          <div className="space-y-3">
-            {HOW_IT_WORKS.map(step => (
-              <div key={step.step} className="flex items-start gap-3">
-                <div
-                  className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-lg"
-                  style={{ backgroundColor: '#EBF0F8' }}
+        {/* How this works — adapts to user level */}
+        {(() => {
+          const isBeginnerMode = (userProfile?.experience || 1) <= 2
+          const steps = isBeginnerMode ? HOW_IT_WORKS_BEGINNER : HOW_IT_WORKS_INTERMEDIATE
+          return (
+            <div
+              className="rounded-[10px] border border-[#E0DAD2] overflow-hidden mb-6"
+              style={{ backgroundColor: '#FDFBF8' }}
+            >
+              <div className="px-4 pt-4 pb-2">
+                <p
+                  className="text-[10px] tracking-widest uppercase text-[#9E9892] font-medium"
+                  style={{ fontFamily: 'DM Sans' }}
                 >
-                  {step.emoji}
-                </div>
-                <div>
-                  <p className="text-sm font-bold" style={{ color: '#1A1814' }}>
-                    {step.title}
-                  </p>
-                  <p className="text-xs mt-0.5" style={{ color: '#6B6560' }}>
-                    {step.desc}
-                  </p>
-                </div>
+                  How this works
+                </p>
               </div>
-            ))}
-          </div>
-        </Card>
+              <div className="divide-y divide-[#F5F0EB]">
+                {steps.map((step, i) => (
+                  <div key={i} className="flex items-start gap-3 px-4 py-3">
+                    <span className="text-lg shrink-0 mt-0.5">{step.emoji}</span>
+                    <div>
+                      <p
+                        className="text-[#1A1814] font-semibold text-sm"
+                        style={{ fontFamily: 'Shippori Mincho' }}
+                      >
+                        {step.title}
+                      </p>
+                      <p
+                        className="text-[#9E9892] text-xs mt-0.5 leading-relaxed"
+                        style={{ fontFamily: 'DM Sans' }}
+                      >
+                        {step.desc}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        })()}
 
         {/* Start button */}
         <Button

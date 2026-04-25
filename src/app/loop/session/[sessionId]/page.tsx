@@ -10,10 +10,12 @@ import RetryPhase from '@/components/loop/RetryPhase'
 import RecognizePhase from '@/components/loop/RecognizePhase'
 import MilestoneCard from '@/components/loop/MilestoneCard'
 import CardUnlockReveal from '@/components/collection/CardUnlockReveal'
+import CharacterCardReveal from '@/components/loop/CharacterCardReveal'
 import { useAppStore } from '@/store/useAppStore'
+import { useSessionAutoSave } from '@/hooks/useSessionAutoSave'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Phase = 'loading' | 'attempt' | 'cards' | 'diagnosing' | 'learn' | 'retry' | 'complete'
+type Phase = 'loading' | 'attempt' | 'cards' | 'card-reveal' | 'diagnosing' | 'learn' | 'retry' | 'complete'
 
 interface LoopSession {
   id: string
@@ -61,6 +63,9 @@ export default function LoopSessionPage() {
   const [session, setSession] = useState<LoopSession | null>(null)
   const [phase, setPhase] = useState<Phase>('loading')
   const [error, setError] = useState<string | null>(null)
+  const [showEndConfirm, setShowEndConfirm] = useState(false)
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
+  const [resettingSession, setResettingSession] = useState(false)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [cardResults, setCardResults] = useState<{ newUnlocks: any[]; strengthened: any[]; mastered: any[] }>({
     newUnlocks: [],
@@ -69,11 +74,40 @@ export default function LoopSessionPage() {
   })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [pendingAttemptMessages, setPendingAttemptMessages] = useState<any[]>([])
+  const [sessionLessonKana, setSessionLessonKana] = useState<string[]>([])
+  const [sessionNewPhrases, setSessionNewPhrases] = useState<string[]>([])
 
   const userProfile = useAppStore((s) => s.userProfile)
   const knownHiragana = useAppStore((s) => s.knownHiragana)
   const addDiscoveredKana = useAppStore((s) => s.addDiscoveredKana)
   const addDiscoveredKanji = useAppStore((s) => s.addDiscoveredKanji)
+
+  // 3a. Auto-save hook
+  const { saveNow } = useSessionAutoSave(sessionId)
+
+  // 3b. Save on every phase transition
+  useEffect(() => {
+    if (phase !== 'loading') {
+      saveNow({ currentPhase: phase })
+    }
+  }, [phase, saveNow])
+
+  // 3f. beforeunload safety — save state when page closes
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (sessionId && phase !== 'loading' && phase !== 'complete') {
+        const payload = JSON.stringify({
+          currentPhase: phase,
+        })
+        navigator.sendBeacon(
+          `/api/loop/sessions/${sessionId}/save`,
+          payload,
+        )
+      }
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [sessionId, phase])
 
   // Load session
   useEffect(() => {
@@ -83,7 +117,22 @@ export default function LoopSessionPage() {
         if (!res.ok) throw new Error('Failed to load loop session')
         const data = await res.json()
         setSession(data)
-        setPhase(data.phase || 'attempt')
+
+        // 3e. Resume from saved state
+        // Restore learn blocks if saved under learnBlocks key
+        if (data.learnBlocks?.length > 0 && (!data.lessonBlocks || data.lessonBlocks.length === 0)) {
+          data.lessonBlocks = data.learnBlocks
+        }
+
+        const savedPhase = data.currentPhase || data.phase || 'attempt'
+        if (savedPhase === 'diagnosing') {
+          setPhase('attempt')
+        } else if (savedPhase === 'cards') {
+          // Cards phase — re-run since card results aren't persisted
+          setPhase('attempt')
+        } else {
+          setPhase(savedPhase as Phase)
+        }
       } catch (err) {
         console.error('Load error:', err)
         setError('Failed to load session.')
@@ -114,17 +163,27 @@ export default function LoopSessionPage() {
         lessonBlocks: data.learnBlocks || [],
         phase: 'learn',
       } : prev)
-      setPhase('learn')
+      setSessionLessonKana(data.lessonKana || [])
+      setSessionNewPhrases(data.newPhrases || [])
+      // Show card reveal BEFORE the lesson
+      setPhase('card-reveal')
+      saveNow({
+        currentPhase: 'card-reveal',
+        diagnosis: data.diagnosis,
+        learnBlocks: data.learnBlocks || [],
+      })
     } catch (err) {
       console.error('Diagnosis error:', err)
       setError('Diagnosis failed. Please try again.')
       setPhase('attempt')
     }
-  }, [sessionId, userProfile, knownHiragana])
+  }, [sessionId, userProfile, knownHiragana, saveNow])
 
   // Transition to cards phase — extract vocabulary, then diagnosis after Continue
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleEndAttempt = useCallback(async (messages: any[]) => {
+    // 3c. Save messages when the attempt ends
+    saveNow({ currentPhase: 'cards', attemptMessages: messages })
     setPendingAttemptMessages(messages || [])
     setPhase('cards')
     try {
@@ -169,7 +228,7 @@ export default function LoopSessionPage() {
       if (code >= 0x4e00 && code <= 0x9fff) newKanji.push(ch)
     }
     if (newKanji.length > 0) addDiscoveredKanji(newKanji)
-  }, [session?.scenarioId, addDiscoveredKana, addDiscoveredKanji])
+  }, [session?.scenarioId, addDiscoveredKana, addDiscoveredKanji, saveNow])
 
   // Transition to retry
   const handleStartRetry = useCallback(() => {
@@ -255,12 +314,37 @@ export default function LoopSessionPage() {
                   {session.scenarioTitle}
                 </span>
               </div>
-              <button
-                onClick={() => router.push('/dashboard')}
-                className="text-xs font-semibold px-2.5 py-1 rounded-[6px] border border-[#E0DAD2] text-[#9E9892] hover:bg-[#F5EEEE] transition-all"
-              >
-                Exit
-              </button>
+              <div className="flex items-center gap-1.5">
+                {/* Pause — saves progress and returns to dashboard */}
+                <button
+                  onClick={async () => {
+                    if (typeof saveNow === 'function') {
+                      await saveNow({ currentPhase: phase })
+                    }
+                    router.push('/dashboard')
+                  }}
+                  className="text-xs font-semibold px-2.5 py-1 rounded-[6px] border border-[#E0DAD2] text-[#9E9892] hover:bg-[#EBF0F8] transition-all"
+                  style={{ fontFamily: 'DM Sans, sans-serif' }}
+                >
+                  Pause
+                </button>
+                {/* Reset — clears conversation back to opening line */}
+                <button
+                  onClick={() => setShowResetConfirm(true)}
+                  className="text-xs font-semibold px-2.5 py-1 rounded-[6px] border border-[#D4C4A8] text-[#7A5C2E] hover:bg-[#F5F0E8] transition-all"
+                  style={{ fontFamily: 'DM Sans, sans-serif' }}
+                >
+                  Reset
+                </button>
+                {/* End — permanently deletes session */}
+                <button
+                  onClick={() => setShowEndConfirm(true)}
+                  className="text-xs font-semibold px-2.5 py-1 rounded-[6px] border border-[#D4BABA] text-[#8B3A3A] hover:bg-[#F5EEEE] transition-all"
+                  style={{ fontFamily: 'DM Sans, sans-serif' }}
+                >
+                  End
+                </button>
+              </div>
             </div>
 
             {/* Phase steps */}
@@ -318,6 +402,8 @@ export default function LoopSessionPage() {
             session={session}
             diagnosing={phase === 'diagnosing'}
             onEndAttempt={handleEndAttempt}
+            sessionLessonKana={sessionLessonKana}
+            sessionNewPhrases={sessionNewPhrases}
           />
         )}
 
@@ -327,6 +413,17 @@ export default function LoopSessionPage() {
             strengthened={cardResults.strengthened}
             mastered={cardResults.mastered}
             onContinue={() => runDiagnosis(pendingAttemptMessages)}
+          />
+        )}
+
+        {phase === 'card-reveal' && (
+          <CharacterCardReveal
+            lessonKana={sessionLessonKana}
+            lessonPhrases={cardResults?.newUnlocks?.filter(
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (c: any) => c.partOfSpeech === 'expression' || c.part_of_speech === 'expression',
+            ) || []}
+            onContinue={() => setPhase('learn')}
           />
         )}
 
@@ -364,6 +461,105 @@ export default function LoopSessionPage() {
           />
         )}
       </div>
+
+      {/* Reset session confirmation modal */}
+      {showResetConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1A1814]/40 px-6">
+          <div
+            className="w-full max-w-sm rounded-[10px] p-6"
+            style={{ backgroundColor: '#FDFBF8' }}
+          >
+            <p
+              className="text-[#1A1814] font-semibold text-center mb-2"
+              style={{ fontFamily: 'Shippori Mincho, serif', fontSize: '18px' }}
+            >
+              Reset this conversation?
+            </p>
+            <p
+              className="text-[#6B6560] text-sm text-center mb-6 leading-relaxed"
+              style={{ fontFamily: 'DM Sans, sans-serif' }}
+            >
+              This will clear your conversation and start over from the beginning. Your lesson progress will be lost.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowResetConfirm(false)}
+                className="flex-1 py-3 rounded-[8px] border border-[#E0DAD2] text-[#6B6560] text-sm font-medium hover:bg-[#F5F0EB] transition-colors"
+                style={{ fontFamily: 'DM Sans, sans-serif' }}
+              >
+                Cancel
+              </button>
+              <button
+                disabled={resettingSession}
+                onClick={async () => {
+                  setResettingSession(true)
+                  try {
+                    await fetch(`/api/loop/sessions/${sessionId}/reset`, { method: 'POST' })
+                    // Hard reload the page to pick up the reset state
+                    window.location.reload()
+                  } catch {
+                    setResettingSession(false)
+                    setShowResetConfirm(false)
+                  }
+                }}
+                className="flex-1 py-3 rounded-[8px] bg-[#7A5C2E] text-white text-sm font-medium hover:bg-[#634A24] transition-colors disabled:opacity-50"
+                style={{ fontFamily: 'DM Sans, sans-serif' }}
+              >
+                {resettingSession ? 'Resetting...' : 'Reset'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* End session confirmation modal */}
+      {showEndConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1A1814]/40 px-6">
+          <div
+            className="w-full max-w-sm rounded-[10px] p-6"
+            style={{ backgroundColor: '#FDFBF8' }}
+          >
+            <p
+              className="text-[#1A1814] font-semibold text-center mb-2"
+              style={{ fontFamily: 'Shippori Mincho, serif', fontSize: '18px' }}
+            >
+              End this session?
+            </p>
+            <p
+              className="text-[#6B6560] text-sm text-center mb-6 leading-relaxed"
+              style={{ fontFamily: 'DM Sans, sans-serif' }}
+            >
+              This will permanently delete your conversation and any progress in this session. This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowEndConfirm(false)}
+                className="flex-1 py-3 rounded-[8px] border border-[#E0DAD2] text-[#6B6560] text-sm font-medium hover:bg-[#F5F0EB] transition-colors"
+                style={{ fontFamily: 'DM Sans, sans-serif' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setShowEndConfirm(false)
+                  try {
+                    await fetch(`/api/loop/sessions/${sessionId}/save`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ isAbandoned: true }),
+                    })
+                  } catch {}
+                  router.push('/dashboard')
+                }}
+                className="flex-1 py-3 rounded-[8px] bg-[#8B3A3A] text-white text-sm font-medium hover:bg-[#6B2A2A] transition-colors"
+                style={{ fontFamily: 'DM Sans, sans-serif' }}
+              >
+                Delete forever
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

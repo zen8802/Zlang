@@ -77,6 +77,11 @@ export default function CustomScenarioPage() {
       })
 
       const sessionData = await sessionRes.json()
+      if (sessionRes.status === 429) {
+        setError(sessionData.message || 'You have too many active custom conversations. Complete or delete one first.')
+        setGenerating(false)
+        return
+      }
       if (!sessionData?.sessionId) throw new Error('No session id returned')
       router.push(`/loop/session/${sessionData.sessionId}`)
     } catch (err) {

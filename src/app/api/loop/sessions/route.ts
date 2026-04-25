@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { auth } from '@clerk/nextjs/server'
 import { SCENARIO_TEMPLATES, CHARACTER_ROSTER } from '@/data/scenarios'
 import { buildProfileContext, type UserProfilePayload } from '@/lib/userProfileContext'
 
@@ -120,6 +121,55 @@ export async function POST(request: Request) {
       return Response.json({ error: 'scenarioId is required' }, { status: 400 })
     }
 
+    const { userId: clerkUserId2 } = auth()
+
+    // ── SESSION LIMITS ─────────────────────────────────────────────────
+    // Premade scenarios: only 1 active (non-complete, non-abandoned) session
+    // per scenario. If one exists, return it instead of creating a new one.
+    // Custom scenarios: max 3 active at a time.
+    if (clerkUserId2 && process.env.DATABASE_URL) {
+      const { neon: neonCheck } = await import('@neondatabase/serverless')
+      const sqlCheck = neonCheck(process.env.DATABASE_URL)
+
+      const isCustom = !!(customScenario || (typeof scenarioId === 'string' && scenarioId.startsWith('custom_')))
+
+      if (isCustom) {
+        // Custom: max 3 active sessions
+        const activeCustom = await sqlCheck`
+          SELECT COUNT(*) AS count FROM loop_sessions
+          WHERE (user_id = ${clerkUserId2} OR user_id IS NULL)
+            AND scenario_id LIKE 'custom_%'
+            AND phase != 'complete'
+            AND is_abandoned = false
+        `
+        const customCount = parseInt((activeCustom[0] as { count: string })?.count || '0', 10)
+        if (customCount >= 3) {
+          return Response.json({
+            error: 'limit_reached',
+            message: 'You can have up to 3 custom conversations at a time. Complete or delete one to start a new one.',
+          }, { status: 429 })
+        }
+      } else if (scenarioId && scenarioId !== 'custom') {
+        // Premade: check for existing active session
+        const existing = await sqlCheck`
+          SELECT id FROM loop_sessions
+          WHERE (user_id = ${clerkUserId2} OR user_id IS NULL)
+            AND scenario_id = ${scenarioId}
+            AND phase != 'complete'
+            AND is_abandoned = false
+          ORDER BY last_active_at DESC
+          LIMIT 1
+        `
+        if (existing.length > 0) {
+          // Return existing session instead of creating a new one
+          return Response.json({
+            sessionId: (existing[0] as { id: string }).id,
+            resumed: true,
+          })
+        }
+      }
+    }
+
     // Determine the loop mode from the learner's experience level.
     // Beginner (1-2): Experience → Learn → Recognize (no failure)
     // Elementary (3-4): Attempt with training wheels → Learn → Retry
@@ -172,6 +222,7 @@ export async function POST(request: Request) {
     }
 
     const sessionId = `loop_${Date.now()}`
+    const { userId: clerkUserId } = auth()
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
     let characterName = scenario.character.name
@@ -324,7 +375,7 @@ Return ONLY valid JSON (no markdown fences):
         const sql = neon(process.env.DATABASE_URL!)
         await sql`
           INSERT INTO loop_sessions (
-            id, scenario_id, scenario_title, scenario_title_jp, scenario_emoji,
+            id, user_id, scenario_id, scenario_title, scenario_title_jp, scenario_emoji,
             character_name, character_name_jp, character_color, character_avatar,
             character_description, character_personality, character_speech_style,
             character_relationship, voice_id, setting, opening_line,
@@ -334,7 +385,7 @@ Return ONLY valid JSON (no markdown fences):
             created_at
           )
           VALUES (
-            ${sessionId}, ${effectiveScenarioId}, ${scenarioTitle}, ${scenarioTitleJP}, ${scenarioEmoji},
+            ${sessionId}, ${clerkUserId || null}, ${effectiveScenarioId}, ${scenarioTitle}, ${scenarioTitleJP}, ${scenarioEmoji},
             ${characterName}, ${characterNameJP}, ${characterColor}, ${characterAvatar},
             ${characterDescription}, ${characterPersonality}, ${characterSpeechStyle},
             ${characterRelationship}, ${voiceId}, ${setting}, ${openingLine},

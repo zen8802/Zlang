@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"const hw = require\\('hanzi-writer'\\); console.log\\('hanzi-writer version:', typeof hw\\)\")",
+      "Bash(node -e \"const d = require\\('hanzi-writer-data/水'\\); console.log\\('data sample:', typeof d, Object.keys\\(d\\).slice\\(0,3\\)\\)\")",
+      "Bash(node -e ':*)",
+      "Bash(echo '')",
+      "Bash(echo '# Admin — your Clerk user ID \\(find in Clerk dashboard → Users → your user\\)')",
+      "Bash(echo 'ADMIN_CLERK_ID=')",
+      "Bash(echo 'NEXT_PUBLIC_ADMIN_CLERK_ID=')",
+      "Bash(npm ls:*)",
+      "Bash(rm -rf .next)",
+      "Bash(npm run:*)"
+    ],
+    "additionalDirectories": [
+      "C:\\dev\\Zlang\\src\\app\\loop\\retake"
+    ]
+  }
+}

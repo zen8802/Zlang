@@ -21,6 +21,8 @@ export async function GET(
         phase, loop_mode, user_experience_level,
         attempt_messages, retry_messages,
         diagnosis, learn_blocks, milestone_card,
+        current_phase, current_block_index, completed_block_ids,
+        recognized_lines, last_active_at, is_abandoned,
         created_at
       FROM loop_sessions
       WHERE id = ${sessionId}
@@ -58,11 +60,35 @@ export async function GET(
       diagnosis: row.diagnosis || null,
       learnBlocks: row.learn_blocks || null,
       milestone: row.milestone_card || null,
+      currentPhase: row.current_phase || null,
+      currentBlockIndex: row.current_block_index || 0,
+      completedBlockIds: row.completed_block_ids || [],
+      recognizedLines: row.recognized_lines || {},
+      lastActiveAt: row.last_active_at || null,
+      isAbandoned: row.is_abandoned || false,
       createdAt: row.created_at,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'
     console.error('Loop session load error:', message)
+    return Response.json({ error: message }, { status: 500 })
+  }
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: { id: string } },
+) {
+  if (!process.env.DATABASE_URL) {
+    return Response.json({ error: 'No DB' }, { status: 500 })
+  }
+  try {
+    const { neon } = await import('@neondatabase/serverless')
+    const sql = neon(process.env.DATABASE_URL!)
+    await sql`DELETE FROM loop_sessions WHERE id = ${params.id}`
+    return Response.json({ deleted: true })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Delete failed'
     return Response.json({ error: message }, { status: 500 })
   }
 }

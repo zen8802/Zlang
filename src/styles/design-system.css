@@ -179,3 +179,44 @@ rt {
 .mascot-bounce-in {
   animation: mascotBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
+
+/* Subtle pulse for unsent message draft bubble */
+@keyframes pulseSubtle {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(27,79,138,0.35), 0 0 4px rgba(27,79,138,0.2);
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(27,79,138,0.5), 0 0 8px rgba(27,79,138,0.3);
+    opacity: 0.92;
+  }
+}
+.animate-pulse-subtle {
+  animation: pulseSubtle 2s ease-in-out infinite;
+}
+
+/* ── Dialogue highlighting — three-layer system ─────────────────────── */
+
+/* Layer 1: Gold per-character underline — new kana characters.
+   Uses border-bottom so each <span> gets its own discrete line.
+   margin-inline creates a 1px gap on each side so adjacent gold
+   chars don't merge into one continuous line. */
+.char-gold {
+  border-bottom: 2px solid #C9920A;
+  padding-bottom: 1px;
+  margin-inline: 0.5px;
+}
+
+/* Layer 2: Green phrase underline — via background-image in inline styles.
+   (Applied inline because background-position/size vary per span.) */
+
+/* Layer 3: Dictionary dotted — via text-decoration in inline styles.
+   (Applied inline because offset varies by context.) */
+
+/* Sticker slap — used by CharacterCardReveal NEW badge */
+@keyframes stickerSlap {
+  0% { transform: rotate(12deg) scale(0) translateY(-10px); opacity: 0; }
+  70% { transform: rotate(12deg) scale(1.2) translateY(2px); opacity: 1; }
+  85% { transform: rotate(12deg) scale(0.95) translateY(0); }
+  100% { transform: rotate(12deg) scale(1) translateY(0); opacity: 1; }
+}

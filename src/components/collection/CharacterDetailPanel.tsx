@@ -2,19 +2,20 @@
 
 import { useEffect, useCallback } from 'react'
 import type { KanaCell } from '@/data/hiragana-grid'
-import Button from '@/components/ui/Button'
+import { StrokeAnimation } from '@/components/japanese/StrokeAnimation'
 
 interface Props {
   char: KanaCell
   isDiscovered: boolean
   onClose: () => void
-  onPractice: () => void
+  onPractice?: () => void // kept for future use
 }
 
 export default function CharacterDetailPanel({
   char,
   isDiscovered,
   onClose,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onPractice,
 }: Props) {
   const playAudio = useCallback(() => {
@@ -57,18 +58,24 @@ export default function CharacterDetailPanel({
 
         {isDiscovered ? (
           <div className="text-center">
-            {/* Large character */}
-            <div
-              style={{
-                fontFamily: 'Noto Sans JP',
-                fontSize: '80px',
-                fontWeight: 300,
-                color: '#1A1814',
-                lineHeight: 1.1,
+            {/* Large character with stroke animation */}
+            <StrokeAnimation
+              character={char.character}
+              size={180}
+              autoPlay={true}
+              loop={false}
+              showGrid={true}
+              strokeColor="#1A1814"
+              speed={0.7}
+              onComplete={() => {
+                if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+                  const u = new SpeechSynthesisUtterance(char.character)
+                  u.lang = 'ja-JP'
+                  u.rate = 0.6
+                  window.speechSynthesis.speak(u)
+                }
               }}
-            >
-              {char.character}
-            </div>
+            />
 
             {/* Romaji */}
             <div
@@ -140,19 +147,15 @@ export default function CharacterDetailPanel({
               Not yet discovered
             </h3>
             <p
-              className="mb-6"
               style={{
                 fontFamily: 'DM Sans',
                 fontSize: '13px',
                 color: '#9E9892',
               }}
             >
-              Keep practicing to unlock it
+              This character will appear in your conversations.
+              Keep practicing to discover it.
             </p>
-
-            <Button variant="primary" onClick={onPractice}>
-              Practice now →
-            </Button>
           </div>
         )}
       </div>

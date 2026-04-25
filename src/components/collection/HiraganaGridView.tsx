@@ -6,6 +6,7 @@ import type { KanaCell } from '@/data/hiragana-grid'
 interface Props {
   grid: (KanaCell | null)[][]
   discovered: Set<string>
+  seen: Set<string>  // characters encountered but not yet learned
   rowLabels: string[]
   colLabels: string[]
   selectedChar: KanaCell | null
@@ -17,6 +18,7 @@ interface Props {
 export default function HiraganaGridView({
   grid,
   discovered,
+  seen,
   rowLabels,
   colLabels,
   selectedChar,
@@ -149,21 +151,23 @@ export default function HiraganaGridView({
         </div>
       )}
 
-      {/* Column headers */}
+      {/* Top-down Japanese order: columns = consonant rows (right-to-left), rows = vowels (top-to-bottom) */}
+
+      {/* Column headers — consonant row labels, reversed (わ行 left → あ行 right) */}
       <div
         className="grid gap-1 mb-1"
-        style={{ gridTemplateColumns: '32px repeat(5, 1fr)' }}
+        style={{ gridTemplateColumns: `24px repeat(${grid.length}, 1fr)` }}
       >
         <div /> {/* empty corner */}
-        {colLabels.map((label) => (
+        {[...rowLabels].reverse().map((label) => (
           <div
             key={label}
             className="text-center"
             style={{
-              fontFamily: 'DM Mono',
-              fontSize: '9px',
+              fontFamily: 'Noto Sans JP',
+              fontSize: '8px',
               color: '#9E9892',
-              letterSpacing: '0.05em',
+              fontWeight: 300,
             }}
           >
             {label}
@@ -171,33 +175,36 @@ export default function HiraganaGridView({
         ))}
       </div>
 
-      {/* Grid rows */}
-      {grid.map((row, rowIdx) => (
+      {/* Grid — 5 vowel rows (a, i, u, e, o), each with 10 consonant columns */}
+      {colLabels.map((vowelLabel, vowelIdx) => (
         <div
-          key={rowIdx}
+          key={vowelLabel}
           className="grid gap-1 mb-1"
-          style={{ gridTemplateColumns: '32px repeat(5, 1fr)' }}
+          style={{ gridTemplateColumns: `24px repeat(${grid.length}, 1fr)` }}
         >
-          {/* Row label */}
+          {/* Vowel row label */}
           <div
             className="flex items-center justify-center"
             style={{
-              fontFamily: 'Noto Sans JP',
+              fontFamily: 'DM Mono',
               fontSize: '9px',
               color: '#9E9892',
-              fontWeight: 300,
+              letterSpacing: '0.05em',
             }}
           >
-            {rowLabels[rowIdx]}
+            {vowelLabel}
           </div>
 
-          {/* Character cells */}
-          {row.map((cell, colIdx) => {
+          {/* Cells — traverse columns right-to-left */}
+          {[...grid].reverse().map((row, reversedRowIdx) => {
+            const cell = row[vowelIdx] || null
+            const colIdx = grid.length - 1 - reversedRowIdx
             if (!cell) {
               return <div key={colIdx} />
             }
 
-            const isDiscovered = discovered.has(cell.character)
+            const isLearned = discovered.has(cell.character)
+            const isSeen = !isLearned && seen.has(cell.character)
             const isSelected =
               selectedChar?.character === cell.character
 
@@ -211,18 +218,23 @@ export default function HiraganaGridView({
                   ${isSelected ? 'ring-2 ring-[#1B4F8A]' : ''}
                 `}
                 style={
-                  isDiscovered
+                  isLearned
                     ? {
                         backgroundColor: '#FDFBF8',
                         border: '1.5px solid #E0DAD2',
                       }
-                    : {
-                        backgroundColor: '#DDD7CF',
-                        border: '1.5px solid #D4CFC8',
-                      }
+                    : isSeen
+                      ? {
+                          backgroundColor: '#3D3632',
+                          border: '1.5px solid #4A4440',
+                        }
+                      : {
+                          backgroundColor: '#2C2924',
+                          border: '1.5px solid #1A1814',
+                        }
                 }
               >
-                {isDiscovered ? (
+                {isLearned ? (
                   <>
                     <span
                       style={{
@@ -246,6 +258,30 @@ export default function HiraganaGridView({
                       {cell.romaji}
                     </span>
                   </>
+                ) : isSeen ? (
+                  <>
+                    <span
+                      style={{
+                        fontFamily: 'Noto Sans JP',
+                        fontSize: '18px',
+                        fontWeight: 300,
+                        color: 'rgba(255,255,255,0.38)',
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {cell.character}
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: 'DM Mono',
+                        fontSize: '7px',
+                        color: 'rgba(255,255,255,0.2)',
+                        lineHeight: 1,
+                      }}
+                    >
+                      seen
+                    </span>
+                  </>
                 ) : (
                   <>
                     <span
@@ -253,7 +289,7 @@ export default function HiraganaGridView({
                         fontFamily: 'Noto Sans JP',
                         fontSize: '18px',
                         fontWeight: 300,
-                        color: 'rgba(26,24,20,0.10)',
+                        color: 'rgba(255,255,255,0.07)',
                         lineHeight: 1.2,
                       }}
                     >
@@ -263,7 +299,7 @@ export default function HiraganaGridView({
                       style={{
                         fontFamily: 'DM Mono',
                         fontSize: '8px',
-                        color: 'rgba(26,24,20,0.15)',
+                        color: 'rgba(255,255,255,0.07)',
                         lineHeight: 1,
                       }}
                     >

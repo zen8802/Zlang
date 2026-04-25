@@ -52,8 +52,8 @@ export default function PhrasesGridView({ phrases }: Props) {
                       border: `1.5px solid ${isMastered ? '#F59E0B' : '#E0DAD2'}`,
                     }
                   : {
-                      backgroundColor: '#DDD7CF',
-                      border: '1.5px solid #D4CFC8',
+                      backgroundColor: '#2C2924',
+                      border: '1.5px solid #1A1814',
                     }
               }
             >
@@ -84,7 +84,7 @@ export default function PhrasesGridView({ phrases }: Props) {
                       fontFamily: 'Noto Sans JP',
                       fontSize: '13px',
                       fontWeight: 400,
-                      color: 'rgba(26,24,20,0.10)',
+                      color: 'rgba(255,255,255,0.07)',
                       lineHeight: 1.3,
                       textAlign: 'center',
                     }}
@@ -95,7 +95,7 @@ export default function PhrasesGridView({ phrases }: Props) {
                     style={{
                       fontFamily: 'DM Mono',
                       fontSize: '10px',
-                      color: 'rgba(26,24,20,0.15)',
+                      color: 'rgba(255,255,255,0.07)',
                       lineHeight: 1,
                     }}
                   >

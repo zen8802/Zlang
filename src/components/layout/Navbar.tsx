@@ -15,6 +15,7 @@ interface NavLink {
 const navLinks: NavLink[] = [
   { key: 'nav.dashboard', href: '/dashboard' },
   { key: 'nav.collection', href: '/collection' },
+  { key: 'nav.saved', href: '/saved-lessons' },
 ]
 
 export default function Navbar() {
@@ -121,6 +122,7 @@ export default function Navbar() {
           {[
             { key: 'nav.dashboard', href: '/dashboard', icon: '🏠', image: null, label: t('nav.dashboard', uiLanguage) },
             { key: 'nav.collection', href: '/collection', icon: null, image: '/CollectionLogo.png', label: t('nav.collection', uiLanguage) },
+            { key: 'nav.saved', href: '/saved-lessons', icon: '📚', image: null, label: t('nav.saved', uiLanguage) },
           ].map((item) => {
             const isActive =
               pathname === item.href || pathname?.startsWith(item.href + '/')
