@@ -105,8 +105,14 @@ export default function ConversationsCard() {
   const handleDelete = async (id: string) => {
     try {
       await fetch(`/api/loop/sessions/${id}`, { method: 'DELETE' })
-      setSessions((prev) => prev.filter((s) => s.id !== id))
+      setSessions((prev) => {
+        const next = prev.filter((s) => s.id !== id)
+        if (next.length === 0) window.dispatchEvent(new Event('sessions-cleared'))
+        return next
+      })
       setConfirmingDelete(null)
+      // Notify ResumeCard in case this was the active session
+      window.dispatchEvent(new Event('sessions-cleared'))
     } catch {
       // silently fail
     }
@@ -189,6 +195,7 @@ export default function ConversationsCard() {
                     ),
                   )
                   setSessions([])
+                  window.dispatchEvent(new Event('sessions-cleared'))
                 } catch {}
                 setDeletingAll(false)
                 setConfirmingDeleteAll(false)

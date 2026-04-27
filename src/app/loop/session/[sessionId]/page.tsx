@@ -6,16 +6,12 @@ import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import AttemptPhase from '@/components/loop/AttemptPhase'
 import LearnPhase from '@/components/loop/LearnPhase'
-import RetryPhase from '@/components/loop/RetryPhase'
-import RecognizePhase from '@/components/loop/RecognizePhase'
 import MilestoneCard from '@/components/loop/MilestoneCard'
-import CardUnlockReveal from '@/components/collection/CardUnlockReveal'
-import CharacterCardReveal from '@/components/loop/CharacterCardReveal'
 import { useAppStore } from '@/store/useAppStore'
 import { useSessionAutoSave } from '@/hooks/useSessionAutoSave'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Phase = 'loading' | 'attempt' | 'cards' | 'card-reveal' | 'diagnosing' | 'learn' | 'retry' | 'complete'
+type Phase = 'loading' | 'attempt' | 'diagnosing' | 'learn' | 'complete'
 
 interface LoopSession {
   id: string
@@ -50,9 +46,8 @@ interface LoopSession {
 }
 
 const PHASE_STEPS: { key: Phase; label: string; emoji: string }[] = [
-  { key: 'attempt', label: 'Try', emoji: '💬' },
+  { key: 'attempt', label: 'Experience', emoji: '💬' },
   { key: 'learn', label: 'Learn', emoji: '📖' },
-  { key: 'retry', label: 'Retry', emoji: '🔄' },
 ]
 
 export default function LoopSessionPage() {
@@ -66,21 +61,14 @@ export default function LoopSessionPage() {
   const [showEndConfirm, setShowEndConfirm] = useState(false)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [resettingSession, setResettingSession] = useState(false)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
   const [cardResults, setCardResults] = useState<{ newUnlocks: any[]; strengthened: any[]; mastered: any[] }>({
     newUnlocks: [],
     strengthened: [],
     mastered: [],
   })
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [pendingAttemptMessages, setPendingAttemptMessages] = useState<any[]>([])
-  const [sessionLessonKana, setSessionLessonKana] = useState<string[]>([])
-  const [sessionNewPhrases, setSessionNewPhrases] = useState<string[]>([])
-
   const userProfile = useAppStore((s) => s.userProfile)
-  const knownHiragana = useAppStore((s) => s.knownHiragana)
-  const addDiscoveredKana = useAppStore((s) => s.addDiscoveredKana)
-  const addDiscoveredKanji = useAppStore((s) => s.addDiscoveredKanji)
+  const addSeenKanji = useAppStore((s) => s.addSeenKanji)
 
   // 3a. Auto-save hook
   const { saveNow } = useSessionAutoSave(sessionId)
@@ -114,6 +102,10 @@ export default function LoopSessionPage() {
     async function load() {
       try {
         const res = await fetch(`/api/loop/sessions/${sessionId}`)
+        if (res.status === 404) {
+          router.replace('/dashboard')
+          return
+        }
         if (!res.ok) throw new Error('Failed to load loop session')
         const data = await res.json()
         setSession(data)
@@ -125,10 +117,7 @@ export default function LoopSessionPage() {
         }
 
         const savedPhase = data.currentPhase || data.phase || 'attempt'
-        if (savedPhase === 'diagnosing') {
-          setPhase('attempt')
-        } else if (savedPhase === 'cards') {
-          // Cards phase — re-run since card results aren't persisted
+        if (savedPhase === 'diagnosing' || savedPhase === 'card-reveal' || savedPhase === 'cards') {
           setPhase('attempt')
         } else {
           setPhase(savedPhase as Phase)
@@ -153,7 +142,7 @@ export default function LoopSessionPage() {
       const res = await fetch(`/api/loop/diagnose`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, messages: transcript, userProfile, knownHiragana }),
+        body: JSON.stringify({ sessionId, messages: transcript, userProfile }),
       })
       if (!res.ok) throw new Error('Diagnosis failed')
       const data = await res.json()
@@ -163,12 +152,9 @@ export default function LoopSessionPage() {
         lessonBlocks: data.learnBlocks || [],
         phase: 'learn',
       } : prev)
-      setSessionLessonKana(data.lessonKana || [])
-      setSessionNewPhrases(data.newPhrases || [])
-      // Show card reveal BEFORE the lesson
-      setPhase('card-reveal')
+      setPhase('learn')
       saveNow({
-        currentPhase: 'card-reveal',
+        currentPhase: 'learn',
         diagnosis: data.diagnosis,
         learnBlocks: data.learnBlocks || [],
       })
@@ -177,85 +163,64 @@ export default function LoopSessionPage() {
       setError('Diagnosis failed. Please try again.')
       setPhase('attempt')
     }
-  }, [sessionId, userProfile, knownHiragana, saveNow])
+  }, [sessionId, userProfile, saveNow])
 
-  // Transition to cards phase — extract vocabulary, then diagnosis after Continue
+  // End attempt — scan for seen kanji, track vocabulary in background,
+  // then go straight to diagnosis.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleEndAttempt = useCallback(async (messages: any[]) => {
-    // 3c. Save messages when the attempt ends
-    saveNow({ currentPhase: 'cards', attemptMessages: messages })
-    setPendingAttemptMessages(messages || [])
-    setPhase('cards')
-    try {
-      const transcript = (messages || []).map(m => ({
-        role: m.role === 'character' ? 'assistant' : 'user',
-        content: m.content || '',
-      }))
-      const res = await fetch(`/api/vocabulary/track`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: transcript, scenarioId: session?.scenarioId }),
-      })
-      if (!res.ok) throw new Error('Vocabulary track failed')
-      const data = await res.json()
-      setCardResults({
-        newUnlocks: data.newUnlocks || [],
-        strengthened: data.strengthened || [],
-        mastered: data.mastered || [],
-      })
-    } catch (err) {
-      console.error('Vocabulary track error:', err)
-      setCardResults({ newUnlocks: [], strengthened: [], mastered: [] })
-    }
+    saveNow({ currentPhase: 'diagnosing', attemptMessages: messages })
 
-    // Scan conversation for hiragana/katakana characters and track discoveries
+    // Scan conversation for seen kanji (background, non-blocking)
     const allText = (messages || []).map((m: { content?: string }) => m.content || '').join('')
-    const newH: string[] = []
-    const newK: string[] = []
-    for (const ch of allText) {
-      const code = ch.charCodeAt(0)
-      if (code >= 0x3041 && code <= 0x3096) newH.push(ch)
-      if (code >= 0x30a0 && code <= 0x30ff) newK.push(ch)
-    }
-    if (newH.length > 0 || newK.length > 0) {
-      addDiscoveredKana(newH, newK)
-    }
-
-    // Scan for kanji characters
     const newKanji: string[] = []
+    const seenInScan = new Set<string>()
     for (const ch of allText) {
+      if (seenInScan.has(ch)) continue
       const code = ch.charCodeAt(0)
-      if (code >= 0x4e00 && code <= 0x9fff) newKanji.push(ch)
+      if (code >= 0x4e00 && code <= 0x9fff) { newKanji.push(ch); seenInScan.add(ch) }
     }
-    if (newKanji.length > 0) addDiscoveredKanji(newKanji)
-  }, [session?.scenarioId, addDiscoveredKana, addDiscoveredKanji, saveNow])
+    if (newKanji.length > 0) addSeenKanji(newKanji)
+
+    // Track vocabulary cards in background (fire-and-forget)
+    const transcript = (messages || []).map(m => ({
+      role: m.role === 'character' ? 'assistant' : 'user',
+      content: m.content || '',
+    }))
+    fetch('/api/vocabulary/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: transcript, scenarioId: session?.scenarioId }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        setCardResults({
+          newUnlocks: data.newUnlocks || [],
+          strengthened: data.strengthened || [],
+          mastered: data.mastered || [],
+        })
+      })
+      .catch(() => {})
+
+    runDiagnosis(messages)
+  }, [session?.scenarioId, addSeenKanji, saveNow, runDiagnosis])
 
   // Transition to retry
-  const handleStartRetry = useCallback(() => {
-    setPhase('retry')
-    setSession(prev => prev ? { ...prev, phase: 'retry' } : prev)
-  }, [])
-
-  // Transition to complete
-  const handleRetryDone = useCallback(async () => {
+  // After lesson completes, go straight to complete (no retry/recognize phase)
+  const handleStartRetry = useCallback(async () => {
     try {
       const res = await fetch(`/api/loop/sessions/${sessionId}/complete`, {
         method: 'POST',
       })
       if (!res.ok) throw new Error('Complete failed')
       const data = await res.json()
-      setSession(prev => prev ? {
-        ...prev,
-        ...data,
-        phase: 'complete',
-      } : prev)
+      setSession(prev => prev ? { ...prev, ...data, phase: 'complete' } : prev)
       setPhase('complete')
-    } catch (err) {
-      console.error('Complete error:', err)
-      // Still transition to show what we have
+    } catch {
       setPhase('complete')
     }
   }, [sessionId])
+
 
   // ---- Loading state ----
   if (phase === 'loading') {
@@ -349,19 +314,7 @@ export default function LoopSessionPage() {
 
             {/* Phase steps */}
             <div className="flex items-center gap-1">
-              {PHASE_STEPS.map((baseStep, idx) => {
-                const step =
-                  session?.loopMode === 'beginner'
-                    ? {
-                        ...baseStep,
-                        label:
-                          baseStep.key === 'attempt'
-                            ? 'Experience'
-                            : baseStep.key === 'retry'
-                              ? 'Recognize'
-                              : baseStep.label,
-                      }
-                    : baseStep
+              {PHASE_STEPS.map((step, idx) => {
                 const isActive = idx === currentStepIndex
                 const isDone = idx < currentStepIndex || currentPhase === 'complete'
                 return (
@@ -402,28 +355,6 @@ export default function LoopSessionPage() {
             session={session}
             diagnosing={phase === 'diagnosing'}
             onEndAttempt={handleEndAttempt}
-            sessionLessonKana={sessionLessonKana}
-            sessionNewPhrases={sessionNewPhrases}
-          />
-        )}
-
-        {phase === 'cards' && (
-          <CardUnlockReveal
-            newUnlocks={cardResults.newUnlocks}
-            strengthened={cardResults.strengthened}
-            mastered={cardResults.mastered}
-            onContinue={() => runDiagnosis(pendingAttemptMessages)}
-          />
-        )}
-
-        {phase === 'card-reveal' && (
-          <CharacterCardReveal
-            lessonKana={sessionLessonKana}
-            lessonPhrases={cardResults?.newUnlocks?.filter(
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              (c: any) => c.partOfSpeech === 'expression' || c.part_of_speech === 'expression',
-            ) || []}
-            onContinue={() => setPhase('learn')}
           />
         )}
 
@@ -433,23 +364,6 @@ export default function LoopSessionPage() {
             diagnosis={session.diagnosis}
             lessonBlocks={session.lessonBlocks || []}
             onStartRetry={handleStartRetry}
-          />
-        )}
-
-        {phase === 'retry' && session?.loopMode === 'beginner' && (
-          <RecognizePhase
-            session={session}
-            messages={session.attemptMessages || session.messages || []}
-            onComplete={handleRetryDone}
-          />
-        )}
-
-        {phase === 'retry' && session?.loopMode !== 'beginner' && (
-          <RetryPhase
-            sessionId={sessionId}
-            session={session}
-            diagnosis={session.diagnosis}
-            onDone={handleRetryDone}
           />
         )}
 

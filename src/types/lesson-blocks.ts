@@ -246,31 +246,6 @@ export interface DialogueChoiceBlock extends BaseBlock {
   }[]
 }
 
-// ── Dialogue Translate ───────────────────────
-// Beginner-friendly conversation block. Character speaks Japanese (with EN
-// always shown). Learner types their reply in English; Claude translates it
-// into natural Japanese with a per-chunk breakdown. Builds active production.
-
-export interface DialogueTranslateExchange {
-  id: string
-  characterLine: string     // Japanese (kanji+kana, no furigana markup needed)
-  characterLineEN: string   // English — always visible to beginner
-  promptHint: string        // e.g. "Tell her where you're from"
-}
-
-export interface DialogueTranslateBlock extends BaseBlock {
-  type: 'dialogue_translate'
-  title: string
-  character: {
-    name: string
-    nameJP: string
-    emoji: string
-    color: string
-  }
-  setting: string
-  exchanges: DialogueTranslateExchange[]
-}
-
 // ── Word Bank ────────────────────────────────
 // Tile-based phrase assembly. The student is given the loose characters
 // (or words) of a target phrase plus 1-2 distractors, and arranges them
@@ -299,40 +274,6 @@ export interface WordBankBlock extends BaseBlock {
   sentences: WordBankSentence[]
 }
 
-// ── Hiragana Intro ───────────────────────────
-// First-meet block for absolute beginners. Introduces 3-5 hiragana characters
-// the learner just encountered in their conversation. Each character has a
-// recognition phase (large display + audio + mnemonic), a stroke-order watch
-// phase via hanzi-writer, and a quick recognition micro-quiz.
-
-export interface HiraganaIntroCharacter {
-  character: string   // e.g. 'あ'
-  romaji: string      // e.g. 'a'
-  mnemonic: string    // e.g. "あ looks like an 'a' with extra flair"
-  appearedIn: string  // e.g. "ありがとう (arigatou)"
-}
-
-export interface HiraganaIntroBlock extends BaseBlock {
-  type: 'hiragana_intro'
-  title: string
-  characters: HiraganaIntroCharacter[]
-}
-
-// ── Trace ───────────────────────────────────
-
-export interface TraceBlock extends BaseBlock {
-  type: 'trace'
-  title: string
-  characters: {
-    character: string
-    reading: string
-    romaji: string
-    english: string
-    strokeCount: number
-    memoryHook: string
-  }[]
-}
-
 // ── Union Type ───────────────────────────────
 
 export type BlockType =
@@ -349,10 +290,7 @@ export type BlockType =
   | 'image_match'
   | 'audio_match'
   | 'dialogue_choice'
-  | 'dialogue_translate'
-  | 'hiragana_intro'
   | 'word_bank'
-  | 'trace'
 
 export type LessonBlock =
   | FlashcardBlock
@@ -368,10 +306,7 @@ export type LessonBlock =
   | ImageMatchBlock
   | AudioMatchBlock
   | DialogueChoiceBlock
-  | DialogueTranslateBlock
-  | HiraganaIntroBlock
   | WordBankBlock
-  | TraceBlock
 
 // ── Lesson ───────────────────────────────────
 

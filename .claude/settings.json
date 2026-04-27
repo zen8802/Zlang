@@ -10,10 +10,18 @@
       "Bash(echo 'NEXT_PUBLIC_ADMIN_CLERK_ID=')",
       "Bash(npm ls:*)",
       "Bash(rm -rf .next)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(ls src/app/api/loop/sessions/\\\\\\\\[id\\\\\\\\]/complete)",
+      "Bash(xargs grep:*)",
+      "Bash(ls src/lib/dialogue*)",
+      "Bash(cat src/scripts/migrate*.ts)",
+      "Bash(grep -l DATABASE_URL .env*)",
+      "Bash(ls .env*)",
+      "Bash(npx dotenv:*)"
     ],
     "additionalDirectories": [
-      "C:\\dev\\Zlang\\src\\app\\loop\\retake"
+      "C:\\dev\\Zlang\\src\\app\\loop\\retake",
+      "C:\\dev\\Zlang\\src\\app\\api\\phrasebook"
     ]
   }
 }

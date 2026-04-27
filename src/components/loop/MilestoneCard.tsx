@@ -1,52 +1,21 @@
 'use client'
 
-import { useCallback } from 'react'
 import Button from '@/components/ui/Button'
 
 interface MilestoneCardProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   session: any
   onTryNew: () => void
-  onDoAgain: () => void
+  onDoAgain?: () => void
 }
 
-export default function MilestoneCard({ session, onTryNew, onDoAgain }: MilestoneCardProps) {
+export default function MilestoneCard({ session, onTryNew }: MilestoneCardProps) {
   const succeeded = session?.phase === 'complete'
   const scenarioTitle = session?.scenarioTitle || 'Conversation'
   const attempts = session?.attempts || 1
   const xpEarned = session?.xpEarned || 0
   const bestLine = session?.bestLine || null
   const culturalInsight = session?.culturalInsight || null
-
-  const handleShare = useCallback(async () => {
-    const shareText = [
-      scenarioTitle,
-      bestLine ? `Best line: ${bestLine.japanese}` : '',
-      bestLine?.english ? `"${bestLine.english}"` : '',
-      `${attempts} attempt${attempts !== 1 ? 's' : ''} | +${xpEarned} XP`,
-      '',
-      'Learning Japanese with Zlang',
-    ].filter(Boolean).join('\n')
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Zlang Loop - ${scenarioTitle}`,
-          text: shareText,
-        })
-      } catch {
-        // User cancelled share
-      }
-    } else {
-      // Fallback: copy to clipboard
-      try {
-        await navigator.clipboard.writeText(shareText)
-        alert('Copied to clipboard!')
-      } catch {
-        // Silently fail
-      }
-    }
-  }, [scenarioTitle, bestLine, attempts, xpEarned])
 
   return (
     <div className="h-full overflow-y-auto px-4 py-6">
@@ -135,24 +104,10 @@ export default function MilestoneCard({ session, onTryNew, onDoAgain }: Mileston
           </div>
         </div>
 
-        {/* Share button — simple text link */}
-        <div className="text-center">
-          <button
-            onClick={handleShare}
-            className="text-[13px] underline transition-opacity hover:opacity-70"
-            style={{ fontFamily: 'DM Sans', color: '#1B4F8A' }}
-          >
-            → Share this
-          </button>
-        </div>
-
-        {/* Action buttons */}
-        <div className="space-y-3 pt-2 pb-8">
+        {/* Done — return to dashboard */}
+        <div className="pt-4 pb-8">
           <Button variant="primary" size="lg" fullWidth onClick={onTryNew}>
-            Try a new scenario
-          </Button>
-          <Button variant="secondary" size="lg" fullWidth onClick={onDoAgain}>
-            Do this again
+            Done
           </Button>
         </div>
       </div>

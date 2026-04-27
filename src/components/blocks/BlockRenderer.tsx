@@ -11,13 +11,11 @@ import ShadowingBlockRenderer from './ShadowingBlockRenderer'
 import { ImageMatchBlockRenderer } from './ImageMatchBlockRenderer'
 import { AudioMatchBlockRenderer } from './AudioMatchBlockRenderer'
 import { DialogueChoiceBlockRenderer } from './DialogueChoiceBlockRenderer'
-import { DialogueTranslateBlockRenderer } from './DialogueTranslateBlockRenderer'
-import { TraceBlockRenderer } from './TraceBlockRenderer'
-import HiraganaIntroBlockRenderer from './HiraganaIntroBlockRenderer'
 import WordBankBlockRenderer from './WordBankBlockRenderer'
 
 interface Props {
-  block: LessonBlock
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  block: LessonBlock | any
   onComplete: (xp: number) => void
 }
 
@@ -43,13 +41,6 @@ export default function BlockRenderer({ block, onComplete }: Props) {
       return <AudioMatchBlockRenderer block={block} onComplete={onComplete} />
     case 'dialogue_choice':
       return <DialogueChoiceBlockRenderer block={block} onComplete={onComplete} />
-    case 'dialogue_translate':
-      return <DialogueTranslateBlockRenderer block={block} onComplete={onComplete} />
-    case 'trace':
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return <TraceBlockRenderer block={block} onComplete={onComplete} freewriteOnly={(block as any).freewriteOnly} />
-    case 'hiragana_intro':
-      return <HiraganaIntroBlockRenderer block={block} onComplete={onComplete} />
     case 'word_bank':
       return <WordBankBlockRenderer block={block} onComplete={onComplete} />
     case 'video':
@@ -63,12 +54,8 @@ export default function BlockRenderer({ block, onComplete }: Props) {
         </div>
       )
     default:
-      return (
-        <div className="page-enter py-8 text-center">
-          <p className="text-[#6B7280] text-sm font-semibold" style={{ fontFamily: 'var(--font-ui)' }}>
-            Unknown block type
-          </p>
-        </div>
-      )
+      // Legacy block types (trace, hiragana_intro, dialogue_translate) — skip
+      onComplete(0)
+      return null
   }
 }

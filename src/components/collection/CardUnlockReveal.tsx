@@ -12,16 +12,18 @@ interface Props {
   strengthened: any[]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mastered: any[]
+  /** Number of new kana characters discovered this session (tracked separately from vocab cards) */
+  newKanaCount?: number
   onContinue: () => void
 }
 
-export function CardUnlockReveal({ newUnlocks, strengthened, mastered, onContinue }: Props) {
+export function CardUnlockReveal({ newUnlocks, strengthened, mastered, newKanaCount = 0, onContinue }: Props) {
   const router = useRouter()
   const [revealedCount, setRevealedCount] = useState(0)
   const [showSummary, setShowSummary] = useState(false)
 
   const maxReveal = Math.min(3, newUnlocks.length)
-  const hasAnything = newUnlocks.length > 0 || strengthened.length > 0 || mastered.length > 0
+  const hasAnything = newUnlocks.length > 0 || strengthened.length > 0 || mastered.length > 0 || newKanaCount > 0
 
   useEffect(() => {
     if (!hasAnything) {
@@ -75,7 +77,9 @@ export function CardUnlockReveal({ newUnlocks, strengthened, mastered, onContinu
               marginBottom: 24,
             }}
           >
-            No new cards this session — try using more Japanese!
+            {newKanaCount > 0
+              ? `${newKanaCount} new kana character${newKanaCount !== 1 ? 's' : ''} discovered!`
+              : 'No new discoveries this session'}
           </div>
           <Button variant="primary" size="lg" fullWidth onClick={onContinue}>
             Continue →

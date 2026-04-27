@@ -17,22 +17,16 @@ export async function POST() {
 
   await sql`
     UPDATE users SET
-      discovered_hiragana = '{}',
-      discovered_katakana = '{}',
       discovered_kanji = '{}',
-      seen_hiragana = '{}',
-      seen_katakana = '{}',
-      seen_kanji = '{}',
-      known_hiragana = '[]'::jsonb
+      seen_kanji = '{}'
     WHERE clerk_id = ${userId}
   `
 
   await sql`DELETE FROM user_cards WHERE user_id = ${userId}`
+  await sql`DELETE FROM phrasebook WHERE user_id = ${userId}`
 
   await sql`
     UPDATE loop_sessions SET
-      session_new_kana = '{}',
-      session_lesson_kana = '{}',
       lesson_completed = false
     WHERE user_id = ${userId}
   `

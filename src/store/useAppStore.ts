@@ -16,11 +16,6 @@ interface AppState {
   // Onboarding profile (age/gender/experience/direction) — used to tune AI translations
   userProfile: UserProfile | null
 
-  // Hiragana the learner has been formally introduced to via a hiragana_intro
-  // block. Used by the diagnose API to engineer the next lesson backward from
-  // a target phrase. Persisted to Clerk unsafeMetadata.knownHiragana so it
-  // survives across devices.
-  knownHiragana: string[]
   worldNumber: number
 
   // User profile
@@ -28,11 +23,8 @@ interface AppState {
   uiLanguage: 'en' | 'jp'
   level: '' | 'beginner' | 'basics' | 'intermediate' | 'advanced'
 
-  // Kana discovery — tracks ALL hiragana/katakana characters the user has
-  // seen in ANY conversation. Broader than `knownHiragana` (formally-introduced
-  // in a lesson). Powered by scanning conversation text after each loop session.
-  discoveredHiragana: string[]
-  discoveredKatakana: string[]
+  // Kanji discovery states
+  seenKanji: string[]
   discoveredKanji: string[]
 
   // Daily login streak — increments at midnight EST.
@@ -45,10 +37,8 @@ interface AppState {
 
   // Actions
   setUserProfile: (profile: UserProfile) => void
-  addKnownHiragana: (chars: string[]) => void
-  setKnownHiragana: (chars: string[]) => void
-  addDiscoveredKana: (hiragana: string[], katakana: string[]) => void
   addDiscoveredKanji: (chars: string[]) => void
+  addSeenKanji: (chars: string[]) => void
   setWorldNumber: (n: number) => void
   setCorridor: (corridor: 'en-to-jp' | 'jp-to-en') => void
   setUiLanguage: (lang: 'en' | 'jp') => void
@@ -88,10 +78,8 @@ function estYesterdayStr(): string {
 
 const initialState = {
   userProfile: null as UserProfile | null,
-  knownHiragana: [] as string[],
-  discoveredHiragana: [] as string[],
-  discoveredKatakana: [] as string[],
   discoveredKanji: [] as string[],
+  seenKanji: [] as string[],
   worldNumber: 1,
   corridor: null as 'en-to-jp' | 'jp-to-en' | null,
   uiLanguage: 'en' as 'en' | 'jp',
@@ -122,33 +110,21 @@ export const useAppStore = create<AppState>()(
           corridor: profile.direction,
         }),
 
-      addKnownHiragana: (chars) =>
-        set((state) => {
-          const next = new Set(state.knownHiragana)
-          for (const c of chars) next.add(c)
-          return { knownHiragana: Array.from(next) }
-        }),
-
-      setKnownHiragana: (chars) =>
-        set({ knownHiragana: Array.from(new Set(chars)) }),
-
-      addDiscoveredKana: (hiragana, katakana) =>
-        set((state) => {
-          const hSet = new Set(state.discoveredHiragana)
-          for (const c of hiragana) hSet.add(c)
-          const kSet = new Set(state.discoveredKatakana)
-          for (const c of katakana) kSet.add(c)
-          return {
-            discoveredHiragana: Array.from(hSet),
-            discoveredKatakana: Array.from(kSet),
-          }
-        }),
-
       addDiscoveredKanji: (chars) =>
         set((state) => {
           const next = new Set(state.discoveredKanji)
           for (const c of chars) next.add(c)
-          return { discoveredKanji: Array.from(next) }
+          // Remove from seen when promoted to discovered
+          const seenK = state.seenKanji.filter((c) => !next.has(c))
+          return { discoveredKanji: Array.from(next), seenKanji: seenK }
+        }),
+
+      addSeenKanji: (chars) =>
+        set((state) => {
+          const dSet = new Set(state.discoveredKanji)
+          const sSet = new Set(state.seenKanji)
+          for (const c of chars) { if (!dSet.has(c)) sSet.add(c) }
+          return { seenKanji: Array.from(sSet) }
         }),
 
       setWorldNumber: (n) => set({ worldNumber: n }),

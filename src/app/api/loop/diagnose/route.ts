@@ -1,10 +1,4 @@
 import Anthropic from '@anthropic-ai/sdk'
-import {
-  selectTargetPhrase,
-  getNewHiragana,
-  HIRAGANA_MNEMONICS,
-  HIRAGANA_ROMAJI,
-} from '@/data/hiragana-curriculum'
 
 export async function POST(request: Request) {
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -18,7 +12,6 @@ export async function POST(request: Request) {
       isRetry,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       userProfile,
-      knownHiragana: knownHiraganaArray,
     }: {
       sessionId: string
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -26,7 +19,6 @@ export async function POST(request: Request) {
       isRetry?: boolean
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       userProfile?: any
-      knownHiragana?: string[]
     } = await request.json()
     void userProfile
 
@@ -40,7 +32,6 @@ export async function POST(request: Request) {
     type LoopMode = 'beginner' | 'elementary' | 'intermediate'
     let loopMode: LoopMode = 'intermediate' as LoopMode
     let experienceLevel = 5
-    let scenarioId = 'default'
     if (process.env.DATABASE_URL) {
       try {
         const { neon } = await import('@neondatabase/serverless')
@@ -49,33 +40,17 @@ export async function POST(request: Request) {
         if (rows[0]) {
           loopMode = (rows[0].loop_mode as typeof loopMode) || 'intermediate'
           experienceLevel = rows[0].user_experience_level ?? 5
-          scenarioId = rows[0].scenario_id || 'default'
         }
       } catch {}
     }
     const isBeginnerMode = loopMode === 'beginner'
     void experienceLevel
 
-    // Beginner curriculum pre-selection — engineer the lesson backward from
-    // a target phrase so the student actually learns something usable.
-    const knownSet = new Set<string>(Array.isArray(knownHiraganaArray) ? knownHiraganaArray : [])
-    const worldNumber = 1 // World 1 == ramen shop for now. Hardcoded until worlds ship.
-    const targetPhrase = isBeginnerMode
-      ? selectTargetPhrase(scenarioId, worldNumber, knownSet)
-      : null
-    const newChars = targetPhrase ? getNewHiragana(targetPhrase.phrase, knownSet) : []
-    const charsWithMnemonics = newChars.slice(0, 5).map((char) => ({
-      character: char,
-      romaji: HIRAGANA_ROMAJI[char] || '?',
-      mnemonic: HIRAGANA_MNEMONICS[char] || `${char} — practice until it feels natural`,
-    }))
-
     // Build transcript from conversation
     const transcript = messages
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .map((m: any) => {
         const role = m.role === 'user' ? 'LEARNER' : 'CHARACTER'
-        // Strip vocab/romaji/en/coach/options sections for cleaner analysis
         const content = (m.content || '').split('---VOCAB---')[0].trim()
         return `${role}: ${content}`
       })
@@ -83,47 +58,19 @@ export async function POST(request: Request) {
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-    const targetPhraseStr = targetPhrase?.phrase || 'ありがとう'
-    const targetEnglishStr = targetPhrase?.english || 'thank you'
-    const targetWhyStr = targetPhrase?.whyItMatters || ''
-
-    const hiraganaIntroCharsJSON = charsWithMnemonics
-      .map(
-        (c) =>
-          `    { "character": ${JSON.stringify(c.character)}, "romaji": ${JSON.stringify(c.romaji)}, "mnemonic": ${JSON.stringify(c.mnemonic)}, "appearedIn": "<quote a short phrase from the CONVERSATION above that contains ${c.character}, or the target phrase if none>" }`
-      )
-      .join(',\n')
-
-    const answerTilesJSON = Array.from(targetPhraseStr)
-      .map(
-        (ch, i) =>
-          `        { "id": "t${i + 1}", "character": ${JSON.stringify(ch)}, "isDistractor": false }`
-      )
-      .join(',\n')
-
-    const beginnerPrompt = `You are generating a Japanese lesson for a complete beginner. The student just finished their first real conversation experience — they typed in English and watched their character respond in Japanese. There are NO failures to diagnose; this is a supported-practice loop.
-
-Your job is NOT to pick what to teach. The curriculum system has already pre-selected the target phrase and the exact hiragana characters to introduce. You ONLY fill in conversation-specific bits: the "appearedIn" quotes, the flashcard vocab, the distractor tiles, and the culture note.
+    const beginnerPrompt = `You are generating a Japanese lesson for a complete beginner. The student just had a real conversation — they typed in English and watched their character respond in Japanese. There are NO failures to diagnose; this is a supported-practice loop.
 
 CONVERSATION:
 ${transcript}
 
-LESSON TARGET (pre-selected by curriculum — DO NOT CHANGE):
-Target phrase: ${targetPhraseStr}
-English meaning: ${targetEnglishStr}
-Why it matters: ${targetWhyStr}
-
-NEW HIRAGANA TO INTRODUCE (use these EXACT characters in this EXACT order — DO NOT change, DO NOT reorder, DO NOT substitute):
-${charsWithMnemonics.map((c, i) => `${i + 1}. ${c.character} (romaji: ${c.romaji}) — ${c.mnemonic}`).join('\n')}
+ABSOLUTE RULE: Never generate hiragana_intro or trace blocks. Never teach individual kana characters. Lessons are about vocabulary and meaning only.
 
 HARD CONSTRAINTS:
-- DO NOT change the hiragana_intro characters. Use them in this exact order. They were pre-selected by the curriculum system.
-- The word_bank answer MUST be exactly: ${targetPhraseStr}
-- The word_bank "tiles" MUST contain one tile per character of the answer (in order, isDistractor: false) PLUS 1-2 additional distractor tiles (isDistractor: true). Distractors must be single hiragana characters from the SAME hiragana row as one of the answer characters (e.g. if the answer contains か, a valid distractor is き or く).
-- The flashcard "word" field MUST be kana only (hiragana/katakana). If a word has a kanji form, mention it ONLY inside memoryHook as "also written as 漢字".
-- The trace block MUST use 1-2 hiragana picked from the NEW HIRAGANA list above — never kanji, never characters the student already knows.
-- Return EXACTLY 5 blocks in the order shown below. No extras, no omissions.
-- DO NOT include: quiz, fill_blank, matching, shadowing, dialogue_choice, image_match, audio_match, sentence, dialogue_translate.
+- The flashcard block MUST include 3-5 vocabulary words from THIS conversation. Word field uses furigana format: 漢字(かんじ).
+- The word_bank block: pick ONE short word or phrase from the conversation. The "answer" field is that word in kana. The "tiles" are its individual characters (isDistractor: false) plus 1-2 distractor characters (isDistractor: true).
+- The culture_note must reference something specific from THIS conversation.
+- Return EXACTLY 3 blocks in the order: flashcard, word_bank, culture_note.
+- DO NOT include any other block types (no hiragana_intro, no trace).
 
 Return ONLY valid JSON (no markdown fences, no commentary) in this exact shape:
 
@@ -131,100 +78,67 @@ Return ONLY valid JSON (no markdown fences, no commentary) in this exact shape:
   "diagnosis": {
     "failureType": "opportunity",
     "failureSummary": "1-2 sentence description of what this lesson teaches",
-    "targetPhrase": ${JSON.stringify(targetPhraseStr)},
-    "targetPhraseEN": ${JSON.stringify(targetEnglishStr)},
-    "teachingFocus": ${JSON.stringify(`Today you learn to write: ${targetPhraseStr} (${targetEnglishStr})`)},
+    "targetPhrase": "<a short word from the conversation>",
+    "targetPhraseEN": "<english translation of that word>",
+    "teachingFocus": "Vocabulary from this conversation",
     "encouragement": "warm sentence celebrating something SPECIFIC from the conversation above",
-    "retryBriefing": "Tap each line in the next screen to test your recognition."
+    "retryBriefing": "Review the vocabulary below to reinforce what you learned."
   },
   "learnBlocks": [
     {
-      "id": "block_hira_1",
-      "type": "hiragana_intro",
-      "order": 0,
-      "xpReward": 10,
-      "title": "Your first hiragana",
-      "characters": [
-${hiraganaIntroCharsJSON}
-      ]
-    },
-    {
       "id": "block_flash_1",
       "type": "flashcard",
-      "order": 1,
+      "order": 0,
       "xpReward": 10,
       "cards": [
         {
-          "word": "<kana-only word from THIS conversation>",
-          "reading": "<same kana>",
+          "word": "<word with furigana 漢字(かんじ)>",
+          "reading": "<hiragana reading>",
           "romaji": "<romaji>",
           "english": "<english>",
           "partOfSpeech": "noun|verb|adjective|adverb|particle|phrase|greeting|counter|expression",
           "jlptLevel": "N5",
           "exampleJP": "<short example from or like the conversation>",
           "exampleEN": "<english>",
-          "memoryHook": "<mnemonic; if the word has a kanji form, mention it here as 'also written as 漢字'>"
-        }
-        // 4-6 cards total, all drawn from THIS conversation, all kana-only in the "word" field
-      ]
-    },
-    {
-      "id": "block_trace_1",
-      "type": "trace",
-      "order": 2,
-      "xpReward": 15,
-      "title": "Write it",
-      "characters": [
-        {
-          "character": "<ONE of the new hiragana from the list above>",
-          "reading": "<same character>",
-          "romaji": "<romaji>",
-          "english": "the '<romaji>' sound",
-          "strokeCount": 3,
           "memoryHook": "<mnemonic>"
         }
-        // 1-2 characters total, visually distinctive ones from newChars only
       ]
     },
     {
       "id": "block_wb_1",
       "type": "word_bank",
-      "order": 3,
+      "order": 1,
       "xpReward": 20,
       "title": "Put it together",
-      "instruction": "Tap the characters in order to write the phrase.",
-      "targetPhrase": ${JSON.stringify(targetPhraseStr)},
+      "instruction": "Tap the characters in order to write the word.",
+      "targetPhrase": "<a short kana word from the conversation>",
       "sentences": [
         {
           "id": "wb1",
-          "prompt": ${JSON.stringify(`How do you say '${targetEnglishStr}'?`)},
-          "answer": ${JSON.stringify(targetPhraseStr)},
+          "prompt": "<How do you say '[english meaning]'?>",
+          "answer": "<the kana word>",
           "tiles": [
-${answerTilesJSON},
-            { "id": "td1", "character": "<single-hiragana distractor from same row as one answer char>", "isDistractor": true }
-            // add 1-2 distractor tiles total
+            { "id": "t1", "text": "<char>", "isDistractor": false }
           ],
-          "explanation": ${JSON.stringify(targetWhyStr)}
+          "explanation": "<why this word matters>"
         }
       ]
     },
     {
       "id": "block_culture_1",
       "type": "culture_note",
-      "order": 4,
+      "order": 2,
       "xpReward": 5,
       "emoji": "<relevant emoji>",
       "headline": "<cultural insight title>",
       "body": "<2-3 sentence explanation tied to THIS conversation>",
       "neverInTextbook": "<a surprising fact you won't find in textbooks>",
       "relatedWords": [
-        { "word": "<kana word>", "reading": "<kana>", "meaning": "<english>" }
+        { "word": "<word with furigana>", "reading": "<kana>", "meaning": "<english>" }
       ]
     }
   ]
-}
-
-Remember: DO NOT change the hiragana_intro characters. DO NOT change the word_bank answer. Only fill in the conversation-specific content (appearedIn quotes, flashcards, distractor tiles, culture note, encouragement).`
+}`
 
     const intermediatePrompt = `You are a Japanese language learning diagnostic engine. Analyze this conversation between a learner and a character, then generate a targeted micro-lesson.
 
@@ -232,6 +146,8 @@ CONVERSATION TRANSCRIPT:
 ${transcript}
 
 ${isRetry ? 'NOTE: This is a RETRY attempt. The learner already went through the learn phase once. Focus on any REMAINING or NEW failures.' : ''}
+
+ABSOLUTE RULE: Never generate hiragana_intro or trace blocks. Never teach individual kana characters. Lessons are about vocabulary and meaning only.
 
 STEP 1: Identify the PRIMARY failure. Pick ONE category:
 - vocabulary: didn't know a key word needed for the conversation
@@ -279,6 +195,28 @@ TYPE "flashcard":
       "exampleJP": "Example sentence in Japanese with furigana",
       "exampleEN": "English translation of example",
       "memoryHook": "A memorable mnemonic or association to help remember this word"
+    }
+  ]
+}
+
+TYPE "word_bank":
+{
+  "id": "block_wb_1",
+  "type": "word_bank",
+  "order": 2,
+  "xpReward": 20,
+  "title": "Put it together",
+  "instruction": "Tap the characters in order",
+  "targetPhrase": "the target word/phrase in kana",
+  "sentences": [
+    {
+      "id": "wb1",
+      "prompt": "How do you say 'X'?",
+      "answer": "the kana word",
+      "tiles": [
+        { "id": "t1", "text": "char", "isDistractor": false }
+      ],
+      "explanation": "why this word matters"
     }
   ]
 }
@@ -361,25 +299,6 @@ TYPE "dialogue_choice":
       ],
       "explanation": "Why the correct answer works",
       "culturalHint": "Cultural context if relevant"
-    }
-  ]
-}
-
-TYPE "trace":
-{
-  "id": "block_trace_1",
-  "type": "trace",
-  "order": 3,
-  "xpReward": 10,
-  "title": "Practice writing",
-  "characters": [
-    {
-      "character": "the kanji or kana character",
-      "reading": "hiragana reading",
-      "romaji": "romaji",
-      "english": "English meaning",
-      "strokeCount": 8,
-      "memoryHook": "mnemonic for remembering this character"
     }
   ]
 }
@@ -473,6 +392,7 @@ IMPORTANT RULES:
 - The first block should ALWAYS be a flashcard block with 2-4 cards covering the target vocabulary
 - The remaining blocks should reinforce the same material with different exercise types
 - Vary the block types — don't repeat the same type
+- DO NOT generate hiragana_intro or trace blocks
 - All Japanese text must use furigana format: 漢字(かんじ)
 - Block IDs must be unique strings
 - Order should be sequential (1, 2, 3, 4)
@@ -511,15 +431,6 @@ IMPORTANT RULES:
       )
     }
 
-    // For beginner mode, stamp the authoritative curriculum-selected values
-    // onto the diagnosis so the client can update Clerk metadata with
-    // guaranteed-correct targetPhrase + newHiragana.
-    if (isBeginnerMode && targetPhrase) {
-      diagnosis.targetPhrase = targetPhrase.phrase
-      diagnosis.targetPhraseEN = targetPhrase.english
-      diagnosis.newHiragana = newChars
-    }
-
     // Save diagnosis + learn blocks to DB
     if (process.env.DATABASE_URL) {
       try {
@@ -537,7 +448,7 @@ IMPORTANT RULES:
       }
     }
 
-    return Response.json({ diagnosis, learnBlocks })
+    return Response.json({ diagnosis, learnBlocks, lessonKana: [] })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'
     console.error('Loop diagnose error:', message)

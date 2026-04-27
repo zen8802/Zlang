@@ -8,10 +8,11 @@ import { StrokeAnimation } from '@/components/japanese/StrokeAnimation'
 interface Props {
   grade1Kanji: KyouikuKanji[]
   discoveredKanji: Set<string>
+  seenKanji?: Set<string>
   userExperience: number
 }
 
-export default function KanjiGridView({ grade1Kanji, discoveredKanji, userExperience }: Props) {
+export default function KanjiGridView({ grade1Kanji, discoveredKanji, seenKanji = new Set(), userExperience }: Props) {
   const [selectedKanji, setSelectedKanji] = useState<KyouikuKanji | null>(null)
 
   const discoveredCount = useMemo(
@@ -85,6 +86,7 @@ export default function KanjiGridView({ grade1Kanji, discoveredKanji, userExperi
       <div className="grid gap-2" style={{ gridTemplateRows: 'repeat(16, 1fr)', gridAutoFlow: 'column', gridTemplateColumns: 'repeat(5, 1fr)', direction: 'rtl' }}>
         {grade1Kanji.map((kanji) => {
           const isDiscovered = discoveredKanji.has(kanji.character)
+          const isSeen = !isDiscovered && seenKanji.has(kanji.character)
           const isSelected = selectedKanji?.character === kanji.character
 
           return (
@@ -98,61 +100,36 @@ export default function KanjiGridView({ grade1Kanji, discoveredKanji, userExperi
               `}
               style={
                 isDiscovered
-                  ? {
-                      backgroundColor: '#FDFBF8',
-                      border: '1.5px solid #E0DAD2',
-                    }
-                  : {
-                      backgroundColor: '#2C2924',
-                      border: '1.5px solid #1A1814',
-                    }
+                  ? { backgroundColor: '#FEF9F0', border: '1.5px solid #D4AF37' }
+                  : isSeen
+                    ? { backgroundColor: '#4A4642', border: '1.5px solid #5A5550' }
+                    : { backgroundColor: '#2C2924', border: '1.5px solid #1A1814' }
               }
             >
               {isDiscovered ? (
                 <>
-                  <span
-                    style={{
-                      fontFamily: 'Noto Sans JP',
-                      fontSize: '22px',
-                      fontWeight: 300,
-                      color: '#1A1814',
-                      lineHeight: 1,
-                    }}
-                  >
+                  <span style={{ fontFamily: 'Noto Sans JP', fontSize: '22px', fontWeight: 300, color: '#1A1814', lineHeight: 1 }}>
                     {kanji.character}
                   </span>
-                  <span
-                    style={{
-                      fontFamily: 'DM Mono',
-                      fontSize: '8px',
-                      color: '#9E9892',
-                      marginTop: '2px',
-                    }}
-                  >
+                  <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: '#9E9892', marginTop: '2px' }}>
                     {kanji.strokeCount}画
+                  </span>
+                </>
+              ) : isSeen ? (
+                <>
+                  <span style={{ fontFamily: 'Noto Sans JP', fontSize: '22px', fontWeight: 300, color: 'rgba(255,255,255,0.38)', lineHeight: 1 }}>
+                    {kanji.character}
+                  </span>
+                  <span style={{ fontFamily: 'DM Mono', fontSize: '7px', color: 'rgba(255,255,255,0.2)', marginTop: '2px' }}>
+                    seen
                   </span>
                 </>
               ) : (
                 <>
-                  <span
-                    style={{
-                      fontFamily: 'Noto Sans JP',
-                      fontSize: '22px',
-                      fontWeight: 300,
-                      color: 'rgba(255,255,255,0.07)',
-                      lineHeight: 1,
-                    }}
-                  >
+                  <span style={{ fontFamily: 'Noto Sans JP', fontSize: '22px', fontWeight: 300, color: 'rgba(255,255,255,0.07)', lineHeight: 1 }}>
                     {kanji.character}
                   </span>
-                  <span
-                    style={{
-                      fontFamily: 'DM Mono',
-                      fontSize: '8px',
-                      color: 'rgba(255,255,255,0.07)',
-                      marginTop: '2px',
-                    }}
-                  >
+                  <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: 'rgba(255,255,255,0.07)', marginTop: '2px' }}>
                     ?
                   </span>
                 </>

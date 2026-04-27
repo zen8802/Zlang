@@ -8,7 +8,6 @@ import { useUser } from '@clerk/nextjs'
 import { useAppStore } from '@/store/useAppStore'
 import Navbar from '@/components/layout/Navbar'
 import { SCENARIO_TEMPLATES } from '@/data/scenarios'
-import { CollectionWidget } from '@/components/collection/CollectionWidget'
 import ResumeCard from '@/components/loop/ResumeCard'
 import ConversationsCard from '@/components/loop/ConversationsCard'
 
@@ -137,7 +136,6 @@ export default function DashboardPage() {
         </Link>
 
         {/* Recently-collected card preview (only shows when the user has cards) */}
-        <CollectionWidget />
 
         {/* ── Recent conversations ──────────────────────────────────────── */}
         <ConversationsCard />
@@ -250,13 +248,9 @@ function AdminResetButton() {
       await fetch('/api/admin/reset-collection', { method: 'POST' })
       // Clear the Zustand persisted store so the UI reflects the reset
       useAppStore.setState({
-        discoveredHiragana: [],
-        discoveredKatakana: [],
         discoveredKanji: [],
-        knownHiragana: [],
+        seenKanji: [],
       })
-      // Also clear localStorage keys that the store uses
-      try { localStorage.removeItem('mirai_known_hiragana') } catch {}
       setDone(true)
       setTimeout(() => window.location.reload(), 1000)
     } catch {

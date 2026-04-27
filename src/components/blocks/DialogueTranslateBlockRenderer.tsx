@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import type { DialogueTranslateBlock } from '@/types/lesson-blocks'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DialogueTranslateBlock = any
 import Button from '@/components/ui/Button'
 import { useAppStore } from '@/store/useAppStore'
 
@@ -242,7 +243,7 @@ export function DialogueTranslateBlockRenderer({ block, onComplete }: Props) {
 
       {/* Progress */}
       <div className="flex gap-1.5">
-        {block.exchanges.map((_, i) => (
+        {block.exchanges.map((_: unknown, i: number) => (
           <div
             key={i}
             className="flex-1 h-0.5 rounded-full transition-all duration-500"

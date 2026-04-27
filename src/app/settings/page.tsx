@@ -31,7 +31,6 @@ export default function SettingsPage() {
   const level = useAppStore((s) => s.level)
   const setLevel = useAppStore((s) => s.setLevel)
   const loginStreak = useAppStore((s) => s.loginStreak)
-  const knownHiragana = useAppStore((s) => s.knownHiragana)
   const showFurigana = useAppStore((s) => s.showFurigana)
   const setShowFurigana = useAppStore((s) => s.setShowFurigana)
   const showTranslation = useAppStore((s) => s.showTranslation)
@@ -294,10 +293,10 @@ export default function SettingsPage() {
               </div>
               <div className="text-center py-3 rounded-xl bg-black/[0.03] border border-black/[0.06]">
                 <p className="text-2xl font-bold text-foreground tabular-nums">
-                  {knownHiragana.length}
+                  0
                 </p>
                 <p className="text-xs text-foreground/40 mt-0.5">
-                  {uiLanguage === 'en' ? 'Hiragana known' : 'ひらがな'}
+                  {uiLanguage === 'en' ? 'Lessons' : 'レッスン'}
                 </p>
               </div>
             </div>

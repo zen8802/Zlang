@@ -1,12 +1,10 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import * as wanakana from 'wanakana'
 import Button from '@/components/ui/Button'
 import { useAppStore } from '@/store/useAppStore'
-import { ALL_EXPRESSIONS } from '@/data/vocabulary-seed'
-import { findNewPhrasesInText } from '@/lib/dialogue-highlighter'
 
 // ---------------------------------------------------------------------------
 // Types (copied from studio session)
@@ -110,27 +108,8 @@ interface AttemptPhaseProps {
   session: any
   diagnosing: boolean
   onEndAttempt: (messages: Message[]) => void
-  /** Top-5 kana selected for this lesson — gold underlined in character speech */
-  sessionLessonKana?: string[]
-  /** New phrase expressions found in this conversation — green underlined */
-  sessionNewPhrases?: string[]
 }
 
-// ---------------------------------------------------------------------------
-// POS colors for vocab highlights
-// ---------------------------------------------------------------------------
-
-const POS_COLORS: Record<string, { underline: string; bg: string; text: string; label: string }> = {
-  noun:       { underline: '#1B4F8A', bg: '#EBF0F8', text: '#1B4F8A', label: '\u540D\u8A5E' },
-  verb:       { underline: '#8B3A3A', bg: '#F5EEEE', text: '#8B3A3A', label: '\u52D5\u8A5E' },
-  adjective:  { underline: '#6B5B8D', bg: '#F0EDF5', text: '#6B5B8D', label: '\u5F62\u5BB9\u8A5E' },
-  adverb:     { underline: '#3D6B4F', bg: '#EFF5F0', text: '#3D6B4F', label: '\u526F\u8A5E' },
-  particle:   { underline: '#7A5C2E', bg: '#F5F0E8', text: '#7A5C2E', label: '\u52A9\u8A5E' },
-  phrase:     { underline: '#8B5A6B', bg: '#F5EEF0', text: '#8B5A6B', label: '\u8868\u73FE' },
-  greeting:   { underline: '#3D6B5A', bg: '#EFF5F2', text: '#3D6B5A', label: '\u6328\u62F6' },
-  counter:    { underline: '#6366F1', bg: '#EEF2FF', text: '#4F46E5', label: '\u52A9\u6570\u8A5E' },
-  expression: { underline: '#7A5C2E', bg: '#F5F0E8', text: '#7A5C2E', label: '\u8868\u73FE' },
-}
 
 // ---------------------------------------------------------------------------
 // Parse character response (copied from studio)
@@ -240,6 +219,22 @@ function parseCharacterResponse(text: string) {
 }
 
 // ---------------------------------------------------------------------------
+// POS colors for vocab highlights
+// ---------------------------------------------------------------------------
+
+const POS_COLORS: Record<string, { underline: string; bg: string; text: string; label: string }> = {
+  noun:       { underline: '#1B4F8A', bg: '#EBF0F8', text: '#1B4F8A', label: '名詞' },
+  verb:       { underline: '#8B3A3A', bg: '#F5EEEE', text: '#8B3A3A', label: '動詞' },
+  adjective:  { underline: '#6B5B8D', bg: '#F0EDF5', text: '#6B5B8D', label: '形容詞' },
+  adverb:     { underline: '#3D6B4F', bg: '#EFF5F0', text: '#3D6B4F', label: '副詞' },
+  particle:   { underline: '#7A5C2E', bg: '#F5F0E8', text: '#7A5C2E', label: '助詞' },
+  phrase:     { underline: '#8B5A6B', bg: '#F5EEF0', text: '#8B5A6B', label: '表現' },
+  greeting:   { underline: '#3D6B5A', bg: '#EFF5F2', text: '#3D6B5A', label: '挨拶' },
+  counter:    { underline: '#6366F1', bg: '#EEF2FF', text: '#4F46E5', label: '助数詞' },
+  expression: { underline: '#7A5C2E', bg: '#F5F0E8', text: '#7A5C2E', label: '表現' },
+}
+
+// ---------------------------------------------------------------------------
 // Furigana helpers (copied from studio)
 // ---------------------------------------------------------------------------
 
@@ -306,104 +301,16 @@ function DialogueText({
   vocab,
   showFurigana,
   onWordClick,
-  lessonKana = [],
-  newPhrases = [],
 }: {
   text: string
   vocab?: VocabWord[]
   showFurigana: boolean
   onWordClick: (word: VocabWord, rect: DOMRect) => void
-  lessonKana?: string[]
-  newPhrases?: string[]
 }) {
-  const lessonKanaSet = new Set(lessonKana)
-  // Sort phrases by length desc so longer matches win
-  const sortedNewPhrases = Array.from(new Set(newPhrases)).sort(
-    (a, b) => b.length - a.length,
-  )
-
-  // ── Three-layer highlighting ────────────────────────────────────────
-  // Layer 1: Gold bōten dots (text-emphasis) — per new kana character
-  // Layer 2: Green background-image gradient — continuous phrase underline
-  // Layer 3: Dictionary text-decoration dotted — from parent vocab span
-  // These never collide — each uses a different CSS mechanism.
-
-  const renderWithHighlights = (_content: React.ReactNode, plainSegmentText: string): React.ReactNode => {
-    if (lessonKana.length === 0 && newPhrases.length === 0) return _content
-
-    // Try to find and split around phrase boundaries
-    for (const phrase of sortedNewPhrases) {
-      const idx = plainSegmentText.indexOf(phrase)
-      if (idx >= 0) {
-        const before = plainSegmentText.slice(0, idx)
-        const after = plainSegmentText.slice(idx + phrase.length)
-        return (
-          <>
-            {before && renderCharsWithBoten(before)}
-            {renderPhraseSpan(phrase)}
-            {after && renderWithHighlights(null, after)}
-          </>
-        )
-      }
-    }
-
-    return renderCharsWithBoten(plainSegmentText)
-  }
-
-  // Individual characters — gold bōten dots on new kana
-  const renderCharsWithBoten = (text: string): React.ReactNode => (
-    <>
-      {Array.from(text).map((char, ci) => {
-        const code = char.charCodeAt(0)
-        const isKana =
-          (code >= 0x3041 && code <= 0x3096) ||
-          (code >= 0x30a0 && code <= 0x30ff)
-
-        if (isKana && lessonKanaSet.has(char)) {
-          return (
-            <span key={ci} className="char-gold">{char}</span>
-          )
-        }
-        return <span key={ci}>{char}</span>
-      })}
-    </>
-  )
-
-  // Continuous green line over the entire phrase via background-image.
-  // Gold bōten dots on individual new kana chars inside.
-  const renderPhraseSpan = (phrase: string): React.ReactNode => (
-    <span
-      style={{
-        backgroundImage: 'linear-gradient(#2D9E6B, #2D9E6B)',
-        backgroundSize: '100% 1.5px',
-        backgroundRepeat: 'no-repeat',
-        backgroundPosition: 'bottom 0px left 0px',
-        paddingBottom: '8px',
-      }}
-    >
-      {Array.from(phrase).map((char, ci) => {
-        const code = char.charCodeAt(0)
-        const isKana =
-          (code >= 0x3041 && code <= 0x3096) ||
-          (code >= 0x30a0 && code <= 0x30ff)
-
-        if (isKana && lessonKanaSet.has(char)) {
-          return (
-            <span key={ci} className="char-gold">{char}</span>
-          )
-        }
-        return <span key={ci}>{char}</span>
-      })}
-    </span>
-  )
   if (!vocab || vocab.length === 0) {
-    const plain = stripFurigana(text)
-    const hasHighlights = lessonKana.length > 0 || newPhrases.length > 0
     return (
       <span style={{ fontFamily: 'Noto Sans JP' }}>
-        {hasHighlights
-          ? renderWithHighlights(null, plain)
-          : renderWithFurigana(text, showFurigana)}
+        {renderWithFurigana(text, showFurigana)}
       </span>
     )
   }
@@ -438,28 +345,18 @@ function DialogueText({
   return (
     <span style={{ fontFamily: 'Noto Sans JP' }}>
       {segments.map((seg, i) => {
-        const hasHighlights = lessonKana.length > 0 || newPhrases.length > 0
-
         if (!seg.isVocab) {
+          const originalChunk = findOriginalChunk(text, seg.text)
           return (
             <span key={i}>
-              {hasHighlights
-                ? renderWithHighlights(null, seg.text)
-                : showFurigana
-                  ? renderWithFurigana(findOriginalChunk(text, seg.text), showFurigana)
-                  : seg.text}
+              {showFurigana
+                ? renderWithFurigana(originalChunk, showFurigana)
+                : seg.text}
             </span>
           )
         }
 
         const posColor = (POS_COLORS[seg.vocabData.pos] || POS_COLORS.noun).underline
-
-        // Check if any char in this vocab word is a gold-highlighted kana.
-        // If so, the dictionary line must sit BELOW the gold line entirely.
-        const segHasGold = hasHighlights && Array.from(seg.text).some((ch) => {
-          const c = ch.charCodeAt(0)
-          return ((c >= 0x3041 && c <= 0x3096) || (c >= 0x30a0 && c <= 0x30ff)) && lessonKanaSet.has(ch)
-        })
 
         return (
           <span
@@ -470,20 +367,16 @@ function DialogueText({
             }}
             className="cursor-pointer rounded-sm px-[1px] hover:opacity-80"
             style={{
-              // POS-colored dashed line via repeating-linear-gradient.
-              // Dashes scale cleanly to any width — no clipped dots.
               backgroundImage: `repeating-linear-gradient(90deg, ${posColor} 0px, ${posColor} 3px, transparent 3px, transparent 6px)`,
               backgroundSize: '100% 1.5px',
               backgroundRepeat: 'no-repeat',
               backgroundPosition: 'bottom 0px left 0px',
-              paddingBottom: segHasGold ? '8px' : '4px',
+              paddingBottom: '4px',
             }}
           >
-            {hasHighlights
-              ? renderWithHighlights(null, seg.text)
-              : showFurigana
-                ? renderWithFurigana(seg.vocabData.word, true)
-                : seg.text}
+            {showFurigana
+              ? renderWithFurigana(seg.vocabData.word, true)
+              : seg.text}
           </span>
         )
       })}
@@ -492,17 +385,33 @@ function DialogueText({
 }
 
 // ---------------------------------------------------------------------------
-// VocabPopup
+// VocabPopup (with Save to Phrasebook button)
 // ---------------------------------------------------------------------------
 
-function VocabPopup({ word, rect, onClose }: { word: VocabWord; rect: DOMRect; onClose: () => void }) {
+function VocabPopup({
+  word,
+  rect,
+  onClose,
+  sessionId,
+  scenarioTitle,
+  characterName,
+}: {
+  word: VocabWord
+  rect: DOMRect
+  onClose: () => void
+  sessionId?: string
+  scenarioTitle?: string
+  characterName?: string
+}) {
   const ref = useRef<HTMLDivElement>(null)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
   const posStyle = POS_COLORS[word.pos] || POS_COLORS.noun
 
   const viewportH = typeof window !== 'undefined' ? window.innerHeight : 800
   const below = rect.bottom + 8
-  const above = rect.top - 200
-  const top = below + 200 > viewportH ? Math.max(8, above) : below
+  const above = rect.top - 220
+  const top = below + 220 > viewportH ? Math.max(8, above) : below
   const left = Math.max(8, Math.min(rect.left, (typeof window !== 'undefined' ? window.innerWidth : 400) - 268))
 
   useEffect(() => {
@@ -512,6 +421,28 @@ function VocabPopup({ word, rect, onClose }: { word: VocabWord; rect: DOMRect; o
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [onClose])
+
+  const handleSave = async () => {
+    if (saving || saved) return
+    setSaving(true)
+    await fetch('/api/phrasebook', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        saveType: 'word',
+        japanese: word.word,
+        reading: word.reading,
+        romaji: word.romaji,
+        english: word.meaning,
+        partOfSpeech: word.pos,
+        sourceSessionId: sessionId || null,
+        sourceScenarioTitle: scenarioTitle || null,
+        sourceCharacterName: characterName || null,
+      }),
+    })
+    setSaving(false)
+    setSaved(true)
+  }
 
   return (
     <div
@@ -548,6 +479,24 @@ function VocabPopup({ word, rect, onClose }: { word: VocabWord; rect: DOMRect; o
           {word.meaning}
         </p>
       </div>
+      {/* Save to phrasebook */}
+      <div className="px-3.5 pb-3">
+        <button
+          onClick={handleSave}
+          disabled={saving || saved}
+          className={`w-full py-2 rounded-[6px] text-xs font-medium transition-all cursor-pointer disabled:cursor-default ${
+            saved
+              ? 'bg-[#EFF5F0] text-[#3D6B4F]'
+              : 'text-white hover:opacity-90'
+          }`}
+          style={{
+            fontFamily: 'DM Sans',
+            ...(!saved ? { backgroundColor: posStyle.underline } : {}),
+          }}
+        >
+          {saved ? '✓ Saved' : saving ? 'Saving...' : '+ Save to phrasebook'}
+        </button>
+      </div>
     </div>
   )
 }
@@ -556,7 +505,7 @@ function VocabPopup({ word, rect, onClose }: { word: VocabWord; rect: DOMRect; o
 // AttemptPhase component
 // ---------------------------------------------------------------------------
 
-export default function AttemptPhase({ sessionId, session, diagnosing, onEndAttempt, sessionLessonKana = [], sessionNewPhrases = [] }: AttemptPhaseProps) {
+export default function AttemptPhase({ sessionId, session, diagnosing, onEndAttempt }: AttemptPhaseProps) {
   // loopMode kept on the session for the diagnose API + RecognizePhase routing,
   // but the conversation UI is now identical across all modes — beginners deserve
   // the full breakdown / alternative / chips experience, not a stripped-down bar.
@@ -619,53 +568,6 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const userExchanges = messages.filter(m => m.role === 'user').length
-
-  // ── LIVE highlighting — computed from all character messages so far ────
-  // Gold underline: every kana in character speech that the user hasn't learned yet
-  const discoveredH = useAppStore((s) => s.discoveredHiragana)
-  const discoveredK = useAppStore((s) => s.discoveredKatakana)
-
-  const liveNewKana = useMemo(() => {
-    const learnedSet = new Set([...discoveredH, ...discoveredK])
-    const charText = messages
-      .filter((m) => m.role === 'character')
-      .map((m) => m.content || '')
-      .join('')
-    // Preserve first-appearance order, deduplicated, capped at 5
-    const found: string[] = []
-    const seen = new Set<string>()
-    for (const ch of Array.from(charText)) {
-      if (found.length >= 5) break
-      const code = ch.charCodeAt(0)
-      const isKana = (code >= 0x3041 && code <= 0x3096) || (code >= 0x30a0 && code <= 0x30ff)
-      if (isKana && !learnedSet.has(ch) && !seen.has(ch)) {
-        found.push(ch)
-        seen.add(ch)
-      }
-    }
-    return found
-  }, [messages, discoveredH, discoveredK])
-
-  // Green underline: expression phrases from ALL_EXPRESSIONS that appear in
-  // character speech and aren't already in the user's collection.
-  // (We don't have the user's known phrases client-side, so we highlight ALL
-  // expression matches as green — the worst case is a phrase the user already
-  // collected gets a green underline, which is still useful reinforcement.)
-  const liveNewPhrases = useMemo(() => {
-    const charText = messages
-      .filter((m) => m.role === 'character')
-      .map((m) => m.content || '')
-      .join(' ')
-    return findNewPhrasesInText(charText, [], ALL_EXPRESSIONS)
-  }, [messages])
-
-  // Merge live-computed with any post-diagnosis data from the parent
-  const effectiveLessonKana = sessionLessonKana.length > 0
-    ? sessionLessonKana
-    : liveNewKana
-  const effectiveNewPhrases = sessionNewPhrases.length > 0
-    ? sessionNewPhrases
-    : liveNewPhrases
 
   // Hints from the latest character message — beginner-friendly English chips
   // the learner can tap to drop into their input.
@@ -1171,8 +1073,6 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
                           setActiveVocab(activeVocab?.word === word.word ? null : word)
                           setVocabPopupRect(rect)
                         }}
-                        lessonKana={effectiveLessonKana}
-                        newPhrases={effectiveNewPhrases}
                       />
                     </p>
                     {showRomaji && msg.romaji && (
@@ -1806,6 +1706,9 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
           word={activeVocab}
           rect={vocabPopupRect}
           onClose={() => { setActiveVocab(null); setVocabPopupRect(null) }}
+          sessionId={sessionId}
+          scenarioTitle={session?.scenarioTitle}
+          characterName={session?.characterName}
         />
       )}
     </div>

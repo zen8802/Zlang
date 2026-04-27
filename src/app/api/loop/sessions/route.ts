@@ -235,19 +235,6 @@ export async function POST(request: Request) {
     let characterSpeechStyle = scenario.character.speechStyle
     let characterRelationship = scenario.character.relationship
     let setting = scenario.setting
-    // If the scenario defines a tight conversation flow, append it to the
-    // setting text so both system prompts (opening + per-turn) see it.
-    if (Array.isArray(scenario.conversationFlow) && scenario.conversationFlow.length > 0) {
-      const beats = scenario.conversationFlow
-        .map((b: string, i: number) => `  ${i + 1}. ${b}`)
-        .join('\n')
-      setting = `${setting}
-
-CONVERSATION FLOW (drive the conversation through EXACTLY these beats, in order — one beat per character turn, no padding, no small talk between beats):
-${beats}
-
-After the final beat is resolved, gracefully end the conversation with a short farewell line. Do not invent extra beats. Do not loop back. Keep the whole exchange tight — about ${scenario.conversationFlow.length} character turns total.`
-    }
     let openingLine = scenario.openingLine
     let scenarioTitle = scenario.title
     let scenarioTitleJP = scenario.titleJP

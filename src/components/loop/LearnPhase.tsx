@@ -7,7 +7,6 @@ import Badge from '@/components/ui/Badge'
 import ProgressBar from '@/components/ui/ProgressBar'
 import BlockRenderer from '@/components/blocks/BlockRenderer'
 import type { LessonBlock } from '@/types/lesson-blocks'
-import { useAppStore } from '@/store/useAppStore'
 
 interface LearnPhaseProps {
   sessionId: string
@@ -24,8 +23,6 @@ export default function LearnPhase({ diagnosis, lessonBlocks, onStartRetry }: Le
   const [xpEarned, setXpEarned] = useState(0)
   const [showPhraseVictory, setShowPhraseVictory] = useState(false)
 
-  const addKnownHiragana = useAppStore((s) => s.addKnownHiragana)
-  const knownHiragana = useAppStore((s) => s.knownHiragana)
   const { user } = useUser()
 
   const finalizedRef = useRef(false)
@@ -52,32 +49,14 @@ export default function LearnPhase({ diagnosis, lessonBlocks, onStartRetry }: Le
     }
   }, [currentBlockIndex, totalBlocks])
 
-  // When all blocks done: persist hiragana, optionally show victory, then fire onStartRetry
+  // When all blocks done: optionally show victory, then fire onStartRetry
   useEffect(() => {
     if (!allDone || totalBlocks === 0) return
     if (finalizedRef.current) return
     finalizedRef.current = true
 
-    const newChars: string[] = diagnosis?.newHiragana ?? []
-    if (newChars.length > 0) {
-      addKnownHiragana(newChars)
-      if (typeof window !== 'undefined') {
-        try {
-          const merged = Array.from(new Set([...knownHiragana, ...newChars]))
-          window.localStorage.setItem('mirai_known_hiragana', JSON.stringify(merged))
-        } catch {}
-      }
-      if (user) {
-        void user
-          .update({
-            unsafeMetadata: {
-              ...(user.unsafeMetadata || {}),
-              knownHiragana: Array.from(new Set([...knownHiragana, ...newChars])),
-            },
-          })
-          .catch(() => {})
-      }
-    }
+    // Legacy kana persistence removed — lessons no longer teach individual kana
+    void user
 
     if (targetPhrase) {
       setShowPhraseVictory(true)

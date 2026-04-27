@@ -55,11 +55,17 @@ export default function ResumeCard() {
         if (!res.ok) return
         const data = await res.json()
         if (data.session) setSession(data.session)
+        else setSession(null)
       } catch {
         // silently ignore
       }
     }
     fetchActive()
+
+    // Listen for session deletions from ConversationsCard
+    const handleSessionsCleared = () => setSession(null)
+    window.addEventListener('sessions-cleared', handleSessionsCleared)
+    return () => window.removeEventListener('sessions-cleared', handleSessionsCleared)
   }, [])
 
   if (!session || hidden) return null

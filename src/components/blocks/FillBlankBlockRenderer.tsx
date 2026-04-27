@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import type { FillBlankBlock } from '@/types/lesson-blocks'
 import Button from '@/components/ui/Button'
-import { CharacterWriteCanvas } from './CharacterWriteCanvas'
 
 interface Props {
   block: FillBlankBlock
@@ -107,18 +106,23 @@ export default function FillBlankBlockRenderer({ block, onComplete }: Props) {
         )}
       </div>
 
-      {/* CharacterWriteCanvas — one character at a time, full size */}
+      {/* Tap to reveal each character */}
       {!allDone && currentChar && (
-        <CharacterWriteCanvas
-          key={`${sIndex}-${charIndex}`}
-          targetCharacter={currentChar}
-          targetReading=""
-          targetRomaji=""
-          targetEnglish={charIndex === 0 ? sentence.answer + ' — ' + (sentence.explanation?.split('=')[1]?.trim() || '') : `Character ${charIndex + 1} of ${answerChars.length}`}
-          onSuccess={handleCharSuccess}
-          onSkip={handleCharSkip}
-          attemptNumber={0}
-        />
+        <div className="text-center py-6">
+          <p className="text-sm text-[#6B6560] mb-3">Tap to reveal the next character</p>
+          <button
+            onClick={handleCharSuccess}
+            className="w-20 h-20 rounded-[12px] bg-[#EBF0F8] border-2 border-[#1B4F8A] flex items-center justify-center mx-auto hover:bg-[#D6E3F5] transition-colors"
+          >
+            <span className="text-3xl text-[#1B4F8A]" style={{ fontFamily: 'Noto Sans JP' }}>?</span>
+          </button>
+          <button
+            onClick={handleCharSkip}
+            className="mt-3 text-xs text-[#9E9892] underline"
+          >
+            Skip
+          </button>
+        </div>
       )}
 
       {/* Completion feedback */}

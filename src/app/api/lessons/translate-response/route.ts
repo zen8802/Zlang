@@ -34,30 +34,38 @@ export async function POST(req: NextRequest) {
     const lvl = typeof userProfile?.experience === 'number' ? userProfile.experience : 5
     const beginnerRules = lvl <= 4 ? `
 
-CRITICAL RULES FOR BEGINNER TRANSLATION (level 1-4):
+RULES FOR BEGINNER TRANSLATION (level 1-4):
 
 1. OUTPUT IN KANA FIRST
    Prefer hiragana and katakana over kanji in the "japanese" field.
-   Wrong: 豚骨ラーメンをください
-   Right: とんこつラーメンをください
+   Wrong: 日曜日に来ます
+   Right: にちようびに きます
    The user must be able to TYPE this, and they only know kana.
 
-2. SIMPLE GRAMMAR ONLY
-   Level 1: [noun]をください
-   Level 2: [noun]が[adjective]です
-   Level 3: [noun]を[verb]ます
-   Level 4: introduce て-form
-   NEVER passive, causative, or conditionals.
+2. NATURAL SPEECH FIRST
+   Translate what the learner ACTUALLY wants to say, not a dumbed-down version.
+   Use the grammar and vocabulary that a real Japanese speaker would use in this situation.
+   Keep it at the learner's level, but DO NOT sacrifice naturalness for simplicity.
 
-3. SENTENCE LENGTH
-   Level 1-2: maximum 8 characters
-   Level 3-4: maximum 15 characters
-   Split longer thoughts into two short sentences.
+   BAD (overly simplified): にちようび。ぎょうざ。たべます。
+   GOOD (natural but simple): にちようびに ぎょうざを たべに きます
 
-4. THE BREAKDOWN
+   The goal is: "I said something REAL" not "I said something robotic."
+
+3. GRAMMAR GUIDANCE (not restrictions)
+   Level 1-2: prefer ます/です forms, particles は/が/を/に/で
+   Level 3-4: add て-form, たい, から, けど
+   AVOID: passive, causative, conditionals — but DO use natural particle chains
+   and common adverbs (また, もう, まだ, ちょっと, etc.)
+
+4. DO NOT SPLIT UNNECESSARILY
+   If the thought is one sentence in Japanese, keep it as one sentence.
+   Only split if a Japanese speaker would naturally use two sentences.
+
+5. THE BREAKDOWN
    Each chunk's "chunk" field should be the kana form.
    If the word has a kanji form worth knowing, put it in the "note":
-   "also written as 豚骨"
+   "also written as 日曜日"
 ` : ''
 
     const res = await anthropic.messages.create({
@@ -83,10 +91,11 @@ ${(previousExchanges || [])
 
 The learner wants to say (in English): "${userEnglish}"
 
-Translate this into natural Japanese that fits:
-1. The setting and relationship
-2. The learner's age and gender (as above)
-3. The learner's current level (as above — simpler for beginners)
+Translate this into natural, conversational Japanese that a real person would say in this situation.
+Priority order:
+1. NATURALNESS — would a Japanese person actually say this? If not, rephrase.
+2. The setting and relationship (casual/polite register)
+3. The learner's level — keep grammar accessible, but NEVER dumb down the phrasing into robotic fragments. A beginner can learn a natural sentence.
 
 Return ONLY valid JSON (no markdown fences, no commentary):
 {

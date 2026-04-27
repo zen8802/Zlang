@@ -17,7 +17,6 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoaded } = useUser()
   const userProfile = useAppStore((s) => s.userProfile)
   const setUserProfile = useAppStore((s) => s.setUserProfile)
-  const setKnownHiragana = useAppStore((s) => s.setKnownHiragana)
   const setWorldNumber = useAppStore((s) => s.setWorldNumber)
 
   // Hydrate the store from Clerk metadata first (per-user, cross-device),
@@ -25,31 +24,10 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window === 'undefined') return
 
-    // Hydrate hiragana progress from Clerk + localStorage on every mount.
-    // (This runs even if userProfile is already loaded.)
     if (isLoaded && user) {
       const meta = user.unsafeMetadata as
-        | { knownHiragana?: unknown; worldNumber?: unknown }
+        | { worldNumber?: unknown }
         | undefined
-      if (Array.isArray(meta?.knownHiragana)) {
-        setKnownHiragana(meta.knownHiragana.filter((c): c is string => typeof c === 'string'))
-        try {
-          window.localStorage.setItem(
-            'mirai_known_hiragana',
-            JSON.stringify(meta.knownHiragana),
-          )
-        } catch {}
-      } else {
-        try {
-          const cached = window.localStorage.getItem('mirai_known_hiragana')
-          if (cached) {
-            const parsed = JSON.parse(cached)
-            if (Array.isArray(parsed)) {
-              setKnownHiragana(parsed.filter((c): c is string => typeof c === 'string'))
-            }
-          }
-        } catch {}
-      }
       if (typeof meta?.worldNumber === 'number') setWorldNumber(meta.worldNumber)
     }
 
@@ -77,7 +55,7 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
         if (isValidProfile(parsed)) setUserProfile(parsed)
       }
     } catch {}
-  }, [isLoaded, user, userProfile, setUserProfile, setKnownHiragana, setWorldNumber])
+  }, [isLoaded, user, userProfile, setUserProfile, setWorldNumber])
 
   // Routing: if profile exists and we're on `/`, send straight to dashboard.
   // If no profile and we're somewhere protected, send to `/` for onboarding.
