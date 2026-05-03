@@ -36,19 +36,23 @@ export async function POST(req: NextRequest) {
 
 RULES FOR BEGINNER TRANSLATION (level 1-4):
 
-1. OUTPUT IN KANA FIRST
-   Prefer hiragana and katakana over kanji in the "japanese" field.
-   Wrong: 日曜日に来ます
-   Right: にちようびに きます
-   The user must be able to TYPE this, and they only know kana.
+1. USE REAL JAPANESE SCRIPT
+   Write the japanese field the way a native would write it.
+   - USE katakana for loanwords: ビール not びーる, ラーメン not らーめん
+   - USE these Grade 1 kanji freely: 一二三四五六七八九十日月火水木金土山川田人口目耳手足力大小中上下左右本文字学校先生気天空雨花草虫犬車糸林森正王玉石竹米見音年早名白赤青円入出立休子女男貝
+   - For kanji NOT in that list, write in hiragana (e.g. 食べる → たべる)
+   - Add furigana for the Grade 1 kanji in the breakdown notes
+
+   CORRECT: ビールと水をおねがいします
+   WRONG:   びーるとみずをおねがいします
 
 2. NATURAL SPEECH FIRST
    Translate what the learner ACTUALLY wants to say, not a dumbed-down version.
    Use the grammar and vocabulary that a real Japanese speaker would use in this situation.
    Keep it at the learner's level, but DO NOT sacrifice naturalness for simplicity.
 
-   BAD (overly simplified): にちようび。ぎょうざ。たべます。
-   GOOD (natural but simple): にちようびに ぎょうざを たべに きます
+   BAD (robotic): 日よう日。ぎょうざ。たべます。
+   GOOD (natural): 日よう日にぎょうざをたべにきます
 
    The goal is: "I said something REAL" not "I said something robotic."
 
@@ -63,9 +67,8 @@ RULES FOR BEGINNER TRANSLATION (level 1-4):
    Only split if a Japanese speaker would naturally use two sentences.
 
 5. THE BREAKDOWN
-   Each chunk's "chunk" field should be the kana form.
-   If the word has a kanji form worth knowing, put it in the "note":
-   "also written as 日曜日"
+   Each chunk's "chunk" field should match how it appears in the japanese field.
+   Include reading and romaji for every chunk.
 ` : ''
 
     const res = await anthropic.messages.create({
@@ -101,12 +104,12 @@ Return ONLY valid JSON (no markdown fences, no commentary):
 {
   "japanese": "the natural Japanese translation",
   "reading": "full hiragana reading of the Japanese",
-  "romaji": "romaji transliteration",
+  "romaji": "romaji with macrons for long vowels (ō ū ē ā). Example: bēkon not beekon, rāmen not raamen",
   "breakdown": [
     {
       "chunk": "word or phrase as it appears in the japanese sentence (kana or kana+kanji)",
       "reading": "the hiragana reading of just this chunk",
-      "romaji": "the romaji transliteration of just this chunk (REQUIRED — never omit)",
+      "romaji": "romaji with macrons for long vowels (ō ū ē ā) — REQUIRED, never omit",
       "meaning": "English meaning",
       "note": "optional grammar note — only if genuinely interesting/important"
     }

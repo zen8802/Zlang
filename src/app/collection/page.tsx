@@ -5,15 +5,16 @@ import { useAppStore } from '@/store/useAppStore'
 import { GRADE_1_KANJI } from '@/data/kyouiku-kanji'
 import KanjiGridView from '@/components/collection/KanjiGridView'
 import PhrasebookView from '@/components/collection/PhrasebookView'
+import LearnedWordsView from '@/components/collection/LearnedWordsView'
 
-type TabKey = 'phrasebook' | 'kanji'
+type TabKey = 'learned' | 'phrasebook' | 'kanji'
 
 export default function CollectionPage() {
   const discoveredKanjiArray = useAppStore((s) => s.discoveredKanji)
   const storeSeenKanji = useAppStore((s) => s.seenKanji)
   const userProfile = useAppStore((s) => s.userProfile)
 
-  const [activeTab, setActiveTab] = useState<TabKey>('phrasebook')
+  const [activeTab, setActiveTab] = useState<TabKey>('learned')
 
   const discoveredKanjiSet = useMemo(() => new Set(discoveredKanjiArray), [discoveredKanjiArray])
   const seenKanjiSet = useMemo(() => new Set(storeSeenKanji), [storeSeenKanji])
@@ -22,7 +23,8 @@ export default function CollectionPage() {
   const kanjiDiscoveredCount = discoveredKanjiArray.filter((k) => grade1Set.has(k)).length
 
   const tabs: { key: TabKey; label: string; count: string }[] = [
-    { key: 'phrasebook', label: 'Phrasebook', count: '' },
+    { key: 'learned', label: 'Learned', count: '' },
+    { key: 'phrasebook', label: 'Saved', count: '' },
     { key: 'kanji', label: 'Kanji', count: `${kanjiDiscoveredCount}/80` },
   ]
 
@@ -107,6 +109,8 @@ export default function CollectionPage() {
 
       {/* Tab content */}
       <main className="max-w-lg mx-auto px-4 pt-4">
+        {activeTab === 'learned' && <LearnedWordsView />}
+
         {activeTab === 'phrasebook' && <PhrasebookView />}
 
         {activeTab === 'kanji' && (

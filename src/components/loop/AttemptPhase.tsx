@@ -24,6 +24,9 @@ interface VocabWord {
   romaji: string
   meaning: string
   pos: string
+  exampleJP?: string
+  exampleRomaji?: string
+  exampleEN?: string
 }
 
 interface Message {
@@ -112,6 +115,27 @@ interface AttemptPhaseProps {
 
 
 // ---------------------------------------------------------------------------
+// Grade 1 kanji whitelist + post-processor
+// ---------------------------------------------------------------------------
+
+const GRADE_1_KANJI_SET = new Set('一二三四五六七八九十日月火水木金土山川田人口目耳手足力大小中上下左右本文字学校先生気天空雨花草虫犬車糸林森正王玉石竹米見音年早名白赤青円入出立休子女男貝')
+
+/**
+ * Replaces any 漢字(かな) annotation where the kanji block contains characters
+ * outside the Grade 1 set with the kana reading. Multi-char blocks where ANY
+ * char is not Grade 1 get replaced entirely (since we can't preserve mixed).
+ */
+function enforceGrade1Kanji(text: string): string {
+  if (!text) return text
+  return text.replace(/([一-龥々]+)\(([ぁ-んァ-ヶー]+)\)/g, (match, kanjiBlock: string, reading: string) => {
+    for (const ch of kanjiBlock) {
+      if (!GRADE_1_KANJI_SET.has(ch)) return reading
+    }
+    return match
+  })
+}
+
+// ---------------------------------------------------------------------------
 // Parse character response (copied from studio)
 // ---------------------------------------------------------------------------
 
@@ -145,6 +169,9 @@ function parseCharacterResponse(text: string) {
           romaji: parts[2],
           meaning: parts[3],
           pos: parts[4].toLowerCase(),
+          exampleJP: parts[5] || undefined,
+          exampleRomaji: parts[6] || undefined,
+          exampleEN: parts[7] || undefined,
         })
       }
     }
@@ -214,6 +241,11 @@ function parseCharacterResponse(text: string) {
       })
     }
   }
+
+  // Enforce Grade 1 kanji whitelist on the visible character dialogue
+  characterContent = enforceGrade1Kanji(characterContent)
+  // Also clean coach notes (which may also contain kanji with furigana)
+  coachNote = enforceGrade1Kanji(coachNote)
 
   return { characterContent, vocabList, romajiContent, englishContent, coachNote, options, jpOfYours, hints }
 }
@@ -435,6 +467,9 @@ function VocabPopup({
         romaji: word.romaji,
         english: word.meaning,
         partOfSpeech: word.pos,
+        exampleJP: word.exampleJP || null,
+        exampleRomaji: word.exampleRomaji || null,
+        exampleEN: word.exampleEN || null,
         sourceSessionId: sessionId || null,
         sourceScenarioTitle: scenarioTitle || null,
         sourceCharacterName: characterName || null,

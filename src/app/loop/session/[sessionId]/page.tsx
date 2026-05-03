@@ -9,6 +9,9 @@ import LearnPhase from '@/components/loop/LearnPhase'
 import MilestoneCard from '@/components/loop/MilestoneCard'
 import { useAppStore } from '@/store/useAppStore'
 import { useSessionAutoSave } from '@/hooks/useSessionAutoSave'
+import { GRADE_1_KANJI } from '@/data/kyouiku-kanji'
+
+const GRADE_1_SET = new Set(GRADE_1_KANJI.map((k) => k.character))
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Phase = 'loading' | 'attempt' | 'diagnosing' | 'learn' | 'complete'
@@ -216,10 +219,59 @@ export default function LoopSessionPage() {
       const data = await res.json()
       setSession(prev => prev ? { ...prev, ...data, phase: 'complete' } : prev)
       setPhase('complete')
+
+      // Save learned words from flashcard blocks
+      const blocks = session?.lessonBlocks || []
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const learnedWords: any[] = []
+      for (const block of blocks) {
+        if (block.type === 'flashcard' && Array.isArray(block.cards)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          for (const card of block.cards as any[]) {
+            learnedWords.push({
+              word: card.word,
+              reading: card.reading,
+              romaji: card.romaji,
+              english: card.english,
+              partOfSpeech: card.partOfSpeech,
+              exampleJP: card.exampleJP,
+              exampleRomaji: card.exampleRomaji,
+              exampleEN: card.exampleEN,
+            })
+          }
+        }
+      }
+      if (learnedWords.length > 0) {
+        fetch('/api/learned-words', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            words: learnedWords,
+            sessionId,
+            scenarioTitle: session?.scenarioTitle,
+          }),
+        }).catch(() => {})
+
+        // Mark any Grade 1 kanji present in learned words as SEEN.
+        // LEARNED status is reserved exclusively for completing the
+        // trace+write+speak sequence in the kanji learn flow.
+        const kanjiFound: string[] = []
+        for (const w of learnedWords) {
+          const text = (w.word || '') + (w.exampleJP || '')
+          for (const ch of text) {
+            if (GRADE_1_SET.has(ch) && !kanjiFound.includes(ch)) {
+              kanjiFound.push(ch)
+            }
+          }
+        }
+        if (kanjiFound.length > 0) {
+          addSeenKanji(kanjiFound)
+        }
+      }
     } catch {
       setPhase('complete')
     }
-  }, [sessionId])
+  }, [sessionId, session?.lessonBlocks, session?.scenarioTitle, addSeenKanji])
 
 
   // ---- Loading state ----

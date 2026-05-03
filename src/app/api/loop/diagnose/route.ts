@@ -1,5 +1,78 @@
 import Anthropic from '@anthropic-ai/sdk'
 
+// Grade 1 kanji whitelist — anything else gets written in hiragana
+const GRADE_1_KANJI_SET = new Set('一二三四五六七八九十日月火水木金土山川田人口目耳手足力大小中上下左右本文字学校先生気天空雨花草虫犬車糸林森正王玉石竹米見音年早名白赤青円入出立休子女男貝')
+
+/**
+ * Replaces any 漢字(かな) annotation containing non-Grade-1 characters with
+ * just the kana reading. Anything outside the annotation is left alone.
+ */
+function enforceGrade1Kanji(text: string): string {
+  if (!text || typeof text !== 'string') return text
+  return text.replace(/([一-龥々]+)\(([ぁ-んァ-ヶー]+)\)/g, (match, block: string, reading: string) => {
+    for (const ch of block) {
+      if (!GRADE_1_KANJI_SET.has(ch)) return reading
+    }
+    return match
+  })
+}
+
+/**
+ * Walk a parsed lesson response and clean every Japanese text field. Keep this
+ * narrow — only touch fields known to contain rendered Japanese, never code or
+ * IDs. We tolerate missing fields silently.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function cleanLesson(parsed: any): any {
+  if (!parsed) return parsed
+  if (parsed.diagnosis) {
+    const d = parsed.diagnosis
+    if (d.targetPhrase) d.targetPhrase = enforceGrade1Kanji(d.targetPhrase)
+    if (d.targetWord) d.targetWord = enforceGrade1Kanji(d.targetWord)
+  }
+  if (Array.isArray(parsed.learnBlocks)) {
+    for (const block of parsed.learnBlocks) {
+      if (block?.type === 'flashcard' && Array.isArray(block.cards)) {
+        for (const card of block.cards) {
+          if (card.word) card.word = enforceGrade1Kanji(card.word)
+          if (card.exampleJP) card.exampleJP = enforceGrade1Kanji(card.exampleJP)
+        }
+      } else if (block?.type === 'word_bank') {
+        if (block.targetPhrase) block.targetPhrase = enforceGrade1Kanji(block.targetPhrase)
+        if (Array.isArray(block.sentences)) {
+          for (const s of block.sentences) {
+            if (s.answer) s.answer = enforceGrade1Kanji(s.answer)
+            if (Array.isArray(s.tiles)) {
+              for (const t of s.tiles) {
+                if (t.text) t.text = enforceGrade1Kanji(t.text)
+              }
+            }
+          }
+        }
+      } else if (block?.type === 'culture_note') {
+        if (Array.isArray(block.relatedWords)) {
+          for (const w of block.relatedWords) {
+            if (typeof w === 'string') {
+              // strings get replaced in-place via index
+            } else if (w?.word) {
+              w.word = enforceGrade1Kanji(w.word)
+            }
+          }
+          // Replace string entries
+          block.relatedWords = block.relatedWords.map((w: unknown) =>
+            typeof w === 'string' ? enforceGrade1Kanji(w) : w,
+          )
+        }
+      } else if (block?.type === 'sentence' && Array.isArray(block.sentences)) {
+        for (const s of block.sentences) {
+          if (s.japanese) s.japanese = enforceGrade1Kanji(s.japanese)
+        }
+      }
+    }
+  }
+  return parsed
+}
+
 export async function POST(request: Request) {
   if (!process.env.ANTHROPIC_API_KEY) {
     return Response.json({ error: 'ANTHROPIC_API_KEY not configured' }, { status: 500 })
@@ -66,7 +139,22 @@ ${transcript}
 ABSOLUTE RULE: Never generate hiragana_intro or trace blocks. Never teach individual kana characters. Lessons are about vocabulary and meaning only.
 
 HARD CONSTRAINTS:
-- The flashcard block MUST include 3-5 vocabulary words from THIS conversation. Word field uses furigana format: 漢字(かんじ).
+- The flashcard block MUST include 3-5 vocabulary words from THIS conversation.
+- ⚠️ WORD FIELD SCRIPT — match what the learner actually saw in the conversation:
+  - You may ONLY use these Grade 1 kanji: 一二三四五六七八九十日月火水木金土山川田人口目耳手足力大小中上下左右本文字学校先生気天空雨花草虫犬車糸林森正王玉石竹米見音年早名白赤青円入出立休子女男貝
+  - For ANY kanji NOT in that list (味、噌、普、通、待、食、飲、行、来、好 etc), write the word in HIRAGANA. Do NOT use the kanji form.
+  - Grade 1 kanji must have inline furigana: 水(みず) format.
+  - Loanwords use katakana: ラーメン, ビール.
+  - Examples:
+    - WRONG: "word": "味噌(みそ)"        → 味 and 噌 are not Grade 1
+    - RIGHT: "word": "みそ"
+    - WRONG: "word": "普通(ふつう)"       → 普, 通 not Grade 1
+    - RIGHT: "word": "ふつう"
+    - WRONG: "word": "待(ま)つ"           → 待 not Grade 1
+    - RIGHT: "word": "まつ"
+    - RIGHT: "word": "水(みず)"           → 水 IS Grade 1
+    - RIGHT: "word": "ラーメン"
+- The exampleJP and word_bank fields follow the SAME script rules as the word field.
 - The word_bank block: pick ONE short word or phrase from the conversation. The "answer" field is that word in kana. The "tiles" are its individual characters (isDistractor: false) plus 1-2 distractor characters (isDistractor: true).
 - The culture_note must reference something specific from THIS conversation.
 - Return EXACTLY 3 blocks in the order: flashcard, word_bank, culture_note.
@@ -178,6 +266,13 @@ Return ONLY valid JSON (no markdown fences, no commentary). Use this exact schem
 
 BLOCK SCHEMAS — use EXACTLY these types and fields:
 
+⚠️ JAPANESE SCRIPT RULES for ALL "word", "exampleJP", "answer", "targetPhrase", and tile "text" fields:
+- You may ONLY use these Grade 1 kanji: 一二三四五六七八九十日月火水木金土山川田人口目耳手足力大小中上下左右本文字学校先生気天空雨花草虫犬車糸林森正王玉石竹米見音年早名白赤青円入出立休子女男貝
+- For any kanji NOT in that list (味噌→みそ, 普通→ふつう, 待つ→まつ, 食べる→たべる, 飲む→のむ etc), write the word in HIRAGANA.
+- Grade 1 kanji must have inline furigana: 水(みず) format.
+- Loanwords use katakana: ラーメン, ビール.
+- Use macrons in romaji for long vowels: ō, ū, ē, ā.
+
 TYPE "flashcard":
 {
   "id": "block_flash_1",
@@ -186,15 +281,15 @@ TYPE "flashcard":
   "xpReward": 15,
   "cards": [
     {
-      "word": "漢字(かんじ) with furigana",
+      "word": "the word in the same script the learner saw — see script rules above",
       "reading": "hiragana reading",
-      "romaji": "romaji",
+      "romaji": "romaji with macrons",
       "english": "English meaning",
       "partOfSpeech": "noun|verb|adjective|adverb|particle|phrase|greeting|counter|expression",
       "jlptLevel": "N5|N4|N3|N2|N1",
-      "exampleJP": "Example sentence in Japanese with furigana",
+      "exampleJP": "Example sentence using same script rules",
       "exampleEN": "English translation of example",
-      "memoryHook": "A memorable mnemonic or association to help remember this word"
+      "memoryHook": "A memorable mnemonic or association"
     }
   ]
 }
@@ -421,6 +516,10 @@ IMPORTANT RULES:
         { status: 502 }
       )
     }
+
+    // Defense in depth: enforce Grade 1 kanji whitelist on all rendered Japanese
+    // fields. The prompt asks for this but Claude sometimes ignores it.
+    result = cleanLesson(result)
 
     const { diagnosis, learnBlocks } = result
 

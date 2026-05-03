@@ -75,6 +75,30 @@ export async function GET(
   }
 }
 
+export async function PATCH(
+  request: Request,
+  { params }: { params: { id: string } },
+) {
+  if (!process.env.DATABASE_URL) {
+    return Response.json({ error: 'No DB' }, { status: 500 })
+  }
+  try {
+    const body = await request.json()
+    const { neon } = await import('@neondatabase/serverless')
+    const sql = neon(process.env.DATABASE_URL!)
+
+    if (typeof body.is_favorite === 'boolean') {
+      await sql`UPDATE loop_sessions SET is_favorite = ${body.is_favorite} WHERE id = ${params.id}`
+      return Response.json({ updated: true, is_favorite: body.is_favorite })
+    }
+
+    return Response.json({ error: 'Nothing to update' }, { status: 400 })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Update failed'
+    return Response.json({ error: message }, { status: 500 })
+  }
+}
+
 export async function DELETE(
   _request: Request,
   { params }: { params: { id: string } },

@@ -21,7 +21,8 @@
     ],
     "additionalDirectories": [
       "C:\\dev\\Zlang\\src\\app\\loop\\retake",
-      "C:\\dev\\Zlang\\src\\app\\api\\phrasebook"
+      "C:\\dev\\Zlang\\src\\app\\api\\phrasebook",
+      "C:\\dev\\Zlang\\src\\app\\collection\\kanji\\learn"
     ]
   }
 }

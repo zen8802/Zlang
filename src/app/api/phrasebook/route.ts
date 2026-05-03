@@ -15,7 +15,7 @@ export async function GET() {
 
   const rows = await sql`
     SELECT id, save_type, japanese, reading, romaji, english,
-           part_of_speech, english_alts, example_jp, example_en,
+           part_of_speech, english_alts, example_jp, example_romaji, example_en,
            jlpt_level,
            source_session_id, source_scenario_title, source_character_name,
            user_note, created_at
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
   const rows = await sql`
     INSERT INTO phrasebook (
       user_id, save_type, japanese, reading, romaji, english,
-      part_of_speech, english_alts, example_jp, example_en,
+      part_of_speech, english_alts, example_jp, example_romaji, example_en,
       jlpt_level,
       source_session_id, source_scenario_title, source_character_name,
       user_note
@@ -63,6 +63,7 @@ export async function POST(request: Request) {
       ${body.partOfSpeech || null},
       ${body.englishAlts || []},
       ${body.exampleJP || null},
+      ${body.exampleRomaji || null},
       ${body.exampleEN || null},
       ${body.jlptLevel || null},
       ${body.sourceSessionId || null},
@@ -70,7 +71,7 @@ export async function POST(request: Request) {
       ${body.sourceCharacterName || null},
       ${body.userNote || null}
     )
-    ON CONFLICT DO NOTHING
+    ON CONFLICT (user_id, japanese) DO NOTHING
     RETURNING id, created_at
   `
 
