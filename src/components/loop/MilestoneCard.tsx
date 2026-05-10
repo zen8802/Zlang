@@ -97,8 +97,17 @@ export default function MilestoneCard({ session, onTryNew }: MilestoneCardProps)
 
             {/* Colophon mark */}
             <div className="text-center mt-5">
-              <span className="text-[12px]" style={{ fontFamily: 'Shippori Mincho', color: '#9E9892' }}>
-                未来
+              <span
+                style={{
+                  fontFamily: 'Geist, sans-serif',
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  letterSpacing: '0.15em',
+                  textTransform: 'uppercase',
+                  color: '#bbead6',
+                }}
+              >
+                KOMBU
               </span>
             </div>
           </div>

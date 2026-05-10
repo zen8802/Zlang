@@ -5,9 +5,9 @@ import { MascotProvider } from '@/contexts/MascotContext'
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Zlang - Learn Through What You Love",
-  description: "Revolutionary AI-powered language learning. Japanese ↔ English through anime, NBA, memes, and real culture.",
-  keywords: ["language learning", "Japanese", "English", "AI", "anime", "culture"],
+  title: "Kombu - Learn Through What You Love",
+  description: "AI-powered Japanese ↔ English language learning through real conversations and what you actually care about.",
+  keywords: ["language learning", "Japanese", "English", "AI", "kombu"],
 };
 
 export default function RootLayout({

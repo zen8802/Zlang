@@ -49,7 +49,7 @@ export function LanguageStep({ value, onChange, onContinue }: Props) {
           className="text-[#9E9892] text-sm leading-relaxed"
           style={{ fontFamily: 'DM Sans, sans-serif' }}
         >
-          MIRAI adapts everything — vocabulary, dialogue style, and difficulty
+          Kombu adapts everything — vocabulary, dialogue style, and difficulty
           — to your learning direction.
         </p>
       </div>

@@ -60,27 +60,19 @@ export default function OnboardingPage() {
       className="min-h-screen flex flex-col"
       style={{ backgroundColor: '#F5F0EB' }}
     >
-      {/* MIRAI wordmark — always visible */}
+      {/* Kombu wordmark — always visible */}
       <div className="px-8 pt-10 pb-0 shrink-0">
         <p
-          className="text-[#1B4F8A]"
           style={{
-            fontFamily: 'Shippori Mincho, serif',
-            fontSize: '22px',
-            letterSpacing: '-0.01em',
+            fontFamily: 'Geist, sans-serif',
+            fontSize: '24px',
+            fontWeight: 500,
+            letterSpacing: '0.15em',
+            textTransform: 'uppercase',
+            color: '#bbead6',
           }}
         >
-          未来
-        </p>
-        <p
-          className="text-[#9E9892] mt-0.5"
-          style={{
-            fontFamily: 'DM Sans, sans-serif',
-            fontSize: '10px',
-            letterSpacing: '0.2em',
-          }}
-        >
-          MIRAI
+          KOMBU
         </p>
       </div>
 

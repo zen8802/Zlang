@@ -38,17 +38,18 @@ export default function Navbar() {
   return (
     <>
       <header className="sticky top-0 z-40 px-4 py-3 flex items-center justify-between bg-[#FDFBF8] border-b border-[#E0DAD2]">
-        <Link href="/dashboard" className="flex items-center gap-2">
+        <Link href="/dashboard" className="flex items-center">
           <span
-            className="font-semibold"
-            style={{ fontFamily: 'Shippori Mincho, serif', fontSize: '20px', color: '#1B4F8A' }}
+            style={{
+              fontFamily: 'Geist, sans-serif',
+              fontSize: '22px',
+              fontWeight: 500,
+              letterSpacing: '0.15em',
+              textTransform: 'uppercase',
+              color: '#bbead6',
+            }}
           >
-            未来
-          </span>
-          <span
-            style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '10px', letterSpacing: '0.15em', color: '#9E9892' }}
-          >
-            MIRAI
+            KOMBU
           </span>
         </Link>
 

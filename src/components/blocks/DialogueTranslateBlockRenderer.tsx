@@ -471,7 +471,7 @@ export function DialogueTranslateBlockRenderer({ block, onComplete }: Props) {
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src="/mascot/talking-1.png"
+                      src="/mascot/neutral.png"
                       alt=""
                       className="w-12 h-12 object-contain"
                     />

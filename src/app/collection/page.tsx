@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import Link from 'next/link'
 import { useAppStore } from '@/store/useAppStore'
 import { GRADE_1_KANJI } from '@/data/kyouiku-kanji'
 import KanjiGridView from '@/components/collection/KanjiGridView'
@@ -37,6 +38,13 @@ export default function CollectionPage() {
         className="sticky top-0 z-20 px-6 pt-10 pb-0"
         style={{ backgroundColor: '#F5F0EB' }}
       >
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-1 mb-3 text-[#9E9892] hover:text-[#6B6560] transition-colors"
+          style={{ fontFamily: 'DM Sans', fontSize: '12px' }}
+        >
+          ← Dashboard
+        </Link>
         <p
           style={{
             fontFamily: 'DM Sans',

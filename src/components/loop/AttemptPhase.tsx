@@ -1211,7 +1211,7 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
                               style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(26,24,20,0.08)' }}
                             >
                               {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src="/mascot/talking-1.png" alt="" className="w-12 h-12 object-contain" />
+                              <img src="/mascot/neutral.png" alt="" className="w-12 h-12 object-contain" />
                             </div>
                           </div>
                         </div>
@@ -1387,7 +1387,7 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
                           style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(26,24,20,0.08)' }}
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src="/mascot/talking-1.png" alt="" className="w-12 h-12 object-contain" />
+                          <img src="/mascot/neutral.png" alt="" className="w-12 h-12 object-contain" />
                         </div>
                       </div>
 

@@ -15,15 +15,19 @@ const SIZE_MAP: Record<MascotSize, number> = {
   xl: 240,
 }
 
+// All mascot expressions and talking frames currently point at the same
+// neutral image. The Mascot component still accepts `expression` / `isTalking`
+// props from existing call sites so behavior is unchanged — just visually
+// always neutral until per-expression art is restored.
 const EXPRESSION_FILES: Record<string, string> = {
   neutral: '/mascot/neutral.png',
-  smiling: '/mascot/smiling.png',
-  frowning: '/mascot/frowning.png',
-  winking: '/mascot/winking.png',
-  'talking-0': '/mascot/talking-0.png',
-  'talking-1': '/mascot/talking-1.png',
-  'talking-2': '/mascot/talking-2.png',
-  'talking-3': '/mascot/talking-3.png',
+  smiling: '/mascot/neutral.png',
+  frowning: '/mascot/neutral.png',
+  winking: '/mascot/neutral.png',
+  'talking-0': '/mascot/neutral.png',
+  'talking-1': '/mascot/neutral.png',
+  'talking-2': '/mascot/neutral.png',
+  'talking-3': '/mascot/neutral.png',
 }
 
 // Talking cycle: 0 → 1 → 2 → 3 → 1 (bounce-back)
