@@ -2,8 +2,26 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import * as wanakana from 'wanakana'
 import { StrokeAnimation } from '@/components/japanese/StrokeAnimation'
 import type { KyouikuKanji } from '@/data/kyouiku-kanji'
+
+// Hepburn long-vowel substitutions so the romaji matches the style we use
+// elsewhere in the app (e.g. でんしゃ → densha, but とうきょう → tōkyō).
+const LONG_VOWEL_SUBS: Array<[RegExp, string]> = [
+  [/ou/g, 'ō'],
+  [/oo/g, 'ō'],
+  [/uu/g, 'ū'],
+  [/aa/g, 'ā'],
+  [/ee/g, 'ē'],
+  [/ei/g, 'ē'],
+]
+
+function toRomaji(kana: string): string {
+  let r = wanakana.toRomaji(kana)
+  for (const [pat, sub] of LONG_VOWEL_SUBS) r = r.replace(pat, sub)
+  return r
+}
 
 interface Props {
   kanji: KyouikuKanji
@@ -156,17 +174,25 @@ export function KanjiDetailPanel({ kanji, isLearned, isSeen, onClose }: Props) {
                 {kanji.commonWords.slice(0, 4).map((w, i) => (
                   <div
                     key={i}
-                    className="flex items-center justify-between py-2 border-b border-[#F5F0EB] last:border-0"
+                    className="flex items-center justify-between gap-3 py-2 border-b border-[#F5F0EB] last:border-0"
                   >
-                    <div>
-                      <p style={{ fontFamily: 'Noto Sans JP', fontSize: '17px', color: '#1A1814', fontWeight: 300 }}>
+                    <div className="min-w-0">
+                      <p style={{ fontFamily: 'Noto Sans JP', fontSize: '17px', color: '#1A1814', fontWeight: 300, lineHeight: 1.4 }}>
                         {renderJapanese(w.word)}
                       </p>
-                      <p style={{ fontFamily: 'Noto Sans JP', fontSize: '12px', color: '#9E9892', fontWeight: 300 }}>
-                        {w.reading}
+                      {w.reading && (
+                        <p style={{ fontFamily: 'Noto Sans JP', fontSize: '11px', color: '#9E9892', fontWeight: 300, lineHeight: 1.4 }}>
+                          {w.reading}
+                        </p>
+                      )}
+                      <p style={{ fontFamily: 'DM Mono', fontSize: '11px', color: '#C8C3BC', letterSpacing: '0.03em', marginTop: '1px' }}>
+                        {toRomaji(w.reading || w.word)}
                       </p>
                     </div>
-                    <p style={{ fontFamily: 'DM Sans', fontSize: '13px', color: '#6B6560' }}>
+                    <p
+                      className="shrink-0 text-right"
+                      style={{ fontFamily: 'DM Sans', fontSize: '13px', color: '#6B6560' }}
+                    >
                       {w.english}
                     </p>
                   </div>

@@ -7,15 +7,27 @@ interface MilestoneCardProps {
   session: any
   onTryNew: () => void
   onDoAgain?: () => void
+  /** Open the conversation transcript in review mode. */
+  onReviewConversation?: () => void
+  /** Open the generated lesson in review mode. */
+  onReviewLesson?: () => void
 }
 
-export default function MilestoneCard({ session, onTryNew }: MilestoneCardProps) {
+export default function MilestoneCard({
+  session,
+  onTryNew,
+  onReviewConversation,
+  onReviewLesson,
+}: MilestoneCardProps) {
   const succeeded = session?.phase === 'complete'
   const scenarioTitle = session?.scenarioTitle || 'Conversation'
   const attempts = session?.attempts || 1
   const xpEarned = session?.xpEarned || 0
   const bestLine = session?.bestLine || null
   const culturalInsight = session?.culturalInsight || null
+
+  const hasConversation = Array.isArray(session?.attemptMessages) && session.attemptMessages.length > 0
+  const hasLesson = Array.isArray(session?.lessonBlocks) && session.lessonBlocks.length > 0
 
   return (
     <div className="h-full overflow-y-auto px-4 py-6">
@@ -112,6 +124,40 @@ export default function MilestoneCard({ session, onTryNew }: MilestoneCardProps)
             </div>
           </div>
         </div>
+
+        {/* Review — go back and look at what happened */}
+        {(hasConversation || hasLesson) && (onReviewConversation || onReviewLesson) && (
+          <div className="grid grid-cols-2 gap-2 pt-3">
+            {hasConversation && onReviewConversation && (
+              <button
+                onClick={onReviewConversation}
+                className="rounded-[10px] border px-3 py-3 text-sm font-medium transition-colors hover:bg-[#EBF0F8]"
+                style={{
+                  fontFamily: 'DM Sans',
+                  borderColor: '#E0DAD2',
+                  backgroundColor: '#FDFBF8',
+                  color: '#1B4F8A',
+                }}
+              >
+                Review conversation
+              </button>
+            )}
+            {hasLesson && onReviewLesson && (
+              <button
+                onClick={onReviewLesson}
+                className="rounded-[10px] border px-3 py-3 text-sm font-medium transition-colors hover:bg-[#EBF0F8]"
+                style={{
+                  fontFamily: 'DM Sans',
+                  borderColor: '#E0DAD2',
+                  backgroundColor: '#FDFBF8',
+                  color: '#1B4F8A',
+                }}
+              >
+                Review lesson
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Done — return to dashboard */}
         <div className="pt-4 pb-8">

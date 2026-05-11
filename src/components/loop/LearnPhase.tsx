@@ -14,10 +14,22 @@ interface LearnPhaseProps {
   diagnosis: any
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   lessonBlocks: any[]
+  lessonTitle?: string
+  lessonSubtitle?: string
+  estimatedMinutes?: number
+  wordCount?: number
   onStartRetry: () => void
 }
 
-export default function LearnPhase({ diagnosis, lessonBlocks, onStartRetry }: LearnPhaseProps) {
+export default function LearnPhase({
+  diagnosis,
+  lessonBlocks,
+  lessonTitle,
+  lessonSubtitle,
+  estimatedMinutes,
+  wordCount,
+  onStartRetry,
+}: LearnPhaseProps) {
   const [currentBlockIndex, setCurrentBlockIndex] = useState(0)
   const [completedBlocks, setCompletedBlocks] = useState<number[]>([])
   const [xpEarned, setXpEarned] = useState(0)
@@ -209,12 +221,54 @@ export default function LearnPhase({ diagnosis, lessonBlocks, onStartRetry }: Le
           </div>
         )}
 
-        {/* Encouragement on first block */}
+        {/* Lesson title + subtitle — shown only on the first block. Replaces
+            the generic "fill in the gaps" line when a proper title was
+            generated. */}
         {currentBlockIndex === 0 && completedBlocks.length === 0 && (
           <div className="text-center py-2">
-            <p className="text-sm italic" style={{ fontFamily: 'Shippori Mincho', color: '#1B4F8A' }}>
-              Let&apos;s fill in the gaps from your conversation
-            </p>
+            {lessonTitle ? (
+              <>
+                <p
+                  style={{
+                    fontFamily: 'Shippori Mincho',
+                    fontSize: '22px',
+                    color: '#1A1814',
+                  }}
+                >
+                  {lessonTitle}
+                </p>
+                {lessonSubtitle && (
+                  <p
+                    style={{
+                      fontFamily: 'DM Sans',
+                      fontSize: '13px',
+                      color: '#9E9892',
+                      marginTop: '4px',
+                    }}
+                  >
+                    {lessonSubtitle}
+                  </p>
+                )}
+                {(wordCount || estimatedMinutes) && (
+                  <p
+                    style={{
+                      fontFamily: 'DM Sans',
+                      fontSize: '11px',
+                      color: '#C8C3BC',
+                      marginTop: '8px',
+                    }}
+                  >
+                    {wordCount ? `${wordCount} word${wordCount !== 1 ? 's' : ''}` : ''}
+                    {wordCount && estimatedMinutes ? ' · ' : ''}
+                    {estimatedMinutes ? `~${estimatedMinutes} min` : ''}
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-sm italic" style={{ fontFamily: 'Shippori Mincho', color: '#1B4F8A' }}>
+                Let&apos;s fill in the gaps from your conversation
+              </p>
+            )}
           </div>
         )}
 

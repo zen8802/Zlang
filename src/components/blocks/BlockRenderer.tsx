@@ -12,6 +12,10 @@ import { ImageMatchBlockRenderer } from './ImageMatchBlockRenderer'
 import { AudioMatchBlockRenderer } from './AudioMatchBlockRenderer'
 import { DialogueChoiceBlockRenderer } from './DialogueChoiceBlockRenderer'
 import WordBankBlockRenderer from './WordBankBlockRenderer'
+import EncounterBlockRenderer from './EncounterBlockRenderer'
+import RecognitionQuizBlockRenderer from './RecognitionQuizBlockRenderer'
+import SentenceBuildBlockRenderer from './SentenceBuildBlockRenderer'
+import ConversationReplayBlockRenderer from './ConversationReplayBlockRenderer'
 
 interface Props {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -43,6 +47,14 @@ export default function BlockRenderer({ block, onComplete }: Props) {
       return <DialogueChoiceBlockRenderer block={block} onComplete={onComplete} />
     case 'word_bank':
       return <WordBankBlockRenderer block={block} onComplete={onComplete} />
+    case 'encounter':
+      return <EncounterBlockRenderer block={block} onComplete={onComplete} />
+    case 'recognition_quiz':
+      return <RecognitionQuizBlockRenderer block={block} onComplete={onComplete} />
+    case 'sentence_build':
+      return <SentenceBuildBlockRenderer block={block} onComplete={onComplete} />
+    case 'conversation_replay':
+      return <ConversationReplayBlockRenderer block={block} onComplete={onComplete} />
     case 'video':
     case 'translation':
     case 'reading':

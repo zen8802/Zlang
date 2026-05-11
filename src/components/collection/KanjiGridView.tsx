@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import type { KyouikuKanji } from '@/data/kyouiku-kanji'
 import { GRADE_LABELS } from '@/data/kyouiku-kanji'
+import { checkLevelGate, deriveKanjiLevel } from '@/data/kanji-levels'
 import { KanjiDetailPanel } from './KanjiDetailPanel'
 
 interface Props {
@@ -99,6 +100,12 @@ export default function KanjiGridView({
 
   const label = GRADE_LABELS[1]
 
+  // Kanji level + gate to the next level (display-only; AI uses server value)
+  const discoveredArr = useMemo(() => Array.from(discoveredKanji), [discoveredKanji])
+  const userLevel = useMemo(() => deriveKanjiLevel(discoveredArr), [discoveredArr])
+  const gate = useMemo(() => checkLevelGate(userLevel, discoveredArr), [userLevel, discoveredArr])
+  const progressPercent = gate.required === 0 ? 0 : gate.progress / gate.required
+
   // Recompute current state for selected kanji from props (so closing+reopening reflects updates)
   const selectedIsLearned = selectedKanji ? discoveredKanji.has(selectedKanji.character) : false
   const selectedIsSeen = selectedKanji ? seenKanji.has(selectedKanji.character) : false
@@ -121,6 +128,67 @@ export default function KanjiGridView({
           {label.sub}
         </p>
       </div>
+
+      {/* Kanji level + gate progress */}
+      {gate.nextLevel && (
+        <div
+          className="rounded-[10px] border px-4 py-3 mb-5"
+          style={{ backgroundColor: '#FDFBF8', borderColor: '#E0DAD2' }}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <p
+              style={{
+                fontFamily: 'DM Sans',
+                fontSize: '11px',
+                letterSpacing: '0.1em',
+                color: '#9E9892',
+              }}
+            >
+              KANJI LEVEL {userLevel}
+            </p>
+            {gate.canAdvance ? (
+              <p
+                style={{
+                  fontFamily: 'DM Sans',
+                  fontSize: '11px',
+                  color: '#C9920A',
+                  fontWeight: 500,
+                }}
+              >
+                Level {gate.nextLevel} ready →
+              </p>
+            ) : (
+              <p style={{ fontFamily: 'DM Mono', fontSize: '11px', color: '#C8C3BC' }}>
+                {gate.progress}/{gate.required} to Level {gate.nextLevel}
+              </p>
+            )}
+          </div>
+
+          <div
+            className="w-full rounded-full overflow-hidden"
+            style={{ height: '4px', backgroundColor: '#E0DAD2' }}
+          >
+            <div
+              className="h-full rounded-full transition-all duration-700"
+              style={{
+                width: `${Math.min(100, progressPercent * 100)}%`,
+                backgroundColor: gate.canAdvance ? '#C9920A' : '#1B4F8A',
+              }}
+            />
+          </div>
+
+          <p
+            style={{
+              fontFamily: 'DM Sans',
+              fontSize: '11px',
+              color: '#C8C3BC',
+              marginTop: '8px',
+            }}
+          >
+            Learn kanji here to unlock them in conversations
+          </p>
+        </div>
+      )}
 
       {/* Beginner hint */}
       {discoveredCount === 0 && userExperience <= 2 && (

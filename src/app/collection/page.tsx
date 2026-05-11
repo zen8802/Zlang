@@ -6,16 +6,15 @@ import { useAppStore } from '@/store/useAppStore'
 import { GRADE_1_KANJI } from '@/data/kyouiku-kanji'
 import KanjiGridView from '@/components/collection/KanjiGridView'
 import PhrasebookView from '@/components/collection/PhrasebookView'
-import LearnedWordsView from '@/components/collection/LearnedWordsView'
 
-type TabKey = 'learned' | 'phrasebook' | 'kanji'
+type TabKey = 'kanji' | 'phrasebook'
 
 export default function CollectionPage() {
   const discoveredKanjiArray = useAppStore((s) => s.discoveredKanji)
   const storeSeenKanji = useAppStore((s) => s.seenKanji)
   const userProfile = useAppStore((s) => s.userProfile)
 
-  const [activeTab, setActiveTab] = useState<TabKey>('learned')
+  const [activeTab, setActiveTab] = useState<TabKey>('kanji')
 
   const discoveredKanjiSet = useMemo(() => new Set(discoveredKanjiArray), [discoveredKanjiArray])
   const seenKanjiSet = useMemo(() => new Set(storeSeenKanji), [storeSeenKanji])
@@ -24,12 +23,10 @@ export default function CollectionPage() {
   const kanjiDiscoveredCount = discoveredKanjiArray.filter((k) => grade1Set.has(k)).length
 
   const tabs: { key: TabKey; label: string; count: string }[] = [
-    { key: 'learned', label: 'Learned', count: '' },
-    { key: 'phrasebook', label: 'Saved', count: '' },
     { key: 'kanji', label: 'Kanji', count: `${kanjiDiscoveredCount}/80` },
+    { key: 'phrasebook', label: 'Phrasebook', count: '' },
   ]
 
-  const activeTabIndex = tabs.findIndex((t) => t.key === activeTab)
 
   return (
     <div className="min-h-screen pb-24" style={{ backgroundColor: '#F5F0EB' }}>
@@ -69,47 +66,55 @@ export default function CollectionPage() {
         </h1>
 
         {/* Tab bar */}
+        {/* Tabs — Kanji is the primary tab (2/3 width), Phrasebook is the
+            secondary tab (1/3 width). The sliding underline tracks the
+            active tab's bounds. */}
         <div className="relative mt-4">
           <div className="flex">
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className="flex-1 pb-3 pt-1 text-center cursor-pointer transition-colors"
-              >
-                <span
-                  style={{
-                    fontFamily: 'DM Sans',
-                    fontSize: '13px',
-                    fontWeight: activeTab === tab.key ? 700 : 500,
-                    color: activeTab === tab.key ? '#1B4F8A' : '#9E9892',
-                  }}
+            {tabs.map((tab) => {
+              const isPrimary = tab.key === 'kanji'
+              const isActive = activeTab === tab.key
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className="pb-3 pt-1 text-center cursor-pointer transition-colors"
+                  style={{ flex: isPrimary ? 2 : 1 }}
                 >
-                  {tab.label}
-                </span>
-                {tab.count && (
                   <span
-                    className="ml-1"
                     style={{
-                      fontFamily: 'DM Mono',
-                      fontSize: '10px',
-                      color: activeTab === tab.key ? '#1B4F8A' : '#C8C3BC',
+                      fontFamily: 'DM Sans',
+                      fontSize: isPrimary ? '14px' : '12px',
+                      fontWeight: isActive ? 700 : 500,
+                      color: isActive ? '#1B4F8A' : '#9E9892',
                     }}
                   >
-                    {tab.count}
+                    {tab.label}
                   </span>
-                )}
-              </button>
-            ))}
+                  {tab.count && (
+                    <span
+                      className="ml-1"
+                      style={{
+                        fontFamily: 'DM Mono',
+                        fontSize: isPrimary ? '10px' : '9px',
+                        color: isActive ? '#1B4F8A' : '#C8C3BC',
+                      }}
+                    >
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
           </div>
 
-          {/* Sliding underline */}
+          {/* Sliding underline — anchored to the 2:1 column ratio */}
           <div
             className="absolute bottom-0 h-[2px] rounded-full transition-all duration-300"
             style={{
               backgroundColor: '#1B4F8A',
-              width: `${100 / tabs.length}%`,
-              left: `${(activeTabIndex * 100) / tabs.length}%`,
+              width: activeTab === 'kanji' ? '66.6667%' : '33.3333%',
+              left: activeTab === 'kanji' ? '0%' : '66.6667%',
             }}
           />
         </div>
@@ -117,8 +122,6 @@ export default function CollectionPage() {
 
       {/* Tab content */}
       <main className="max-w-lg mx-auto px-4 pt-4">
-        {activeTab === 'learned' && <LearnedWordsView />}
-
         {activeTab === 'phrasebook' && <PhrasebookView />}
 
         {activeTab === 'kanji' && (

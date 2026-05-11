@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
 import { buildProfileContext, type UserProfilePayload } from '@/lib/userProfileContext'
+import { getUserKanjiLevel } from '@/lib/user-level'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
@@ -30,6 +32,8 @@ export async function POST(req: NextRequest) {
     } = await req.json()
 
     const profileContext = buildProfileContext(userProfile)
+    const { userId } = auth()
+    const { constraint: kanjiConstraint } = await getUserKanjiLevel(userId || '')
 
     const lvl = typeof userProfile?.experience === 'number' ? userProfile.experience : 5
     const beginnerRules = lvl <= 4 ? `
@@ -37,14 +41,11 @@ export async function POST(req: NextRequest) {
 RULES FOR BEGINNER TRANSLATION (level 1-4):
 
 1. USE REAL JAPANESE SCRIPT
-   Write the japanese field the way a native would write it.
-   - USE katakana for loanwords: ビール not びーる, ラーメン not らーめん
-   - USE these Grade 1 kanji freely: 一二三四五六七八九十日月火水木金土山川田人口目耳手足力大小中上下左右本文字学校先生気天空雨花草虫犬車糸林森正王玉石竹米見音年早名白赤青円入出立休子女男貝
-   - For kanji NOT in that list, write in hiragana (e.g. 食べる → たべる)
-   - Add furigana for the Grade 1 kanji in the breakdown notes
+   ${kanjiConstraint}
 
-   CORRECT: ビールと水をおねがいします
-   WRONG:   びーるとみずをおねがいします
+   The constraint above applies to the "japanese" field, each chunk's "chunk"
+   field, and any other Japanese rendered to the learner.
+   Use katakana for loanwords: ビール not びーる, ラーメン not らーめん.
 
 2. NATURAL SPEECH FIRST
    Translate what the learner ACTUALLY wants to say, not a dumbed-down version.
@@ -125,10 +126,116 @@ Return ONLY valid JSON (no markdown fences, no commentary):
     const text = res.content[0].type === 'text' ? res.content[0].text : ''
     const cleaned = text.replace(/```json|```/g, '').trim()
     const translation = JSON.parse(cleaned)
-    return NextResponse.json({ translation })
+
+    // Match the translated Japanese against vocabulary_cards to find NEW
+    // lesson-eligible words. A word counts as "new" if:
+    //   - its `word` or `reading` substring appears in the translation, AND
+    //   - the user has NOT already marked it as status='learned'.
+    // Particles and 1-char readings are skipped to avoid noise.
+    const newWordIds = await findNewWordIds(translation, userId)
+
+    return NextResponse.json({ translation, newWordIds })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Translation failed'
     console.error('translate-response error:', message)
     return NextResponse.json({ error: message }, { status: 500 })
+  }
+}
+
+/**
+ * Identify vocabulary_cards rows that appear in the translated Japanese
+ * but are not yet status='learned' for this user. Returns an ordered, deduped
+ * list of card IDs. Safe to call without DB (returns []).
+ *
+ * Matching strategy: strip furigana annotations from the Japanese, then look
+ * for each card's `word` or `reading` as a substring. Long words first, so
+ * longer matches win over shorter ones. Skip standalone particles.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function findNewWordIds(translation: any, userId: string | null): Promise<string[]> {
+  if (!process.env.DATABASE_URL) return []
+  if (!translation?.japanese) return []
+
+  // Gather candidate text from the translation: the main Japanese line plus
+  // each breakdown chunk. The breakdown is where most useful word boundaries
+  // are already isolated by the model.
+  const stripFuri = (s: string) => s.replace(/([一-龥々]+)\(([ぁ-んァ-ヶー]+)\)/g, '$1')
+  const chunks: string[] = []
+  chunks.push(stripFuri(translation.japanese))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (Array.isArray(translation.breakdown)) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const b of translation.breakdown) {
+      if (b?.chunk) chunks.push(stripFuri(b.chunk))
+    }
+  }
+
+  const haystack = chunks.join('\n')
+
+  try {
+    const { neon } = await import('@neondatabase/serverless')
+    const sql = neon(process.env.DATABASE_URL)
+
+    // Fetch a small candidate pool — words whose `word` or `reading` appears
+    // anywhere in the haystack. We do the actual substring match in JS so
+    // we can apply word-length filtering and preferred-form rules.
+    //
+    // Using `position(... in ...)` directly across the table would scan all
+    // ~thousands of rows on every call; instead we let Postgres filter via
+    // a join on a values table built from the unique substrings of the
+    // haystack — but the haystack is short, so a simple full-table scan
+    // with the substring filter is acceptable here.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rows = (await sql`
+      SELECT id, word, reading FROM vocabulary_cards
+      WHERE position(word IN ${haystack}) > 0
+         OR position(reading IN ${haystack}) > 0
+    `) as { id: string; word: string; reading: string }[]
+
+    // Exclude particles / 1-char hiragana-only matches.
+    const PARTICLE_SET = new Set(['は', 'を', 'が', 'に', 'で', 'と', 'も', 'へ', 'の', 'や', 'か'])
+    const candidates = rows.filter((r) => {
+      const w = r.word || ''
+      const reading = r.reading || ''
+      if (PARTICLE_SET.has(w) || PARTICLE_SET.has(reading)) return false
+      // Require at least 2 chars in either form — too many 1-char false positives.
+      if (w.length < 2 && reading.length < 2) return false
+      return true
+    })
+
+    if (candidates.length === 0) return []
+
+    // Filter out words already marked learned. Skip this for anonymous users.
+    let alreadyLearned = new Set<string>()
+    if (userId) {
+      const ids = candidates.map((c) => c.id)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const learnedRows = (await sql`
+        SELECT card_id FROM user_cards
+        WHERE user_id = ${userId}
+          AND status = 'learned'
+          AND card_id = ANY(${ids}::text[])
+      `) as { card_id: string }[]
+      alreadyLearned = new Set(learnedRows.map((r) => r.card_id))
+    }
+
+    // Order: longer words first (so 注文 beats 文), then preserve DB order.
+    const ranked = candidates
+      .filter((c) => !alreadyLearned.has(c.id))
+      .sort((a, b) => (b.word?.length ?? 0) - (a.word?.length ?? 0))
+
+    // Dedupe by id.
+    const seen = new Set<string>()
+    const out: string[] = []
+    for (const c of ranked) {
+      if (!seen.has(c.id)) {
+        seen.add(c.id)
+        out.push(c.id)
+      }
+    }
+    return out
+  } catch (err) {
+    console.error('findNewWordIds error:', err)
+    return []
   }
 }

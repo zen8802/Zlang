@@ -18,7 +18,8 @@ export async function POST() {
   await sql`
     UPDATE users SET
       discovered_kanji = '{}',
-      seen_kanji = '{}'
+      seen_kanji = '{}',
+      kanji_level = 1
     WHERE clerk_id = ${userId}
   `
 

@@ -7,6 +7,7 @@ import Button from '@/components/ui/Button'
 import AttemptPhase from '@/components/loop/AttemptPhase'
 import LearnPhase from '@/components/loop/LearnPhase'
 import MilestoneCard from '@/components/loop/MilestoneCard'
+import SessionReviewView from '@/components/loop/SessionReviewView'
 import { useAppStore } from '@/store/useAppStore'
 import { useSessionAutoSave } from '@/hooks/useSessionAutoSave'
 import { GRADE_1_KANJI } from '@/data/kyouiku-kanji'
@@ -40,6 +41,10 @@ interface LoopSession {
   diagnosis: any
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   lessonBlocks: any[]
+  lessonTitle?: string
+  lessonSubtitle?: string
+  estimatedMinutes?: number
+  wordCount?: number
   attempts: number
   xpEarned: number
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -61,6 +66,9 @@ export default function LoopSessionPage() {
   const [session, setSession] = useState<LoopSession | null>(null)
   const [phase, setPhase] = useState<Phase>('loading')
   const [error, setError] = useState<string | null>(null)
+  // When set, the completed-session screen swaps the milestone card for a
+  // read-only review of either the conversation transcript or the lesson.
+  const [reviewMode, setReviewMode] = useState<'conversation' | 'lesson' | null>(null)
   const [showEndConfirm, setShowEndConfirm] = useState(false)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [resettingSession, setResettingSession] = useState(false)
@@ -133,46 +141,58 @@ export default function LoopSessionPage() {
     if (sessionId) load()
   }, [sessionId])
 
-  // Run diagnosis on attempt messages
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const runDiagnosis = useCallback(async (messages: any[]) => {
-    setPhase('diagnosing')
-    try {
-      const transcript = (messages || []).map(m => ({
-        role: m.role === 'character' ? 'assistant' : 'user',
-        content: m.content || '',
-      }))
-      const res = await fetch(`/api/loop/diagnose`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, messages: transcript, userProfile }),
-      })
-      if (!res.ok) throw new Error('Diagnosis failed')
-      const data = await res.json()
-      setSession(prev => prev ? {
-        ...prev,
-        diagnosis: data.diagnosis,
-        lessonBlocks: data.learnBlocks || [],
-        phase: 'learn',
-      } : prev)
-      setPhase('learn')
-      saveNow({
-        currentPhase: 'learn',
-        diagnosis: data.diagnosis,
-        learnBlocks: data.learnBlocks || [],
-      })
-    } catch (err) {
-      console.error('Diagnosis error:', err)
-      setError('Diagnosis failed. Please try again.')
-      setPhase('attempt')
-    }
-  }, [sessionId, userProfile, saveNow])
+  // Run diagnosis on attempt messages. `lessonWordIds` is the explicit list
+  // of vocabulary_cards ids the user encountered through their translated
+  // input — diagnose builds the fixed 4-block template from these exact words.
+  const runDiagnosis = useCallback(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async (messages: any[], lessonWordIds: string[] = []) => {
+      setPhase('diagnosing')
+      try {
+        const transcript = (messages || []).map(m => ({
+          role: m.role === 'character' ? 'assistant' : 'user',
+          content: m.content || '',
+        }))
+        const res = await fetch(`/api/loop/diagnose`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId, messages: transcript, userProfile, lessonWordIds }),
+        })
+        if (!res.ok) throw new Error('Diagnosis failed')
+        const data = await res.json()
+        setSession(prev => prev ? {
+          ...prev,
+          diagnosis: data.diagnosis,
+          lessonBlocks: data.learnBlocks || [],
+          lessonTitle: data.lessonTitle || '',
+          lessonSubtitle: data.lessonSubtitle || '',
+          estimatedMinutes: data.estimatedMinutes || 5,
+          wordCount: data.wordCount || 0,
+          phase: 'learn',
+        } : prev)
+        setPhase('learn')
+        saveNow({
+          currentPhase: 'learn',
+          diagnosis: data.diagnosis,
+          learnBlocks: data.learnBlocks || [],
+          lessonWordIds,
+        })
+      } catch (err) {
+        console.error('Diagnosis error:', err)
+        setError('Diagnosis failed. Please try again.')
+        setPhase('attempt')
+      }
+    },
+    [sessionId, userProfile, saveNow],
+  )
 
   // End attempt — scan for seen kanji, track vocabulary in background,
-  // then go straight to diagnosis.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleEndAttempt = useCallback(async (messages: any[]) => {
-    saveNow({ currentPhase: 'diagnosing', attemptMessages: messages })
+  // then go straight to diagnosis with the lesson word IDs gathered during
+  // the conversation.
+  const handleEndAttempt = useCallback(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async (messages: any[], lessonWordIds: string[] = []) => {
+    saveNow({ currentPhase: 'diagnosing', attemptMessages: messages, lessonWordIds })
 
     // Scan conversation for seen kanji (background, non-blocking)
     const allText = (messages || []).map((m: { content?: string }) => m.content || '').join('')
@@ -205,7 +225,7 @@ export default function LoopSessionPage() {
       })
       .catch(() => {})
 
-    runDiagnosis(messages)
+    runDiagnosis(messages, lessonWordIds)
   }, [session?.scenarioId, addSeenKanji, saveNow, runDiagnosis])
 
   // Transition to retry
@@ -415,15 +435,29 @@ export default function LoopSessionPage() {
             sessionId={sessionId}
             diagnosis={session.diagnosis}
             lessonBlocks={session.lessonBlocks || []}
+            lessonTitle={session.lessonTitle}
+            lessonSubtitle={session.lessonSubtitle}
+            estimatedMinutes={session.estimatedMinutes}
+            wordCount={session.wordCount}
             onStartRetry={handleStartRetry}
           />
         )}
 
-        {phase === 'complete' && (
+        {phase === 'complete' && reviewMode && (
+          <SessionReviewView
+            session={session}
+            initialTab={reviewMode}
+            onBack={() => setReviewMode(null)}
+          />
+        )}
+
+        {phase === 'complete' && !reviewMode && (
           <MilestoneCard
             session={session}
             onTryNew={() => router.push('/dashboard')}
             onDoAgain={() => router.push(`/loop/${session.scenarioId}`)}
+            onReviewConversation={() => setReviewMode('conversation')}
+            onReviewLesson={() => setReviewMode('lesson')}
           />
         )}
       </div>

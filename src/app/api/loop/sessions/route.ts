@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { auth } from '@clerk/nextjs/server'
 import { SCENARIO_TEMPLATES, CHARACTER_ROSTER } from '@/data/scenarios'
 import { buildProfileContext, type UserProfilePayload } from '@/lib/userProfileContext'
+import { getUserKanjiLevel } from '@/lib/user-level'
 
 function levelAdaptiveRules(level: number): string {
   if (level <= 2) {
@@ -297,6 +298,10 @@ Return ONLY valid JSON (no markdown fences):
       }
     }
 
+    // Resolve this user's kanji level — drives the explicit character whitelist
+    // injected into every prompt downstream from here.
+    const { level: kanjiLevel, constraint: kanjiConstraint } = await getUserKanjiLevel(clerkUserId || '')
+
     // Generate the opening message via Claude so it fits the loop context
     const systemPrompt = buildLoopSystemPrompt({
       characterName,
@@ -307,6 +312,7 @@ Return ONLY valid JSON (no markdown fences):
       characterRelationship,
       setting,
       userProfile,
+      kanjiConstraint,
     })
 
     const opening = await anthropic.messages.create({
@@ -366,7 +372,7 @@ Return ONLY valid JSON (no markdown fences):
             character_name, character_name_jp, character_color, character_avatar,
             character_description, character_personality, character_speech_style,
             character_relationship, voice_id, setting, opening_line,
-            phase, loop_mode, user_experience_level,
+            phase, loop_mode, user_experience_level, kanji_level,
             attempt_messages, retry_messages,
             diagnosis, learn_blocks, milestone_card,
             created_at
@@ -376,7 +382,7 @@ Return ONLY valid JSON (no markdown fences):
             ${characterName}, ${characterNameJP}, ${characterColor}, ${characterAvatar},
             ${characterDescription}, ${characterPersonality}, ${characterSpeechStyle},
             ${characterRelationship}, ${voiceId}, ${setting}, ${openingLine},
-            'attempt', ${loopMode}, ${experience},
+            'attempt', ${loopMode}, ${experience}, ${kanjiLevel},
             ${JSON.stringify([{ role: 'assistant', content: openingMessage }])}::jsonb,
             '[]'::jsonb,
             NULL,
@@ -417,6 +423,7 @@ function buildLoopSystemPrompt(opts: {
   targetLanguage?: string
   userLevel?: string
   userProfile?: UserProfilePayload | null
+  kanjiConstraint: string
 }): string {
   const {
     characterName,
@@ -430,6 +437,7 @@ function buildLoopSystemPrompt(opts: {
     targetLanguage = 'Japanese',
     userLevel = 'beginner',
     userProfile,
+    kanjiConstraint,
   } = opts
 
   const profileContext = buildProfileContext(userProfile)
@@ -455,22 +463,7 @@ THE LEARNER:
 
 STRICT RULES:
 1. Stay COMPLETELY in character. Speak in ${targetLanguage}.
-2. ⚠️ KANJI RESTRICTION — NON-NEGOTIABLE ⚠️
-   You are FORBIDDEN from using ANY kanji except this exact whitelist of 80 Grade 1 kanji:
-   一二三四五六七八九十日月火水木金土山川田人口目耳手足力大小中上下左右本文字学校先生気天空雨花草虫犬車糸林森正王玉石竹米見音年早名白赤青円入出立休子女男貝
-
-   For EVERY OTHER kanji — including 麺、硬、注文、豚骨、食、飲、行、来、好、聞、話、私、僕 etc — you MUST write the word in HIRAGANA. Do NOT write the kanji even with furigana. The kanji simply does not exist for you.
-
-   WRONG: 麺(めん)の硬(かた)さ        → 硬 is not Grade 1, this is FORBIDDEN
-   WRONG: 注文(ちゅうもん)              → 注 and 文(文 IS Grade 1 but 注 isn't), so write ちゅうもん
-   RIGHT: めんのかたさ
-   RIGHT: ちゅうもん
-   RIGHT: 水(みず)をください             → 水 IS Grade 1, allowed with furigana
-   RIGHT: 何(なに)を食(た)べますか     → WRONG — 食 is NOT Grade 1 → なにをたべますか
-
-   Always add furigana to allowed Grade 1 kanji: 漢字(かんじ) format.
-   Use katakana for loanwords: ラーメン, ビール, コーヒー, ベーコン.
-   Before writing each kanji, ask yourself: "Is this character literally in the whitelist above?" If not, use hiragana.
+2. ${kanjiConstraint}
 3. For beginners: use simple vocabulary, short sentences.
 4. For intermediate: natural speech, some slang is fine.
 5. For advanced: full natural speech, no hand-holding.

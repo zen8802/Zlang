@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { buildKanjiConstraint } from '@/data/kanji-levels'
 
 export async function POST(
   request: Request,
@@ -31,7 +32,7 @@ export async function POST(
       SELECT
         character_name, character_name_jp, character_description,
         character_personality, character_speech_style, character_relationship,
-        setting, retry_messages, diagnosis
+        setting, retry_messages, diagnosis, kanji_level
       FROM loop_sessions
       WHERE id = ${sessionId}
       LIMIT 1
@@ -42,6 +43,7 @@ export async function POST(
     }
 
     const row = rows[0]
+    const kanjiConstraint = buildKanjiConstraint(row.kanji_level || 1)
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const diagnosis = row.diagnosis as any
@@ -54,6 +56,7 @@ export async function POST(
       characterRelationship: row.character_relationship,
       setting: row.setting,
       diagnosis,
+      kanjiConstraint,
     })
 
     // Use client-provided messages if available, otherwise fall back to DB
@@ -154,6 +157,7 @@ function buildRetrySystemPrompt(opts: {
   nativeLanguage?: string
   targetLanguage?: string
   userLevel?: string
+  kanjiConstraint: string
 }): string {
   const {
     characterName,
@@ -167,6 +171,7 @@ function buildRetrySystemPrompt(opts: {
     nativeLanguage = 'English',
     targetLanguage = 'Japanese',
     userLevel = 'beginner',
+    kanjiConstraint,
   } = opts
 
   // Extract diagnosis details for the retry context
@@ -210,21 +215,7 @@ ${diagnosisContext}
 
 STRICT RULES:
 1. Stay COMPLETELY in character. Speak in ${targetLanguage}.
-2. ⚠️ KANJI RESTRICTION — NON-NEGOTIABLE ⚠️
-   You are FORBIDDEN from using ANY kanji except this exact whitelist of 80 Grade 1 kanji:
-   一二三四五六七八九十日月火水木金土山川田人口目耳手足力大小中上下左右本文字学校先生気天空雨花草虫犬車糸林森正王玉石竹米見音年早名白赤青円入出立休子女男貝
-
-   For EVERY OTHER kanji — including 麺、硬、注文、豚骨、食、飲、行、来、好、聞、話、私、僕 etc — you MUST write the word in HIRAGANA. Do NOT write the kanji even with furigana. The kanji simply does not exist for you.
-
-   WRONG: 麺(めん)の硬(かた)さ        → 硬 is not Grade 1, this is FORBIDDEN
-   WRONG: 注文(ちゅうもん)              → 注 is not Grade 1, write ちゅうもん
-   RIGHT: めんのかたさ
-   RIGHT: ちゅうもん
-   RIGHT: 水(みず)をください             → 水 IS Grade 1, allowed with furigana
-
-   Always add furigana to allowed Grade 1 kanji: 漢字(かんじ) format.
-   Use katakana for loanwords: ラーメン, ビール, コーヒー, ベーコン.
-   Before writing each kanji, ask yourself: "Is this character literally in the whitelist above?" If not, use hiragana.
+2. ${kanjiConstraint}
 3. For beginners: use simple vocabulary, short sentences.
 4. For intermediate: natural speech, some slang is fine.
 5. For advanced: full natural speech, no hand-holding.

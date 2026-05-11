@@ -35,6 +35,7 @@ export async function PATCH(
     recognizedLines,
     diagnosis,
     learnBlocks,
+    lessonWordIds,
     isAbandoned,
   } = body
 
@@ -58,6 +59,7 @@ export async function PATCH(
       recognized_lines    = COALESCE(${recognizedLines ? JSON.stringify(recognizedLines) : null}::jsonb, recognized_lines),
       diagnosis           = COALESCE(${diagnosis ? JSON.stringify(diagnosis) : null}::jsonb, diagnosis),
       learn_blocks        = COALESCE(${learnBlocks ? JSON.stringify(learnBlocks) : null}::jsonb, learn_blocks),
+      lesson_word_ids     = COALESCE(${Array.isArray(lessonWordIds) ? lessonWordIds : null}::text[], lesson_word_ids),
       last_active_at      = NOW()
     WHERE id = ${params.id}
   `

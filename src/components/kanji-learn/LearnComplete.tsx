@@ -7,9 +7,13 @@ import { StrokeAnimation } from '@/components/japanese/StrokeAnimation'
 interface Props {
   kanji: KyouikuKanji
   onDone: () => void
+  /** True if this kanji's completion unlocked a new kanji level. */
+  leveledUp?: boolean
+  /** The new level the user just unlocked. */
+  newLevel?: number | null
 }
 
-export function LearnComplete({ kanji, onDone }: Props) {
+export function LearnComplete({ kanji, onDone, leveledUp = false, newLevel = null }: Props) {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
@@ -70,6 +74,26 @@ export function LearnComplete({ kanji, onDone }: Props) {
           This character is now gold in your collection
         </p>
       </div>
+
+      {/* Level-up callout */}
+      {leveledUp && newLevel && (
+        <div
+          className="text-center space-y-1 transition-all duration-700 delay-[600ms] rounded-[12px] px-5 py-3 border"
+          style={{
+            opacity: visible ? 1 : 0,
+            transform: visible ? 'translateY(0)' : 'translateY(16px)',
+            backgroundColor: '#FEF3C7',
+            borderColor: '#C9920A40',
+          }}
+        >
+          <p style={{ fontFamily: 'Shippori Mincho', fontSize: '14px', color: '#C9920A' }}>
+            ⭐ Kanji Level {newLevel} unlocked
+          </p>
+          <p style={{ fontFamily: 'DM Sans', fontSize: '12px', color: '#9E9892' }}>
+            Grade {newLevel} kanji now appear in conversations
+          </p>
+        </div>
+      )}
 
       {/* Done */}
       <div

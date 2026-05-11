@@ -24,6 +24,8 @@ export default function KanjiLearnPage() {
   const addDiscoveredKanji = useAppStore((s) => s.addDiscoveredKanji)
 
   const [phase, setPhase] = useState<LearnPhase>('trace')
+  const [leveledUp, setLeveledUp] = useState(false)
+  const [newLevel, setNewLevel] = useState<number | null>(null)
 
   const kanjiData = useMemo(
     () => GRADE_1_KANJI.find((k) => k.character === character),
@@ -36,21 +38,34 @@ export default function KanjiLearnPage() {
 
   if (!kanjiData) return null
 
-  const handlePhaseComplete = (completedPhase: 'trace' | 'write') => {
+  const handlePhaseComplete = async (completedPhase: 'trace' | 'write') => {
     if (completedPhase === 'trace') {
       setPhase('write')
-    } else if (completedPhase === 'write') {
-      // Free write succeeded — register as learned. Update local store
-      // immediately so the grid reflects gold the moment we return; persist
-      // to DB in the background.
-      addDiscoveredKanji([character])
-      fetch('/api/collection/kanji/learn', {
+      return
+    }
+
+    // Free write succeeded — register as learned. Update local store
+    // immediately so the grid reflects gold the moment we return.
+    addDiscoveredKanji([character])
+    setPhase('complete')
+
+    // Persist + check level gate in the background. If we level up,
+    // the LearnComplete screen will reveal it without blocking the
+    // user from continuing.
+    try {
+      const res = await fetch('/api/collection/kanji/learn', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ character }),
-      }).catch(() => {})
-      setPhase('complete')
-    }
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.levelAdvanced && data.newLevel) {
+          setLeveledUp(true)
+          setNewLevel(data.newLevel)
+        }
+      }
+    } catch { /* silent — local state already shows gold */ }
   }
 
   return (
@@ -113,7 +128,12 @@ export default function KanjiLearnPage() {
           <WritePhase kanji={kanjiData} onComplete={() => handlePhaseComplete('write')} />
         )}
         {phase === 'complete' && (
-          <LearnComplete kanji={kanjiData} onDone={() => router.push('/collection')} />
+          <LearnComplete
+            kanji={kanjiData}
+            leveledUp={leveledUp}
+            newLevel={newLevel}
+            onDone={() => router.push('/collection')}
+          />
         )}
       </div>
     </div>

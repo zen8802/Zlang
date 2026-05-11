@@ -1,15 +1,17 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { checkAndAdvanceLevel } from '@/lib/user-level'
 
 /**
  * POST /api/collection/kanji/learn
  *
  * The single source of truth for marking a kanji as LEARNED (gold).
- * Called only after the user completes the trace + write + speak sequence
+ * Called only after the user completes the trace + write sequence
  * in /collection/kanji/learn/[character].
  *
- * Adds the character to `users.discovered_kanji` and removes it from
- * `users.seen_kanji` (since "learned" supersedes "seen").
+ * Adds the character to `users.discovered_kanji`, removes it from
+ * `users.seen_kanji`, and checks whether the gate to the next kanji
+ * level has been met. If so, `kanji_level` is bumped.
  */
 export async function POST(req: NextRequest) {
   const { userId } = auth()
@@ -24,11 +26,17 @@ export async function POST(req: NextRequest) {
 
   if (!process.env.DATABASE_URL) {
     // Persistence not configured — succeed so client-side store updates.
-    return NextResponse.json({ learned: true, persisted: false })
+    return NextResponse.json({ learned: true, persisted: false, levelAdvanced: false })
   }
 
   const { neon } = await import('@neondatabase/serverless')
   const sql = neon(process.env.DATABASE_URL)
+
+  // Ensure a users row exists before updating (insert-if-missing)
+  await sql`
+    INSERT INTO users (clerk_id) VALUES (${userId})
+    ON CONFLICT (clerk_id) DO NOTHING
+  `
 
   await sql`
     UPDATE users SET
@@ -49,5 +57,14 @@ export async function POST(req: NextRequest) {
     WHERE clerk_id = ${userId}
   `
 
-  return NextResponse.json({ learned: true, persisted: true })
+  // Now that this kanji is recorded, see if the user qualifies for the next level.
+  const advance = await checkAndAdvanceLevel(userId)
+
+  return NextResponse.json({
+    learned: true,
+    persisted: true,
+    levelAdvanced: advance.advanced,
+    newLevel: advance.newLevel,
+    previousLevel: advance.previousLevel,
+  })
 }

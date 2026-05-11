@@ -13,6 +13,7 @@ interface SavePayload {
   diagnosis?: any
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   learnBlocks?: any[]
+  lessonWordIds?: string[]
   isAbandoned?: boolean
 }
 

@@ -5,6 +5,7 @@ import Image from 'next/image'
 import * as wanakana from 'wanakana'
 import Button from '@/components/ui/Button'
 import { useAppStore } from '@/store/useAppStore'
+import { getLevelKanjiSet } from '@/data/kanji-levels'
 
 // ---------------------------------------------------------------------------
 // Types (copied from studio session)
@@ -110,26 +111,25 @@ interface AttemptPhaseProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   session: any
   diagnosing: boolean
-  onEndAttempt: (messages: Message[]) => void
+  onEndAttempt: (messages: Message[], lessonWordIds?: string[]) => void
 }
 
 
 // ---------------------------------------------------------------------------
-// Grade 1 kanji whitelist + post-processor
+// Kanji level whitelist + post-processor
 // ---------------------------------------------------------------------------
-
-const GRADE_1_KANJI_SET = new Set('一二三四五六七八九十日月火水木金土山川田人口目耳手足力大小中上下左右本文字学校先生気天空雨花草虫犬車糸林森正王玉石竹米見音年早名白赤青円入出立休子女男貝')
 
 /**
  * Replaces any 漢字(かな) annotation where the kanji block contains characters
- * outside the Grade 1 set with the kana reading. Multi-char blocks where ANY
- * char is not Grade 1 get replaced entirely (since we can't preserve mixed).
+ * outside the permitted level set with the kana reading. Multi-char blocks
+ * where ANY char is not allowed get replaced entirely.
  */
-function enforceGrade1Kanji(text: string): string {
+function enforceLevelKanji(text: string, kanjiLevel: number): string {
   if (!text) return text
+  const allowed = getLevelKanjiSet(kanjiLevel)
   return text.replace(/([一-龥々]+)\(([ぁ-んァ-ヶー]+)\)/g, (match, kanjiBlock: string, reading: string) => {
     for (const ch of kanjiBlock) {
-      if (!GRADE_1_KANJI_SET.has(ch)) return reading
+      if (!allowed.has(ch)) return reading
     }
     return match
   })
@@ -139,7 +139,7 @@ function enforceGrade1Kanji(text: string): string {
 // Parse character response (copied from studio)
 // ---------------------------------------------------------------------------
 
-function parseCharacterResponse(text: string) {
+function parseCharacterResponse(text: string, kanjiLevel: number = 1) {
   let remaining = text
   let characterContent = ''
   let romajiContent = ''
@@ -242,10 +242,10 @@ function parseCharacterResponse(text: string) {
     }
   }
 
-  // Enforce Grade 1 kanji whitelist on the visible character dialogue
-  characterContent = enforceGrade1Kanji(characterContent)
+  // Enforce kanji-level whitelist on the visible character dialogue
+  characterContent = enforceLevelKanji(characterContent, kanjiLevel)
   // Also clean coach notes (which may also contain kanji with furigana)
-  coachNote = enforceGrade1Kanji(coachNote)
+  coachNote = enforceLevelKanji(coachNote, kanjiLevel)
 
   return { characterContent, vocabList, romajiContent, englishContent, coachNote, options, jpOfYours, hints }
 }
@@ -579,6 +579,30 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
   // Tapping a previously-sent user message expands its breakdown inline.
   const [expandedMessageId, setExpandedMessageId] = useState<string | null>(null)
 
+  // Lesson word accumulation — every translate-response that returns
+  // `newWordIds` (words that exist in vocabulary_cards but the user has
+  // not yet learned) gets appended here, deduped, capped at MAX. The
+  // "Finish conversation → lesson" button appears once we cross MIN.
+  const MIN_LESSON_WORDS = 4
+  const MAX_LESSON_WORDS = 8
+  const [lessonWordIds, setLessonWordIds] = useState<string[]>([])
+  const accumulateLessonWordIds = useCallback((incoming: string[]) => {
+    if (!incoming || incoming.length === 0) return
+    setLessonWordIds((prev) => {
+      if (prev.length >= MAX_LESSON_WORDS) return prev
+      const seen = new Set(prev)
+      const next = [...prev]
+      for (const id of incoming) {
+        if (next.length >= MAX_LESSON_WORDS) break
+        if (!seen.has(id)) {
+          seen.add(id)
+          next.push(id)
+        }
+      }
+      return next
+    })
+  }, [])
+
   // Pay-flow state. Once the conversation reaches the payment beat, `payShown`
   // sticks (so the textbox copy + End button stay updated even after the pay
   // moment passes). `payContinued` flips when the user types past the pay
@@ -762,7 +786,7 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
         const role: 'character' | 'user' =
           msg.role === 'user' ? 'user' : 'character'
         if (role === 'character') {
-          const parsed = parseCharacterResponse(msg.content || '')
+          const parsed = parseCharacterResponse(msg.content || '', session?.kanjiLevel ?? 1)
           return {
             id: msg.id || `loaded-char-${idx}`,
             role: 'character',
@@ -833,7 +857,7 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
           accumulated += decoder.decode(value, { stream: true })
         }
 
-        const parsed = parseCharacterResponse(accumulated)
+        const parsed = parseCharacterResponse(accumulated, session?.kanjiLevel ?? 1)
 
         const characterMsg: Message = {
           id: `char-${Date.now()}`,
@@ -885,7 +909,7 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
               if (containsFarewell(parsed.characterContent) && userCount >= 1) {
                 setAutoEnding(true)
                 autoEndTimerRef.current = setTimeout(() => {
-                  onEndAttempt(next)
+                  onEndAttempt(next, lessonWordIds)
                 }, 1500)
               }
               return next
@@ -963,6 +987,10 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
       if (data.translation) {
         setTranslated(data.translation)
         setUseAlternative(false)
+        // Accumulate any new lesson-eligible words this translation surfaced
+        if (Array.isArray(data.newWordIds) && data.newWordIds.length > 0) {
+          accumulateLessonWordIds(data.newWordIds)
+        }
         if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
           setTimeout(() => {
             speechSynthesis.cancel()
@@ -1560,12 +1588,58 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
                   </button>
                 )}
 
+                {/* Lesson-ready button: appears once we've gathered 4+ new
+                    words. At 8 it caps and pulses gently. Tapping it finishes
+                    the conversation and seeds the lesson with exactly these
+                    word IDs. */}
+                {lessonWordIds.length >= MIN_LESSON_WORDS && !isStreaming && !isAnimating && !autoEnding && (
+                  <div>
+                    <button
+                      onClick={() => onEndAttempt(messages, lessonWordIds)}
+                      className={`w-full py-3 rounded-[10px] text-sm font-semibold text-white transition-all active:translate-y-px ${
+                        lessonWordIds.length >= MAX_LESSON_WORDS ? 'animate-pulse' : ''
+                      }`}
+                      style={{
+                        backgroundColor: lessonWordIds.length >= MAX_LESSON_WORDS ? '#C9920A' : '#B8860B',
+                        fontFamily: 'DM Sans, sans-serif',
+                        boxShadow:
+                          lessonWordIds.length >= MAX_LESSON_WORDS
+                            ? '0 4px 16px rgba(201,146,10,0.3)'
+                            : '0 2px 8px rgba(184,134,11,0.2)',
+                      }}
+                    >
+                      {lessonWordIds.length >= MAX_LESSON_WORDS
+                        ? `Lesson ready (${lessonWordIds.length}/${MAX_LESSON_WORDS} words)`
+                        : `Finish conversation → lesson (${lessonWordIds.length}/${MAX_LESSON_WORDS} words)`}
+                    </button>
+                    {lessonWordIds.length < MAX_LESSON_WORDS && (
+                      <p
+                        className="text-center text-[10px] text-[#9E9892] mt-1.5"
+                        style={{ fontFamily: 'DM Sans, sans-serif' }}
+                      >
+                        Keep talking to find more words, or start the lesson now
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Pre-threshold counter — show progress toward unlocking the
+                    lesson button. Hidden once we hit MIN. */}
+                {lessonWordIds.length > 0 && lessonWordIds.length < MIN_LESSON_WORDS && (
+                  <p
+                    className="text-center text-[10px] text-[#C8C3BC]"
+                    style={{ fontFamily: 'DM Sans, sans-serif' }}
+                  >
+                    {lessonWordIds.length} new word{lessonWordIds.length !== 1 ? 's' : ''} found · {MIN_LESSON_WORDS - lessonWordIds.length} more for a lesson
+                  </p>
+                )}
+
                 {/* Once the user opts to continue past the pay beat, surface a
                     clear "End Conversation" CTA above the textbox. It appears
                     after every new character reply for the rest of the loop. */}
                 {payShown && payContinued && !isStreaming && !isAnimating && !autoEnding && (
                   <button
-                    onClick={() => onEndAttempt(messages)}
+                    onClick={() => onEndAttempt(messages, lessonWordIds)}
                     className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] bg-[#1B4F8A] text-white font-semibold transition-all hover:bg-[#4A7AB5] active:translate-y-px"
                     style={{ fontFamily: 'DM Sans, sans-serif' }}
                   >
@@ -1723,7 +1797,7 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
             Hidden once the post-pay End Conversation CTA takes over. */}
         {!autoEnding && !(payShown && payContinued) && userExchanges >= 2 && !isStreaming && !isAnimating && !diagnosing && (
           <div className="pt-4 pb-2 text-center">
-            <Button variant="gold" size="md" onClick={() => onEndAttempt(messages)}>
+            <Button variant="gold" size="md" onClick={() => onEndAttempt(messages, lessonWordIds)}>
               End →
             </Button>
             <p className="text-[10px] mt-1.5" style={{ color: '#9E9892' }}>
