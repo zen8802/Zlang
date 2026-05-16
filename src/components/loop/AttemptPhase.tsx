@@ -6,6 +6,7 @@ import * as wanakana from 'wanakana'
 import Button from '@/components/ui/Button'
 import { useAppStore } from '@/store/useAppStore'
 import { getLevelKanjiSet } from '@/data/kanji-levels'
+import { renderFurigana } from '@/components/japanese/FuriganaText'
 
 // ---------------------------------------------------------------------------
 // Types (copied from studio session)
@@ -111,7 +112,8 @@ interface AttemptPhaseProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   session: any
   diagnosing: boolean
-  onEndAttempt: (messages: Message[], lessonWordIds?: string[]) => void
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onEndAttempt: (messages: Message[], lessonWords?: any[]) => void
 }
 
 
@@ -579,24 +581,27 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
   // Tapping a previously-sent user message expands its breakdown inline.
   const [expandedMessageId, setExpandedMessageId] = useState<string | null>(null)
 
-  // Lesson word accumulation — every translate-response that returns
-  // `newWordIds` (words that exist in vocabulary_cards but the user has
-  // not yet learned) gets appended here, deduped, capped at MAX. The
-  // "Finish conversation → lesson" button appears once we cross MIN.
+  // Lesson word accumulation — every translate-response surfaces a `newWords`
+  // array of meaningful words from the AI's breakdown that the user hasn't
+  // already learned (via lessons or the kanji collection). We dedupe by `key`
+  // (the reading) and cap at MAX. The "Finish conversation → lesson" button
+  // appears once we cross MIN.
   const MIN_LESSON_WORDS = 4
   const MAX_LESSON_WORDS = 8
-  const [lessonWordIds, setLessonWordIds] = useState<string[]>([])
-  const accumulateLessonWordIds = useCallback((incoming: string[]) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  type LessonWord = { key: string; word: string; reading: string; romaji: string; english: string; partOfSpeech: string; note?: string }
+  const [lessonWords, setLessonWords] = useState<LessonWord[]>([])
+  const accumulateLessonWords = useCallback((incoming: LessonWord[]) => {
     if (!incoming || incoming.length === 0) return
-    setLessonWordIds((prev) => {
+    setLessonWords((prev) => {
       if (prev.length >= MAX_LESSON_WORDS) return prev
-      const seen = new Set(prev)
+      const seen = new Set(prev.map((w) => w.key))
       const next = [...prev]
-      for (const id of incoming) {
+      for (const w of incoming) {
         if (next.length >= MAX_LESSON_WORDS) break
-        if (!seen.has(id)) {
-          seen.add(id)
-          next.push(id)
+        if (w && w.key && !seen.has(w.key)) {
+          seen.add(w.key)
+          next.push(w)
         }
       }
       return next
@@ -909,7 +914,7 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
               if (containsFarewell(parsed.characterContent) && userCount >= 1) {
                 setAutoEnding(true)
                 autoEndTimerRef.current = setTimeout(() => {
-                  onEndAttempt(next, lessonWordIds)
+                  onEndAttempt(next, lessonWords)
                 }, 1500)
               }
               return next
@@ -988,13 +993,17 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
         setTranslated(data.translation)
         setUseAlternative(false)
         // Accumulate any new lesson-eligible words this translation surfaced
-        if (Array.isArray(data.newWordIds) && data.newWordIds.length > 0) {
-          accumulateLessonWordIds(data.newWordIds)
+        if (Array.isArray(data.newWords) && data.newWords.length > 0) {
+          accumulateLessonWords(data.newWords)
         }
         if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
           setTimeout(() => {
             speechSynthesis.cancel()
-            const u = new SpeechSynthesisUtterance(data.translation.japanese)
+            const spoken = (data.translation.japanese || '').replace(
+              /([一-龥々]+)\(([ぁ-んァ-ヶー]+)\)/g,
+              '$1',
+            )
+            const u = new SpeechSynthesisUtterance(spoken)
             u.lang = 'ja-JP'
             u.rate = 0.85
             speechSynthesis.speak(u)
@@ -1010,7 +1019,10 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
   const playJapaneseAudio = useCallback((text: string) => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       speechSynthesis.cancel()
-      const u = new SpeechSynthesisUtterance(text)
+      // Strip inline furigana annotations 漢字(かんじ) → 漢字 before TTS,
+      // otherwise the parenthetical reading gets pronounced as a second word.
+      const spoken = (text || '').replace(/([一-龥々]+)\(([ぁ-んァ-ヶー]+)\)/g, '$1')
+      const u = new SpeechSynthesisUtterance(spoken)
       u.lang = 'ja-JP'
       u.rate = 0.85
       speechSynthesis.speak(u)
@@ -1380,7 +1392,7 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
                           >
                             <div className="shrink-0 min-w-[80px]">
                               <p className="text-base text-[#1A1814] font-medium" style={{ fontFamily: 'Noto Sans JP, sans-serif' }}>
-                                {chunk.chunk}
+                                {renderFurigana(chunk.chunk)}
                               </p>
                               <p className="text-[11px] text-[#9E9892]" style={{ fontFamily: 'DM Mono, monospace' }}>
                                 {chunk.romaji || chunk.reading}
@@ -1425,7 +1437,7 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
                             You could also say
                           </p>
                           <p className="text-sm text-[#1A1814]" style={{ fontFamily: 'Noto Sans JP, sans-serif' }}>
-                            {translated.alternativePhrase}
+                            {renderFurigana(translated.alternativePhrase)}
                           </p>
                           {translated.alternativePhraseEN && (
                             <p className="text-xs text-[#9E9892] italic mt-0.5" style={{ fontFamily: 'DM Sans, sans-serif' }}>
@@ -1477,9 +1489,13 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
                       className="text-white text-[15px] leading-relaxed"
                       style={{ fontFamily: 'Noto Sans JP, sans-serif' }}
                     >
-                      {useAlternative && translated.alternativePhrase
-                        ? translated.alternativePhrase
-                        : translated.japanese}
+                      {renderFurigana(
+                        useAlternative && translated.alternativePhrase
+                          ? translated.alternativePhrase
+                          : translated.japanese,
+                        '0.55em',
+                        'rgba(255,255,255,0.6)',
+                      )}
                     </p>
                     {!useAlternative && (
                       <p
@@ -1592,27 +1608,27 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
                     words. At 8 it caps and pulses gently. Tapping it finishes
                     the conversation and seeds the lesson with exactly these
                     word IDs. */}
-                {lessonWordIds.length >= MIN_LESSON_WORDS && !isStreaming && !isAnimating && !autoEnding && (
+                {lessonWords.length >= MIN_LESSON_WORDS && !isStreaming && !isAnimating && !autoEnding && (
                   <div>
                     <button
-                      onClick={() => onEndAttempt(messages, lessonWordIds)}
+                      onClick={() => onEndAttempt(messages, lessonWords)}
                       className={`w-full py-3 rounded-[10px] text-sm font-semibold text-white transition-all active:translate-y-px ${
-                        lessonWordIds.length >= MAX_LESSON_WORDS ? 'animate-pulse' : ''
+                        lessonWords.length >= MAX_LESSON_WORDS ? 'animate-pulse' : ''
                       }`}
                       style={{
-                        backgroundColor: lessonWordIds.length >= MAX_LESSON_WORDS ? '#C9920A' : '#B8860B',
+                        backgroundColor: lessonWords.length >= MAX_LESSON_WORDS ? '#C9920A' : '#B8860B',
                         fontFamily: 'DM Sans, sans-serif',
                         boxShadow:
-                          lessonWordIds.length >= MAX_LESSON_WORDS
+                          lessonWords.length >= MAX_LESSON_WORDS
                             ? '0 4px 16px rgba(201,146,10,0.3)'
                             : '0 2px 8px rgba(184,134,11,0.2)',
                       }}
                     >
-                      {lessonWordIds.length >= MAX_LESSON_WORDS
-                        ? `Lesson ready (${lessonWordIds.length}/${MAX_LESSON_WORDS} words)`
-                        : `Finish conversation → lesson (${lessonWordIds.length}/${MAX_LESSON_WORDS} words)`}
+                      {lessonWords.length >= MAX_LESSON_WORDS
+                        ? `Lesson ready (${lessonWords.length}/${MAX_LESSON_WORDS} words)`
+                        : `Finish conversation → lesson (${lessonWords.length}/${MAX_LESSON_WORDS} words)`}
                     </button>
-                    {lessonWordIds.length < MAX_LESSON_WORDS && (
+                    {lessonWords.length < MAX_LESSON_WORDS && (
                       <p
                         className="text-center text-[10px] text-[#9E9892] mt-1.5"
                         style={{ fontFamily: 'DM Sans, sans-serif' }}
@@ -1625,12 +1641,12 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
 
                 {/* Pre-threshold counter — show progress toward unlocking the
                     lesson button. Hidden once we hit MIN. */}
-                {lessonWordIds.length > 0 && lessonWordIds.length < MIN_LESSON_WORDS && (
+                {lessonWords.length > 0 && lessonWords.length < MIN_LESSON_WORDS && (
                   <p
                     className="text-center text-[10px] text-[#C8C3BC]"
                     style={{ fontFamily: 'DM Sans, sans-serif' }}
                   >
-                    {lessonWordIds.length} new word{lessonWordIds.length !== 1 ? 's' : ''} found · {MIN_LESSON_WORDS - lessonWordIds.length} more for a lesson
+                    {lessonWords.length} new word{lessonWords.length !== 1 ? 's' : ''} found · {MIN_LESSON_WORDS - lessonWords.length} more for a lesson
                   </p>
                 )}
 
@@ -1639,7 +1655,7 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
                     after every new character reply for the rest of the loop. */}
                 {payShown && payContinued && !isStreaming && !isAnimating && !autoEnding && (
                   <button
-                    onClick={() => onEndAttempt(messages, lessonWordIds)}
+                    onClick={() => onEndAttempt(messages, lessonWords)}
                     className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] bg-[#1B4F8A] text-white font-semibold transition-all hover:bg-[#4A7AB5] active:translate-y-px"
                     style={{ fontFamily: 'DM Sans, sans-serif' }}
                   >
@@ -1797,7 +1813,7 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
             Hidden once the post-pay End Conversation CTA takes over. */}
         {!autoEnding && !(payShown && payContinued) && userExchanges >= 2 && !isStreaming && !isAnimating && !diagnosing && (
           <div className="pt-4 pb-2 text-center">
-            <Button variant="gold" size="md" onClick={() => onEndAttempt(messages, lessonWordIds)}>
+            <Button variant="gold" size="md" onClick={() => onEndAttempt(messages, lessonWords)}>
               End →
             </Button>
             <p className="text-[10px] mt-1.5" style={{ color: '#9E9892' }}>

@@ -67,15 +67,24 @@ export async function POST(request: Request) {
   }
 
   try {
+    interface IncomingLessonWord {
+      key?: string
+      word?: string
+      reading?: string
+      romaji?: string
+      english?: string
+      partOfSpeech?: string
+      note?: string
+    }
     const {
       sessionId,
       messages,
-      lessonWordIds: passedWordIds,
+      lessonWords: passedWords,
     }: {
       sessionId: string
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       messages: any[]
-      lessonWordIds?: string[]
+      lessonWords?: IncomingLessonWord[]
     } = await request.json()
 
     if (!sessionId) {
@@ -92,14 +101,13 @@ export async function POST(request: Request) {
     const { neon } = await import('@neondatabase/serverless')
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Load session metadata (character name, kanji level, persisted word ids)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // Load session metadata (character name, kanji level)
     const sessionRows = (await sql`
-      SELECT character_name, kanji_level, lesson_word_ids
+      SELECT character_name, kanji_level
       FROM loop_sessions
       WHERE id = ${sessionId}
       LIMIT 1
-    `) as { character_name: string; kanji_level: number | null; lesson_word_ids: string[] | null }[]
+    `) as { character_name: string; kanji_level: number | null }[]
 
     if (sessionRows.length === 0) {
       return Response.json({ error: 'Session not found' }, { status: 404 })
@@ -108,48 +116,32 @@ export async function POST(request: Request) {
     const kanjiLevel = session.kanji_level ?? 1
     const characterName = session.character_name || 'Character'
 
-    const wordIds: string[] =
-      (passedWordIds && passedWordIds.length > 0)
-        ? passedWordIds
-        : (session.lesson_word_ids || [])
+    // Lesson words come straight from the client now — built from the AI's
+    // breakdown chunks during the conversation. No vocabulary_cards lookup.
+    const wordRows = (passedWords || [])
+      .filter((w) => w && w.word && w.english)
+      .slice(0, 8)
+      .map((w) => ({
+        id: w.key || w.reading || w.word!,
+        word: w.word!,
+        reading: w.reading || '',
+        romaji: w.romaji || '',
+        english: w.english!,
+        english_alts: null as string[] | null,
+        part_of_speech: w.partOfSpeech || 'word',
+        jlpt_level: null as string | null,
+        example_jp: null as string | null,
+        example_reading: null as string | null,
+        example_en: null as string | null,
+      }))
 
-    if (wordIds.length === 0) {
-      return Response.json({
-        learnBlocks: [],
-        noContent: true,
-        reason: 'No lesson words gathered from the conversation.',
-      })
-    }
-
-    // Fetch the actual word data
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const wordRows = (await sql`
-      SELECT id, word, reading, romaji, english, english_alts,
-             part_of_speech, jlpt_level,
-             example_jp, example_reading, example_en
-      FROM vocabulary_cards
-      WHERE id = ANY(${wordIds}::text[])
-      ORDER BY frequency_rank ASC NULLS LAST
-      LIMIT 8
-    `) as Array<{
-      id: string
-      word: string
-      reading: string
-      romaji: string
-      english: string
-      english_alts: string[] | null
-      part_of_speech: string | null
-      jlpt_level: string | null
-      example_jp: string | null
-      example_reading: string | null
-      example_en: string | null
-    }>
+    const wordIds: string[] = wordRows.map((r) => r.id)
 
     if (wordRows.length === 0) {
       return Response.json({
         learnBlocks: [],
         noContent: true,
-        reason: 'No vocabulary rows matched the lesson word IDs.',
+        reason: 'No lesson words received from the conversation.',
       })
     }
 

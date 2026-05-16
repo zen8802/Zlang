@@ -174,27 +174,60 @@ export function KanjiDetailPanel({ kanji, isLearned, isSeen, onClose }: Props) {
                 {kanji.commonWords.slice(0, 4).map((w, i) => (
                   <div
                     key={i}
-                    className="flex items-center justify-between gap-3 py-2 border-b border-[#F5F0EB] last:border-0"
+                    className="py-2 border-b border-[#F5F0EB] last:border-0"
                   >
-                    <div className="min-w-0">
-                      <p style={{ fontFamily: 'Noto Sans JP', fontSize: '17px', color: '#1A1814', fontWeight: 300, lineHeight: 1.4 }}>
+                    {/* Top line: Japanese word, English meaning sitting right next to it. */}
+                    <div className="flex items-baseline gap-3 flex-wrap">
+                      <p
+                        style={{
+                          fontFamily: 'Noto Sans JP',
+                          fontSize: '17px',
+                          color: '#1A1814',
+                          fontWeight: 300,
+                          lineHeight: 1.4,
+                        }}
+                      >
                         {renderJapanese(w.word)}
                       </p>
-                      {w.reading && (
-                        <p style={{ fontFamily: 'Noto Sans JP', fontSize: '11px', color: '#9E9892', fontWeight: 300, lineHeight: 1.4 }}>
-                          {w.reading}
-                        </p>
-                      )}
-                      <p style={{ fontFamily: 'DM Mono', fontSize: '11px', color: '#C8C3BC', letterSpacing: '0.03em', marginTop: '1px' }}>
-                        {toRomaji(w.reading || w.word)}
+                      <p
+                        style={{
+                          fontFamily: 'DM Sans',
+                          fontSize: '13px',
+                          color: '#6B6560',
+                          fontWeight: 500,
+                        }}
+                      >
+                        {w.english || '—'}
                       </p>
                     </div>
-                    <p
-                      className="shrink-0 text-right"
-                      style={{ fontFamily: 'DM Sans', fontSize: '13px', color: '#6B6560' }}
-                    >
-                      {w.english}
-                    </p>
+
+                    {/* Bottom line: reading and romaji together. */}
+                    {(w.reading || w.word) && (
+                      <div className="flex items-baseline gap-2 mt-0.5">
+                        {w.reading && (
+                          <span
+                            style={{
+                              fontFamily: 'Noto Sans JP',
+                              fontSize: '11px',
+                              color: '#9E9892',
+                              fontWeight: 300,
+                            }}
+                          >
+                            {w.reading}
+                          </span>
+                        )}
+                        <span
+                          style={{
+                            fontFamily: 'DM Mono',
+                            fontSize: '11px',
+                            color: '#C8C3BC',
+                            letterSpacing: '0.03em',
+                          }}
+                        >
+                          {toRomaji(w.reading || w.word)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

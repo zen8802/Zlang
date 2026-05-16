@@ -21,8 +21,13 @@ interface CellProps {
   onSelect: () => void
 }
 
-function KanjiCell({ kanji, isLearned, isSeen, isSelected, onSelect }: CellProps) {
+interface CellPropsWithIndex extends CellProps {
+  pulseDelay?: number
+}
+
+function KanjiCell({ kanji, isLearned, isSeen, isSelected, onSelect, pulseDelay = 0 }: CellPropsWithIndex) {
   const tappable = isLearned || isSeen
+  const showPulse = isSeen && !isLearned
 
   return (
     <button
@@ -30,7 +35,7 @@ function KanjiCell({ kanji, isLearned, isSeen, isSelected, onSelect }: CellProps
       disabled={!tappable}
       className={`aspect-square rounded-[8px] flex flex-col items-center justify-center transition-all duration-200 ${
         tappable ? 'active:scale-95 cursor-pointer' : 'cursor-default'
-      } ${isSelected ? 'ring-2 ring-[#C9920A] ring-offset-1' : ''}`}
+      } ${isSelected ? 'ring-2 ring-[#C9920A] ring-offset-1' : ''} ${showPulse ? 'kanji-seen-pulse' : ''}`}
       style={{
         backgroundColor: isLearned ? '#FDFBF8' : isSeen ? '#3D3632' : '#2C2924',
         border: isLearned
@@ -38,18 +43,32 @@ function KanjiCell({ kanji, isLearned, isSeen, isSelected, onSelect }: CellProps
           : isSeen
             ? '1.5px solid #4A4440'
             : '1.5px solid #1A1814',
+        // Learned cells get a static gold glow; pulse animation handles seen.
         boxShadow: isLearned
           ? '0 0 12px rgba(201,146,10,0.2), 0 2px 6px rgba(0,0,0,0.06)'
           : 'none',
+        // Stagger so the grid doesn't pulse in lockstep
+        animationDelay: showPulse ? `${pulseDelay}ms` : undefined,
       }}
     >
       <span
+        className={showPulse ? 'kanji-seen-char' : ''}
         style={{
           fontFamily: 'Noto Sans JP',
           fontSize: '22px',
           fontWeight: isLearned ? 500 : 300,
           lineHeight: 1,
-          color: isLearned ? '#C9920A' : isSeen ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.07)',
+          color: isLearned
+            ? '#C9920A'
+            : isSeen
+              // Opacity is animated via .kanji-seen-char keyframes; use a
+              // solid color here so the keyframes can drive `opacity`.
+              ? '#FFFFFF'
+              : 'rgba(255,255,255,0.07)',
+          // Provide a starting opacity for the pulse + a fallback for
+          // reduced-motion users (the static 38% appearance).
+          opacity: showPulse ? 0.38 : undefined,
+          animationDelay: showPulse ? `${pulseDelay}ms` : undefined,
         }}
       >
         {kanji.character}
@@ -74,8 +93,9 @@ function KanjiCell({ kanji, isLearned, isSeen, isSelected, onSelect }: CellProps
           style={{
             fontFamily: 'DM Sans',
             fontSize: '7px',
-            color: 'rgba(255,255,255,0.2)',
+            color: 'rgba(255,255,255,0.3)',
             marginTop: '2px',
+            letterSpacing: '0.04em',
           }}
         >
           tap
@@ -218,10 +238,13 @@ export default function KanjiGridView({
           direction: 'rtl',
         }}
       >
-        {grade1Kanji.map((kanji) => {
+        {grade1Kanji.map((kanji, idx) => {
           const isLearned = discoveredKanji.has(kanji.character)
           const isSeen = !isLearned && seenKanji.has(kanji.character)
           const isSelected = selectedKanji?.character === kanji.character
+          // 220ms stagger gives the grid a wave-like feel without ever
+          // looking synchronized. 80 cells × 220ms wraps within the 3.4s loop.
+          const pulseDelay = (idx * 220) % 3400
           return (
             <KanjiCell
               key={kanji.character}
@@ -229,6 +252,7 @@ export default function KanjiGridView({
               isLearned={isLearned}
               isSeen={isSeen}
               isSelected={isSelected}
+              pulseDelay={pulseDelay}
               onSelect={() => setSelectedKanji(kanji)}
             />
           )

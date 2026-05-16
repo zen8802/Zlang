@@ -141,12 +141,13 @@ export default function LoopSessionPage() {
     if (sessionId) load()
   }, [sessionId])
 
-  // Run diagnosis on attempt messages. `lessonWordIds` is the explicit list
-  // of vocabulary_cards ids the user encountered through their translated
-  // input — diagnose builds the fixed 4-block template from these exact words.
+  // Run diagnosis on attempt messages. `lessonWords` is the explicit list of
+  // word objects (key/word/reading/romaji/english/partOfSpeech) the user
+  // encountered through their translated input — diagnose builds the fixed
+  // 4-block template directly from these without a vocabulary_cards lookup.
   const runDiagnosis = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async (messages: any[], lessonWordIds: string[] = []) => {
+    async (messages: any[], lessonWords: any[] = []) => {
       setPhase('diagnosing')
       try {
         const transcript = (messages || []).map(m => ({
@@ -156,7 +157,7 @@ export default function LoopSessionPage() {
         const res = await fetch(`/api/loop/diagnose`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId, messages: transcript, userProfile, lessonWordIds }),
+          body: JSON.stringify({ sessionId, messages: transcript, userProfile, lessonWords }),
         })
         if (!res.ok) throw new Error('Diagnosis failed')
         const data = await res.json()
@@ -171,11 +172,14 @@ export default function LoopSessionPage() {
           phase: 'learn',
         } : prev)
         setPhase('learn')
+        // Persist just the keys so resuming reflects the count; the full
+        // objects only need to live for the diagnose call itself.
         saveNow({
           currentPhase: 'learn',
           diagnosis: data.diagnosis,
           learnBlocks: data.learnBlocks || [],
-          lessonWordIds,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          lessonWordIds: lessonWords.map((w: any) => w?.key).filter(Boolean),
         })
       } catch (err) {
         console.error('Diagnosis error:', err)
@@ -187,12 +191,17 @@ export default function LoopSessionPage() {
   )
 
   // End attempt — scan for seen kanji, track vocabulary in background,
-  // then go straight to diagnosis with the lesson word IDs gathered during
+  // then go straight to diagnosis with the lesson words gathered during
   // the conversation.
   const handleEndAttempt = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async (messages: any[], lessonWordIds: string[] = []) => {
-    saveNow({ currentPhase: 'diagnosing', attemptMessages: messages, lessonWordIds })
+    async (messages: any[], lessonWords: any[] = []) => {
+    saveNow({
+      currentPhase: 'diagnosing',
+      attemptMessages: messages,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      lessonWordIds: lessonWords.map((w: any) => w?.key).filter(Boolean),
+    })
 
     // Scan conversation for seen kanji (background, non-blocking)
     const allText = (messages || []).map((m: { content?: string }) => m.content || '').join('')
@@ -225,7 +234,7 @@ export default function LoopSessionPage() {
       })
       .catch(() => {})
 
-    runDiagnosis(messages, lessonWordIds)
+    runDiagnosis(messages, lessonWords)
   }, [session?.scenarioId, addSeenKanji, saveNow, runDiagnosis])
 
   // Transition to retry

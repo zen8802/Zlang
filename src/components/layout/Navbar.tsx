@@ -1,11 +1,12 @@
 'use client'
 
-import { useCallback, useEffect } from 'react'
+import { useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useAppStore, t } from '@/store/useAppStore'
-import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
+import { SignedIn, SignedOut, useUser } from '@clerk/nextjs'
+import UserMenu from './UserMenu'
 
 interface NavLink {
   key: string
@@ -20,10 +21,15 @@ const navLinks: NavLink[] = [
 
 export default function Navbar() {
   const pathname = usePathname()
+  const { user, isLoaded } = useUser()
 
-  const loginStreak = useAppStore((s) => s.loginStreak)
+  const displayName =
+    (isLoaded && user?.username) ||
+    user?.firstName ||
+    user?.emailAddresses?.[0]?.emailAddress?.split('@')[0] ||
+    ''
+
   const uiLanguage = useAppStore((s) => s.uiLanguage)
-  const setUiLanguage = useAppStore((s) => s.setUiLanguage)
   const registerLogin = useAppStore((s) => s.registerLogin)
 
   // Stamp today's login on first mount of any authenticated screen.
@@ -31,89 +37,106 @@ export default function Navbar() {
     registerLogin()
   }, [registerLogin])
 
-  const toggleLanguage = useCallback(() => {
-    setUiLanguage(uiLanguage === 'en' ? 'jp' : 'en')
-  }, [uiLanguage, setUiLanguage])
-
   return (
     <>
       <header className="sticky top-0 z-40 px-4 py-3 flex items-center justify-between bg-[#FDFBF8] border-b border-[#E0DAD2]">
-        <Link href="/dashboard" className="flex items-center">
-          <span
-            style={{
-              fontFamily: 'Geist, sans-serif',
-              fontSize: '22px',
-              fontWeight: 500,
-              letterSpacing: '0.15em',
-              textTransform: 'uppercase',
-              color: '#bbead6',
-            }}
-          >
-            KOMBU
-          </span>
-        </Link>
+        {/* Left: KOMBU wordmark + nav links */}
+        <div className="flex items-center gap-5">
+          <Link href="/dashboard" className="flex items-center">
+            <span
+              style={{
+                fontFamily: 'Geist, sans-serif',
+                fontSize: '22px',
+                fontWeight: 500,
+                letterSpacing: '0.15em',
+                textTransform: 'uppercase',
+                color: '#bbead6',
+              }}
+            >
+              KOMBU
+            </span>
+          </Link>
 
-        {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-1">
-          {navLinks.map((link) => {
-            const isActive =
-              pathname === link.href || pathname?.startsWith(link.href + '/')
-            return (
-              <Link
-                key={link.key}
-                href={link.href}
-                className={`px-4 py-2 rounded-[6px] text-sm font-bold transition-all ${
-                  isActive
-                    ? 'bg-[#EBF0F8] text-[#1B4F8A]'
-                    : 'text-[#6B6560] hover:text-[#1A1814] hover:bg-gray-50'
-                }`}
-                style={{ fontFamily: 'DM Sans, sans-serif' }}
+          {/* Desktop nav — sits flush against the wordmark */}
+          <nav className="hidden md:flex items-center gap-1">
+            {navLinks.map((link) => {
+              const isActive =
+                pathname === link.href || pathname?.startsWith(link.href + '/')
+              return (
+                <Link
+                  key={link.key}
+                  href={link.href}
+                  className={`px-3 py-2 rounded-[6px] text-sm font-bold transition-all ${
+                    isActive
+                      ? 'bg-[#EBF0F8] text-[#1B4F8A]'
+                      : 'text-[#6B6560] hover:text-[#1A1814] hover:bg-gray-50'
+                  }`}
+                  style={{ fontFamily: 'DM Sans, sans-serif' }}
+                >
+                  {t(link.key, uiLanguage)}
+                </Link>
+              )
+            })}
+          </nav>
+        </div>
+
+        {/* Right: greeting + settings + user menu */}
+        <div className="flex items-center gap-3">
+          <SignedIn>
+            {displayName && (
+              <p
+                className="hidden sm:inline-flex items-baseline gap-1.5"
+                style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '15px', color: '#1A1814' }}
               >
-                {t(link.key, uiLanguage)}
-              </Link>
-            )
-          })}
-        </nav>
+                <span style={{ fontFamily: 'Noto Sans JP', fontWeight: 400 }}>
+                  こんにちは,
+                </span>
+                <span style={{ fontWeight: 700 }}>{displayName}</span>
+              </p>
+            )}
 
-        <div className="flex items-center gap-2">
-          {/* Daily login streak */}
-          <span
-            style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: '#6B6560' }}
-            title="Daily login streak"
-          >
-            {loginStreak}日
-          </span>
+            {/* Settings gear — houses user settings */}
+            <Link
+              href="/settings"
+              aria-label="Settings"
+              className="inline-flex items-center justify-center w-9 h-9 rounded-[10px] transition-all hover:bg-[#EBF0F8]"
+              style={{ color: '#6B6560' }}
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              </svg>
+            </Link>
 
-          {/* Language toggle */}
-          <button
-            onClick={toggleLanguage}
-            className="hidden md:inline-flex px-3 py-1.5 rounded-[10px] text-xs font-bold transition-all hover:bg-[#EBF0F8]"
-            style={{ color: '#6B6560', fontFamily: 'DM Sans, sans-serif' }}
-            aria-label={`Switch language to ${uiLanguage === 'en' ? 'Japanese' : 'English'}`}
-          >
-            {uiLanguage === 'en' ? 'EN' : 'JP'}
-          </button>
+            {/* Custom user menu — neutral.png default avatar + Clerk profile + sign out */}
+            <UserMenu />
+          </SignedIn>
 
-          {/* Clerk auth */}
           <SignedOut>
             <Link
               href="/sign-in"
-              className="text-xs font-bold ml-2"
+              className="text-xs font-bold"
               style={{ color: '#6B6560', fontFamily: 'DM Sans, sans-serif' }}
             >
               Log in
             </Link>
             <Link
               href="/sign-up"
-              className="text-xs font-bold text-white px-3 py-1.5 rounded-[8px] ml-1"
+              className="text-xs font-bold text-white px-3 py-1.5 rounded-[8px]"
               style={{ backgroundColor: '#1B4F8A', fontFamily: 'DM Sans, sans-serif' }}
             >
               Sign up
             </Link>
           </SignedOut>
-          <SignedIn>
-            <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: 'w-8 h-8 ml-2' } }} />
-          </SignedIn>
         </div>
       </header>
 
