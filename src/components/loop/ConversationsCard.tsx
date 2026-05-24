@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { ChatCircle } from '@phosphor-icons/react'
 
 interface LearnedWord {
   word: string
@@ -112,7 +113,52 @@ export default function ConversationsCard() {
     })
   }
 
-  if (loading || sessions.length === 0) return null
+  if (loading) return null
+
+  // Empty state — render a small placeholder instead of returning null so
+  // the dashboard's bento grid stays balanced after a "delete all".
+  if (sessions.length === 0) {
+    return (
+      <div className="mb-4">
+        <p
+          className="text-[10px] tracking-widest uppercase text-[#9E9892] font-medium mb-3 px-1"
+          style={{ fontFamily: 'DM Sans, sans-serif' }}
+        >
+          Your conversations
+        </p>
+        <div
+          className="rounded-[12px] px-5 py-8 text-center"
+          style={{
+            backgroundColor: '#FDFBF8',
+            border: '1px solid #E0DAD2',
+          }}
+        >
+          <div
+            className="w-12 h-12 mx-auto rounded-full flex items-center justify-center mb-3"
+            style={{ backgroundColor: '#F5F0EB', border: '1px solid #E0DAD2' }}
+          >
+            <ChatCircle size={22} weight="thin" color="#9E9892" />
+          </div>
+          <p
+            style={{
+              fontFamily: 'Shippori Mincho, serif',
+              fontSize: '16px',
+              color: '#1A1814',
+              letterSpacing: '-0.01em',
+            }}
+          >
+            No previous conversations
+          </p>
+          <p
+            className="mt-1.5 text-[13px]"
+            style={{ fontFamily: 'DM Sans, sans-serif', color: '#6B6560' }}
+          >
+            Start one from Jump In above — they&apos;ll show up here.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   const displayed = showAll ? sessions : sessions.slice(0, 3)
 
@@ -159,13 +205,21 @@ export default function ConversationsCard() {
             <button
               onClick={async () => {
                 setDeletingAll(true)
+                // allSettled so one stuck DELETE doesn't abort the rest and
+                // leave the user with a half-deleted state + a stuck button.
                 try {
-                  await Promise.all(sessions.map((s) => fetch(`/api/loop/sessions/${s.id}`, { method: 'DELETE' })))
-                  setSessions([])
-                  window.dispatchEvent(new Event('sessions-cleared'))
-                } catch {}
+                  await Promise.allSettled(
+                    sessions.map((s) =>
+                      fetch(`/api/loop/sessions/${s.id}`, { method: 'DELETE' }),
+                    ),
+                  )
+                } catch {
+                  // Promise.allSettled never throws, but keep the catch for safety.
+                }
+                setSessions([])
                 setDeletingAll(false)
                 setConfirmingDeleteAll(false)
+                window.dispatchEvent(new Event('sessions-cleared'))
               }}
               disabled={deletingAll}
               className="flex-1 py-1.5 rounded-[6px] text-xs font-medium bg-[#8B3A3A] text-white hover:bg-[#7A2E2E] transition-colors disabled:opacity-50"

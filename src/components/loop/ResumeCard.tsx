@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { X } from '@phosphor-icons/react'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ActiveSession = any
@@ -93,10 +94,10 @@ export default function ResumeCard() {
       {/* Dismiss button */}
       <button
         onClick={handleDismiss}
-        className="absolute top-3 right-3 text-[#1B4F8A]/40 hover:text-[#1B4F8A] transition-colors text-lg leading-none"
+        className="absolute top-3 right-3 text-[#1B4F8A]/40 hover:text-[#1B4F8A] transition-colors"
         aria-label="Dismiss"
       >
-        ✕
+        <X size={16} weight="bold" />
       </button>
 
       {/* Phase emoji + label */}

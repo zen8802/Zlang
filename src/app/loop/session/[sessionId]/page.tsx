@@ -339,18 +339,25 @@ export default function LoopSessionPage() {
 
   if (!session) return null
 
-  // Determine which phase step is active
+  // Determine which phase step is active.
+  //   - normal flow: based on current phase
+  //   - review mode: based on which review tab is open (conversation = step 0
+  //     "Experience", lesson = step 1 "Learn")
   const currentPhase: string = phase
-  const currentStepIndex = PHASE_STEPS.findIndex(s => {
-    if (currentPhase === 'diagnosing') return s.key === 'attempt'
-    if (currentPhase === 'complete') return false
-    return s.key === currentPhase
-  })
+  const isReviewing = phase === 'complete' && !!reviewMode
+  const currentStepIndex = isReviewing
+    ? (reviewMode === 'lesson' ? 1 : 0)
+    : PHASE_STEPS.findIndex(s => {
+        if (currentPhase === 'diagnosing') return s.key === 'attempt'
+        if (currentPhase === 'complete') return false
+        return s.key === currentPhase
+      })
 
   return (
     <div className="h-screen flex flex-col" style={{ backgroundColor: '#F5F0EB' }}>
-      {/* Phase indicator strip */}
-      {phase !== 'complete' && (
+      {/* Phase indicator strip — shown during the active flow AND during
+          review mode (where the steps become clickable tabs). */}
+      {(phase !== 'complete' || isReviewing) && (
         <div className="shrink-0 bg-[#FDFBF8]/80 backdrop-blur-md border-b border-[#E0DAD2]/50 safe-top z-30">
           <div className="px-4 py-3">
             <div className="flex items-center justify-between mb-2">
@@ -361,65 +368,104 @@ export default function LoopSessionPage() {
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
-                {/* Pause — saves progress and returns to dashboard */}
-                <button
-                  onClick={async () => {
-                    if (typeof saveNow === 'function') {
-                      await saveNow({ currentPhase: phase })
-                    }
-                    router.push('/dashboard')
-                  }}
-                  className="text-xs font-semibold px-2.5 py-1 rounded-[6px] border border-[#E0DAD2] text-[#9E9892] hover:bg-[#EBF0F8] transition-all"
-                  style={{ fontFamily: 'DM Sans, sans-serif' }}
-                >
-                  Pause
-                </button>
-                {/* Reset — clears conversation back to opening line */}
-                <button
-                  onClick={() => setShowResetConfirm(true)}
-                  className="text-xs font-semibold px-2.5 py-1 rounded-[6px] border border-[#D4C4A8] text-[#7A5C2E] hover:bg-[#F5F0E8] transition-all"
-                  style={{ fontFamily: 'DM Sans, sans-serif' }}
-                >
-                  Reset
-                </button>
-                {/* End — permanently deletes session */}
-                <button
-                  onClick={() => setShowEndConfirm(true)}
-                  className="text-xs font-semibold px-2.5 py-1 rounded-[6px] border border-[#D4BABA] text-[#8B3A3A] hover:bg-[#F5EEEE] transition-all"
-                  style={{ fontFamily: 'DM Sans, sans-serif' }}
-                >
-                  End
-                </button>
+                {isReviewing ? (
+                  // Review mode: single "Summary" button to return to the
+                  // MilestoneCard. Pause/Reset/End don't apply.
+                  <button
+                    onClick={() => setReviewMode(null)}
+                    className="text-xs font-semibold px-2.5 py-1 rounded-[6px] border border-[#E0DAD2] text-[#6B6560] hover:bg-[#EBF0F8] transition-all"
+                    style={{ fontFamily: 'DM Sans, sans-serif' }}
+                  >
+                    ← Summary
+                  </button>
+                ) : (
+                  <>
+                    {/* Pause — saves progress and returns to dashboard */}
+                    <button
+                      onClick={async () => {
+                        if (typeof saveNow === 'function') {
+                          await saveNow({ currentPhase: phase })
+                        }
+                        router.push('/dashboard')
+                      }}
+                      className="text-xs font-semibold px-2.5 py-1 rounded-[6px] border border-[#E0DAD2] text-[#9E9892] hover:bg-[#EBF0F8] transition-all"
+                      style={{ fontFamily: 'DM Sans, sans-serif' }}
+                    >
+                      Pause
+                    </button>
+                    {/* Reset — clears conversation back to opening line */}
+                    <button
+                      onClick={() => setShowResetConfirm(true)}
+                      className="text-xs font-semibold px-2.5 py-1 rounded-[6px] border border-[#D4C4A8] text-[#7A5C2E] hover:bg-[#F5F0E8] transition-all"
+                      style={{ fontFamily: 'DM Sans, sans-serif' }}
+                    >
+                      Reset
+                    </button>
+                    {/* End — permanently deletes session */}
+                    <button
+                      onClick={() => setShowEndConfirm(true)}
+                      className="text-xs font-semibold px-2.5 py-1 rounded-[6px] border border-[#D4BABA] text-[#8B3A3A] hover:bg-[#F5EEEE] transition-all"
+                      style={{ fontFamily: 'DM Sans, sans-serif' }}
+                    >
+                      End
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
-            {/* Phase steps */}
+            {/* Phase steps. Clickable in review mode (toggles between
+                conversation and lesson review); static during the active flow. */}
             <div className="flex items-center gap-1">
               {PHASE_STEPS.map((step, idx) => {
                 const isActive = idx === currentStepIndex
-                const isDone = idx < currentStepIndex || currentPhase === 'complete'
+                // In review mode, both steps are reachable. In active flow,
+                // "done" means we've already passed it.
+                const isDone = isReviewing
+                  ? false
+                  : idx < currentStepIndex || currentPhase === 'complete'
+
+                const stepContent = (
+                  <div className="flex-1 flex flex-col items-center">
+                    <div
+                      className="w-full h-1.5 rounded-full transition-all duration-500"
+                      style={{
+                        backgroundColor: isDone
+                          ? '#3D6B4F'
+                          : isActive
+                            ? '#1B4F8A'
+                            : '#E5E7EB',
+                      }}
+                    />
+                    <span
+                      className="text-[10px] font-bold mt-1 flex items-center gap-0.5"
+                      style={{
+                        color: isDone ? '#3D6B4F' : isActive ? '#1B4F8A' : '#9E9892',
+                      }}
+                    >
+                      {step.emoji} {step.label}
+                    </span>
+                  </div>
+                )
+
+                if (isReviewing) {
+                  return (
+                    <button
+                      key={step.key}
+                      onClick={() =>
+                        setReviewMode(step.key === 'attempt' ? 'conversation' : 'lesson')
+                      }
+                      className="flex-1 flex items-center gap-1 cursor-pointer transition-opacity hover:opacity-80"
+                      aria-label={`Review ${step.label}`}
+                    >
+                      {stepContent}
+                    </button>
+                  )
+                }
+
                 return (
                   <div key={step.key} className="flex-1 flex items-center gap-1">
-                    <div className="flex-1 flex flex-col items-center">
-                      <div
-                        className="w-full h-1.5 rounded-full transition-all duration-500"
-                        style={{
-                          backgroundColor: isDone
-                            ? '#3D6B4F'
-                            : isActive
-                              ? '#1B4F8A'
-                              : '#E5E7EB',
-                        }}
-                      />
-                      <span
-                        className="text-[10px] font-bold mt-1 flex items-center gap-0.5"
-                        style={{
-                          color: isDone ? '#3D6B4F' : isActive ? '#1B4F8A' : '#9E9892',
-                        }}
-                      >
-                        {step.emoji} {step.label}
-                      </span>
-                    </div>
+                    {stepContent}
                   </div>
                 )
               })}

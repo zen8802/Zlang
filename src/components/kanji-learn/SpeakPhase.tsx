@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { SpeakerHigh, Microphone, Stop } from '@phosphor-icons/react'
 import type { KyouikuKanji } from '@/data/kyouiku-kanji'
 
 interface Props {
@@ -189,10 +190,10 @@ export function SpeakPhase({ kanji, onComplete }: Props) {
         </p>
 
         <div
-          className="absolute bottom-3 right-3 w-6 h-6 rounded-full flex items-center justify-center"
+          className="absolute bottom-3 right-3 w-6 h-6 rounded-full flex items-center justify-center text-[#6B6560]"
           style={{ backgroundColor: '#F5F0EB' }}
         >
-          <span style={{ fontSize: '12px' }}>🔊</span>
+          <SpeakerHigh size={12} weight="regular" />
         </div>
       </button>
 
@@ -223,7 +224,7 @@ export function SpeakPhase({ kanji, onComplete }: Props) {
             onMouseUp={state === 'recording' ? stopRecording : undefined}
             onTouchStart={state === 'ready' || state === 'incorrect' ? startRecording : stopRecording}
             onTouchEnd={state === 'recording' ? stopRecording : undefined}
-            className={`w-20 h-20 rounded-full flex items-center justify-center text-3xl transition-all ${
+            className={`w-20 h-20 rounded-full flex items-center justify-center text-white transition-all ${
               state === 'recording' ? 'scale-110' : 'hover:scale-105 active:scale-95'
             }`}
             style={{
@@ -235,7 +236,9 @@ export function SpeakPhase({ kanji, onComplete }: Props) {
               transition: 'all 0.2s ease',
             }}
           >
-            {state === 'recording' ? '⏹' : '🎤'}
+            {state === 'recording'
+              ? <Stop size={28} weight="fill" />
+              : <Microphone size={28} weight="regular" />}
           </button>
 
           <p className="text-xs text-[#9E9892]" style={{ fontFamily: 'DM Sans' }}>

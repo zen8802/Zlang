@@ -101,13 +101,20 @@ export async function POST(request: Request) {
     const { neon } = await import('@neondatabase/serverless')
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Load session metadata (character name, kanji level)
+    // Load session metadata (character name, kanji level, demographics)
     const sessionRows = (await sql`
-      SELECT character_name, kanji_level
+      SELECT character_name, kanji_level,
+             user_gender, user_birth_year, user_experience_level
       FROM loop_sessions
       WHERE id = ${sessionId}
       LIMIT 1
-    `) as { character_name: string; kanji_level: number | null }[]
+    `) as Array<{
+      character_name: string
+      kanji_level: number | null
+      user_gender: string | null
+      user_birth_year: number | null
+      user_experience_level: number | null
+    }>
 
     if (sessionRows.length === 0) {
       return Response.json({ error: 'Session not found' }, { status: 404 })
@@ -115,6 +122,14 @@ export async function POST(request: Request) {
     const session = sessionRows[0]
     const kanjiLevel = session.kanji_level ?? 1
     const characterName = session.character_name || 'Character'
+
+    // Demographic style — same module the conversation routes use.
+    const { buildLanguageProfile } = await import('@/lib/user-profile')
+    const languageProfile = buildLanguageProfile({
+      gender: session.user_gender,
+      birthYear: session.user_birth_year,
+      experienceLevel: session.user_experience_level,
+    })
 
     // Lesson words come straight from the client now — built from the AI's
     // breakdown chunks during the conversation. No vocabulary_cards lookup.
@@ -192,6 +207,12 @@ export async function POST(request: Request) {
 
     const prompt = `You are generating a Japanese language lesson for a learner who just
 finished a conversation. Build the lesson from the EXACT words below.
+
+${languageProfile.speechStyle}
+
+All example sentences in this lesson must reflect the natural speech of a
+${languageProfile.demographic.age}-year-old ${languageProfile.demographic.gender}
+Japanese speaker at the politeness level above.
 
 CONVERSATION (for context only — quote real lines in block 4):
 ${transcript}

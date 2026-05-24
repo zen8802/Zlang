@@ -23,6 +23,8 @@ export interface ScenarioTemplate {
   estimatedMinutes: number
   tags: string[]
   character: {
+    /** Stable id — matches a CHARACTER_ROSTER entry where possible. */
+    id?: string
     name: string
     nameJP: string
     description: string
@@ -32,6 +34,17 @@ export interface ScenarioTemplate {
     voiceId: string
     avatar: string       // path in /public e.g. '/characters/takeshi.png'
   }
+  /**
+   * Optional pool of alternate characters the learner can pick from before
+   * starting the conversation. Each entry references a CHARACTER_ROSTER id
+   * and supplies the scenario-specific relationship (since e.g. Yuki at a
+   * ramen shop is a friend you ran into, not the chef). Plus the
+   * scenario.character above, these form the dropdown choices.
+   */
+  alternates?: Array<{
+    characterId: string
+    relationship: string
+  }>
   setting: string
   settingJP: string
   userGoal: string
@@ -68,6 +81,7 @@ export const SCENARIO_TEMPLATES: ScenarioTemplate[] = [
     estimatedMinutes: 5,
     tags: ['ordering', 'food vocab', 'counters', 'polite speech'],
     character: {
+      id: 'takeshi',
       name: 'Takeshi',
       nameJP: 'たけし',
       description: 'A gruff but friendly ramen chef in his 50s who takes great pride in his tonkotsu broth.',
@@ -77,6 +91,13 @@ export const SCENARIO_TEMPLATES: ScenarioTemplate[] = [
       voiceId: 'JOcmGzB8OFjY8MhjHHEf',
       avatar: '/character/Takeshi.png',
     },
+    alternates: [
+      { characterId: 'yuki', relationship: 'A cheerful college friend you ran into at the ramen shop, eating at the counter next to you. Practice casual-polite mixed register.' },
+      { characterId: 'kenji', relationship: 'A coworker who dragged you to this ramen shop after work. Practice casual-polite mix between colleagues.' },
+      { characterId: 'mika', relationship: 'A close friend you came to the ramen shop with. Practice polite-feminine register with gentle, warm tone.' },
+      { characterId: 'suzuki', relationship: 'Your boss treating you to dinner at this ramen shop. Practice formal business Japanese and senpai/kouhai dynamics.' },
+      { characterId: 'ren', relationship: 'A gaming buddy you grabbed a quick lunch with at the ramen shop. Practice very casual masculine speech.' },
+    ],
     setting: 'A small 8-seat counter ramen shop in Fukuoka. Steam rising, ticket machine by the door, hand-written specials on the wall.',
     settingJP: '福岡の小さなカウンター8席のラーメン屋。湯気が立ち上り、入口に券売機、壁に手書きのおすすめメニュー。',
     userGoal: 'Successfully order a bowl of ramen with your preferred toppings and spice level.',

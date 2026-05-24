@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { SpeakerHigh } from '@phosphor-icons/react'
 import type { AudioMatchBlock } from '@/types/lesson-blocks'
 import Button from '@/components/ui/Button'
 
@@ -113,7 +114,7 @@ export function AudioMatchBlockRenderer({ block, onComplete }: Props) {
           onClick={handleReplay}
           className="bg-[#1B4F8A] text-white rounded-full w-28 h-28 flex items-center justify-center hover:brightness-110 active:translate-y-px transition-all duration-100 cursor-pointer select-none"
         >
-          <span className="text-5xl">🔊</span>
+          <SpeakerHigh size={56} weight="regular" />
         </button>
       </div>
 

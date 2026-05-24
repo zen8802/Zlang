@@ -3,10 +3,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import * as wanakana from 'wanakana'
+import { useUser } from '@clerk/nextjs'
 import Button from '@/components/ui/Button'
 import { useAppStore } from '@/store/useAppStore'
 import { getLevelKanjiSet } from '@/data/kanji-levels'
 import { renderFurigana } from '@/components/japanese/FuriganaText'
+import { SpeakerHigh, X } from '@phosphor-icons/react'
 
 // ---------------------------------------------------------------------------
 // Types (copied from studio session)
@@ -44,7 +46,68 @@ interface Message {
   userEnglish?: string
   hints?: string[]
   translationData?: TranslatedResponse
+  /** Marks a user bubble that was AI-generated as a formulaic auto-reply. */
+  autoReplied?: boolean
   timestamp: number
+}
+
+// ---------------------------------------------------------------------------
+// Dialogue events — a character turn may emit multiple bubbles and pre-filled
+// learner auto-replies, separated by ---NEXT--- / ---AUTOREPLY--- markers.
+// ---------------------------------------------------------------------------
+
+type DialogueEvent =
+  | { type: 'bubble'; text: string }
+  | { type: 'autoreply'; japanese: string; english: string }
+
+function parseDialogueEvents(content: string): DialogueEvent[] {
+  if (!content) return []
+  // Split on any of: ---NEXT---, ---AUTOREPLY---, ---AUTOREPLY_EN---
+  const parts = content.split(/(\s*---\s*(?:NEXT|AUTOREPLY|AUTOREPLY_EN)\s*---\s*)/g)
+  const events: DialogueEvent[] = []
+  let pendingBubble = ''
+
+  const flushBubble = () => {
+    const t = pendingBubble.trim()
+    if (t) events.push({ type: 'bubble', text: t })
+    pendingBubble = ''
+  }
+
+  let i = 0
+  while (i < parts.length) {
+    const p = parts[i]
+    if (/^\s*---\s*NEXT\s*---\s*$/.test(p)) {
+      flushBubble()
+      i++
+      continue
+    }
+    if (/^\s*---\s*AUTOREPLY\s*---\s*$/.test(p)) {
+      flushBubble()
+      i++
+      const jp = (parts[i] || '').trim()
+      i++
+      // Expect ---AUTOREPLY_EN--- next
+      if (i < parts.length && /^\s*---\s*AUTOREPLY_EN\s*---\s*$/.test(parts[i])) {
+        i++
+        const en = (parts[i] || '').trim()
+        events.push({ type: 'autoreply', japanese: jp, english: en })
+        i++
+      } else if (jp) {
+        // Malformed — treat the JP as a bubble so we don't lose dialogue
+        events.push({ type: 'bubble', text: jp })
+      }
+      continue
+    }
+    if (/^\s*---\s*AUTOREPLY_EN\s*---\s*$/.test(p)) {
+      // Stray AUTOREPLY_EN — skip
+      i++
+      continue
+    }
+    pendingBubble += p
+    i++
+  }
+  flushBubble()
+  return events
 }
 
 interface TranslatedResponse {
@@ -249,7 +312,46 @@ function parseCharacterResponse(text: string, kanjiLevel: number = 1) {
   // Also clean coach notes (which may also contain kanji with furigana)
   coachNote = enforceLevelKanji(coachNote, kanjiLevel)
 
-  return { characterContent, vocabList, romajiContent, englishContent, coachNote, options, jpOfYours, hints }
+  // Split the dialogue into a sequence of bubbles + auto-reply events.
+  // Bubbles render as separate character speech bubbles; auto-replies are
+  // pre-filled user messages the AI generated on the learner's behalf for
+  // mechanical pleasantries (intros, "thank you" back, etc.).
+  const dialogueEvents = parseDialogueEvents(characterContent).map((ev) => {
+    if (ev.type === 'bubble') {
+      return { type: 'bubble' as const, text: enforceLevelKanji(ev.text, kanjiLevel) }
+    }
+    return {
+      type: 'autoreply' as const,
+      japanese: enforceLevelKanji(ev.japanese, kanjiLevel),
+      english: ev.english,
+    }
+  })
+
+  // Split ROMAJI and EN on ---NEXT---. The AI is instructed to emit one segment
+  // per dialogue bubble (excluding auto-replies) in matching order, so we can
+  // attach segment i to bubble i in the render path. Backwards-compatible:
+  // if there are no ---NEXT--- markers, the whole block is segment 0.
+  const splitByNext = (s: string): string[] =>
+    s
+      .split(/\s*---\s*NEXT\s*---\s*/)
+      .map((seg) => seg.trim())
+      .filter((seg) => seg.length > 0)
+  const romajiSegments = splitByNext(romajiContent)
+  const englishSegments = splitByNext(englishContent)
+
+  return {
+    characterContent,
+    dialogueEvents,
+    vocabList,
+    romajiContent,
+    englishContent,
+    romajiSegments,
+    englishSegments,
+    coachNote,
+    options,
+    jpOfYours,
+    hints,
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -549,6 +651,9 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
   const globalShowFurigana = useAppStore((s) => s.showFurigana)
   const globalShowTranslation = useAppStore((s) => s.showTranslation)
   const userProfile = useAppStore((s) => s.userProfile)
+  const { user: clerkUser } = useUser()
+  // Used by the AI to address the learner by name in auto-reply self-intros.
+  const learnerName = clerkUser?.firstName || clerkUser?.username || ''
 
   const [showFurigana, setShowFurigana] = useState(true)
   const [showRomaji, setShowRomaji] = useState(true)
@@ -787,32 +892,78 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const raw: any[] = session?.attemptMessages ?? session?.messages ?? []
     if (raw.length > 0) {
-      const parsedMessages: Message[] = raw.map((msg, idx) => {
+      const expanded: Message[] = []
+      raw.forEach((msg, idx) => {
         const role: 'character' | 'user' =
           msg.role === 'user' ? 'user' : 'character'
         if (role === 'character') {
           const parsed = parseCharacterResponse(msg.content || '', session?.kanjiLevel ?? 1)
-          return {
-            id: msg.id || `loaded-char-${idx}`,
-            role: 'character',
-            content: parsed.characterContent,
-            romaji: parsed.romajiContent || undefined,
-            english: parsed.englishContent || undefined,
-            vocab: parsed.vocabList.length > 0 ? parsed.vocabList : undefined,
-            coachNote: parsed.coachNote || undefined,
-            options: parsed.options.length > 0 ? parsed.options : undefined,
-            hints: parsed.hints.length > 0 ? parsed.hints : undefined,
+          const events = parsed.dialogueEvents.length > 0
+            ? parsed.dialogueEvents
+            : [{ type: 'bubble' as const, text: parsed.characterContent }]
+          const lastBubbleIdx = (() => {
+            for (let i = events.length - 1; i >= 0; i--) {
+              if (events[i].type === 'bubble') return i
+            }
+            return -1
+          })()
+          // Per-bubble romaji/EN distribution — see sendText for full rationale.
+          const totalBubbles = events.filter((e) => e.type === 'bubble').length
+          const romajiPerBubble = parsed.romajiSegments.length === totalBubbles
+          const englishPerBubble = parsed.englishSegments.length === totalBubbles
+          let bubbleCount = 0
+          let autoreplyCount = 0
+          events.forEach((ev, eIdx) => {
+            if (ev.type === 'autoreply') {
+              expanded.push({
+                id: `loaded-auto-${idx}-${autoreplyCount++}`,
+                role: 'user',
+                content: ev.japanese,
+                userEnglish: ev.english || undefined,
+                autoReplied: true,
+                timestamp: msg.timestamp || Date.now(),
+              })
+            } else {
+              const isLast = eIdx === lastBubbleIdx
+              const ord = bubbleCount
+              const bRomaji = romajiPerBubble
+                ? parsed.romajiSegments[ord]
+                : isLast
+                  ? parsed.romajiContent || undefined
+                  : undefined
+              const bEnglish = englishPerBubble
+                ? parsed.englishSegments[ord]
+                : isLast
+                  ? parsed.englishContent || undefined
+                  : undefined
+              expanded.push({
+                id: `loaded-char-${idx}-${bubbleCount++}`,
+                role: 'character',
+                content: ev.text,
+                vocab: parsed.vocabList.length > 0 ? parsed.vocabList : undefined,
+                romaji: bRomaji || undefined,
+                english: bEnglish || undefined,
+                ...(isLast
+                  ? {
+                      coachNote: parsed.coachNote || undefined,
+                      options: parsed.options.length > 0 ? parsed.options : undefined,
+                      hints: parsed.hints.length > 0 ? parsed.hints : undefined,
+                    }
+                  : {}),
+                timestamp: msg.timestamp || Date.now(),
+              })
+            }
+          })
+        } else {
+          expanded.push({
+            id: msg.id || `loaded-user-${idx}`,
+            role: 'user',
+            content: msg.content || '',
             timestamp: msg.timestamp || Date.now(),
-          }
-        }
-        return {
-          id: msg.id || `loaded-user-${idx}`,
-          role: 'user',
-          content: msg.content || '',
-          timestamp: msg.timestamp || Date.now(),
+          })
         }
       })
-      setMessages(parsedMessages)
+      setMessages(expanded)
     }
   }, [session?.attemptMessages, session?.messages])
 
@@ -846,7 +997,7 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
         const res = await fetch(`/api/loop/sessions/${sessionId}/message`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: text.trim(), phase: 'attempt', userProfile }),
+          body: JSON.stringify({ message: text.trim(), phase: 'attempt', userProfile, learnerName }),
         })
 
         if (!res.ok) throw new Error('Failed to send message')
@@ -864,19 +1015,6 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
 
         const parsed = parseCharacterResponse(accumulated, session?.kanjiLevel ?? 1)
 
-        const characterMsg: Message = {
-          id: `char-${Date.now()}`,
-          role: 'character',
-          content: parsed.characterContent,
-          romaji: parsed.romajiContent || undefined,
-          english: parsed.englishContent || undefined,
-          vocab: parsed.vocabList.length > 0 ? parsed.vocabList : undefined,
-          coachNote: parsed.coachNote || undefined,
-          options: parsed.options.length > 0 ? parsed.options : undefined,
-          hints: parsed.hints.length > 0 ? parsed.hints : undefined,
-          timestamp: Date.now(),
-        }
-
         // Attach jpOfYours to the most recent user message (if present)
         if (parsed.jpOfYours) {
           setMessages(prev => {
@@ -892,45 +1030,164 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
         }
 
         setIsStreaming(false)
-        setPendingMessage(characterMsg)
-        setIsAnimating(true)
-        setAnimatedChars(0)
 
-        const fullText = stripFurigana(parsed.characterContent)
-        const totalChars = fullText.length
-        const msPerChar = Math.max(30, Math.min(80, 2000 / totalChars))
-        let charCount = 0
+        // The AI's turn is a sequence of events: speech bubbles (with optional
+        // ---NEXT--- splits) interleaved with pre-filled auto-reply user
+        // messages (---AUTOREPLY---). Walk them in order, typewriter-animating
+        // each bubble and instant-inserting auto-replies in between.
+        const events = parsed.dialogueEvents.length > 0
+          ? parsed.dialogueEvents
+          : [{ type: 'bubble' as const, text: parsed.characterContent }]
 
-        animateTimerRef.current = setInterval(() => {
-          charCount++
-          setAnimatedChars(charCount)
-          if (charCount >= totalChars) {
-            if (animateTimerRef.current) clearInterval(animateTimerRef.current)
-            animateTimerRef.current = null
-            setMessages(prev => {
-              const next = [...prev, characterMsg]
-              // Auto-end check: farewell detected + at least 2 user exchanges
-              const userCount = next.filter(m => m.role === 'user').length
-              if (containsFarewell(parsed.characterContent) && userCount >= 1) {
-                setAutoEnding(true)
-                autoEndTimerRef.current = setTimeout(() => {
-                  onEndAttempt(next, lessonWords)
-                }, 1500)
-              }
-              return next
-            })
-            setPendingMessage(null)
-            setIsAnimating(false)
-            setAnimatedChars(0)
+        const lastBubbleIdx = (() => {
+          for (let i = events.length - 1; i >= 0; i--) {
+            if (events[i].type === 'bubble') return i
           }
-        }, msPerChar)
+          return -1
+        })()
+
+        // Walk the events once to compute each bubble's index among bubbles
+        // (auto-replies don't count). bubbleOrdinal[i] = the bubble-only
+        // position of event i, or -1 if it's an auto-reply. This lets us
+        // attach romajiSegments[ord] and englishSegments[ord] to bubble i.
+        // If the AI emits fewer segments than bubbles (e.g., no ---NEXT---
+        // in ROMAJI), the leftover bubbles fall back to the FULL romaji on
+        // the last bubble only — preserves backwards-compat with old replies.
+        const bubbleOrdinal: number[] = []
+        {
+          let ord = 0
+          for (const e of events) {
+            if (e.type === 'bubble') {
+              bubbleOrdinal.push(ord)
+              ord++
+            } else {
+              bubbleOrdinal.push(-1)
+            }
+          }
+        }
+        const bubbleCount = bubbleOrdinal.filter((o) => o >= 0).length
+        const romajiPerBubble = parsed.romajiSegments.length === bubbleCount
+        const englishPerBubble = parsed.englishSegments.length === bubbleCount
+
+        const playEvent = (idx: number) => {
+          if (idx >= events.length) {
+            // Sequence complete (e.g., AI ended on an auto-reply with no
+            // trailing bubble — shouldn't happen per prompt rules, but
+            // make sure the input UI is released).
+            setIsAnimating(false)
+            return
+          }
+          const ev = events[idx]
+
+          if (ev.type === 'autoreply') {
+            // Brief pause so the previous bubble has time to read, then
+            // pop in the pre-filled user reply.
+            setTimeout(() => {
+              setMessages(prev => [
+                ...prev,
+                {
+                  id: `auto-${Date.now()}-${idx}`,
+                  role: 'user',
+                  content: ev.japanese,
+                  userEnglish: ev.english || undefined,
+                  autoReplied: true,
+                  timestamp: Date.now(),
+                },
+              ])
+              // Continue to the next bubble after a short beat
+              setTimeout(() => playEvent(idx + 1), 350)
+            }, 500)
+            return
+          }
+
+          // Bubble: typewriter-animate, then commit, then continue.
+          const isLast = idx === lastBubbleIdx
+          const ord = bubbleOrdinal[idx]
+          // Prefer per-bubble romaji/EN; fall back to the full block on the
+          // last bubble only (old single-block behavior).
+          const bubbleRomaji = romajiPerBubble
+            ? parsed.romajiSegments[ord]
+            : isLast
+              ? parsed.romajiContent || undefined
+              : undefined
+          const bubbleEnglish = englishPerBubble
+            ? parsed.englishSegments[ord]
+            : isLast
+              ? parsed.englishContent || undefined
+              : undefined
+          const bubbleMsg: Message = {
+            id: `char-${Date.now()}-${idx}`,
+            role: 'character',
+            content: ev.text,
+            vocab: parsed.vocabList.length > 0 ? parsed.vocabList : undefined,
+            romaji: bubbleRomaji || undefined,
+            english: bubbleEnglish || undefined,
+            ...(isLast
+              ? {
+                  coachNote: parsed.coachNote || undefined,
+                  options: parsed.options.length > 0 ? parsed.options : undefined,
+                  hints: parsed.hints.length > 0 ? parsed.hints : undefined,
+                }
+              : {}),
+            timestamp: Date.now(),
+          }
+
+          setPendingMessage(bubbleMsg)
+          setIsAnimating(true)
+          setAnimatedChars(0)
+
+          const fullText = stripFurigana(ev.text)
+          const totalChars = Math.max(1, fullText.length)
+          const msPerChar = Math.max(30, Math.min(80, 2000 / totalChars))
+          let charCount = 0
+
+          animateTimerRef.current = setInterval(() => {
+            charCount++
+            setAnimatedChars(charCount)
+            if (charCount >= totalChars) {
+              if (animateTimerRef.current) clearInterval(animateTimerRef.current)
+              animateTimerRef.current = null
+              setMessages(prev => {
+                const next = [...prev, bubbleMsg]
+                if (isLast) {
+                  // Auto-end check fires only after the FINAL bubble
+                  const userCount = next.filter(m => m.role === 'user').length
+                  if (containsFarewell(parsed.characterContent) && userCount >= 1) {
+                    setAutoEnding(true)
+                    autoEndTimerRef.current = setTimeout(() => {
+                      onEndAttempt(next, lessonWords)
+                    }, 1500)
+                  }
+                }
+                return next
+              })
+              setPendingMessage(null)
+              setAnimatedChars(0)
+              if (isLast) {
+                // Sequence done — release the input UI
+                setIsAnimating(false)
+              } else {
+                // Brief pause between bubbles before the next event plays.
+                // Keep isAnimating=true so the input UI stays hidden during the gap.
+                setTimeout(() => playEvent(idx + 1), 400)
+              }
+            }
+          }, msPerChar)
+        }
+
+        // Kick off the playback. isAnimating is set true inside playEvent for
+        // the first bubble (or autoreply path keeps it implicit) — but for
+        // autoreply-first sequences (rare), set it now so the input stays
+        // hidden during the leading delay.
+        setIsAnimating(true)
+        playEvent(0)
       } catch (err) {
         console.error('Send error:', err)
       } finally {
         setIsStreaming(false)
       }
     },
-    [isStreaming, sessionId, onEndAttempt, userProfile],
+    [isStreaming, sessionId, session?.kanjiLevel, onEndAttempt, userProfile, learnerName, lessonWords],
   )
 
   // Send the typed Japanese (kana mode) directly into the conversation,
@@ -1173,11 +1430,28 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
               </div>
             ) : (
               <>
+                {/* Tiny auto-reply tag above the bubble — signals to the
+                    learner that the AI filled this in for them, so they
+                    don't think they pressed something by mistake. */}
+                {msg.autoReplied && (
+                  <div className="flex justify-end mb-1">
+                    <p
+                      className="text-[9px] tracking-[0.15em] uppercase text-[#9E9892] pr-1"
+                      style={{ fontFamily: 'DM Sans, sans-serif' }}
+                    >
+                      auto-reply
+                    </p>
+                  </div>
+                )}
                 {/* User message bubble — tappable to expand breakdown */}
                 <div className="flex justify-end">
                   <button
                     className="max-w-[85%] px-4 py-3 text-white text-left"
-                    style={{ backgroundColor: '#1B4F8A', borderRadius: '12px 2px 12px 12px' }}
+                    style={{
+                      backgroundColor: msg.autoReplied ? '#3A6FA8' : '#1B4F8A',
+                      borderRadius: '12px 2px 12px 12px',
+                      opacity: msg.autoReplied ? 0.85 : 1,
+                    }}
                     onClick={() => {
                       if (msg.translationData) {
                         setExpandedMessageId(
@@ -1513,10 +1787,10 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
                             : translated.japanese,
                         )
                       }
-                      className="text-white/40 text-xs mt-1 hover:text-white/70 transition-colors flex items-center gap-1"
+                      className="text-white/40 text-xs mt-1 hover:text-white/70 transition-colors flex items-center gap-1.5"
                       style={{ fontFamily: 'DM Sans, sans-serif' }}
                     >
-                      🔊 Hear it
+                      <SpeakerHigh size={12} weight="regular" /> Hear it
                     </button>
                   </div>
                 </div>
@@ -1690,10 +1964,11 @@ export default function AttemptPhase({ sessionId, session, diagnosing, onEndAtte
                     ))}
                     <button
                       onClick={() => setShowKanjiCandidates(false)}
-                      className="shrink-0 px-2 py-1 text-[#9E9892] text-xs"
+                      aria-label="Hide kanji suggestions"
+                      className="shrink-0 px-2 py-1 text-[#9E9892] hover:text-[#6B6560] transition-colors"
                       style={{ fontFamily: 'DM Sans, sans-serif' }}
                     >
-                      ✕
+                      <X size={12} weight="bold" />
                     </button>
                   </div>
                 )}

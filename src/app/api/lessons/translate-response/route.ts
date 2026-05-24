@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { buildProfileContext, type UserProfilePayload } from '@/lib/userProfileContext'
 import { getUserKanjiLevel } from '@/lib/user-level'
+import { buildLanguageProfile } from '@/lib/user-profile'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
@@ -35,7 +36,37 @@ export async function POST(req: NextRequest) {
     const { userId } = auth()
     const { constraint: kanjiConstraint } = await getUserKanjiLevel(userId || '')
 
-    const lvl = typeof userProfile?.experience === 'number' ? userProfile.experience : 5
+    // Pull persistent demographics (gender + birth year) from the users row.
+    // This is what drives translationStyle — making the output sound like a
+    // real ${age}-year-old ${gender} speaker.
+    let dbGender: string | null = null
+    let dbBirthYear: number | null = null
+    let dbExperience: number | null = null
+    if (userId && process.env.DATABASE_URL) {
+      try {
+        const { neon } = await import('@neondatabase/serverless')
+        const sql = neon(process.env.DATABASE_URL)
+        const rows = (await sql`
+          SELECT gender, birth_year, experience_level
+          FROM users WHERE clerk_id = ${userId}
+        `) as Array<{ gender: string | null; birth_year: number | null; experience_level: number | null }>
+        if (rows[0]) {
+          dbGender = rows[0].gender
+          dbBirthYear = rows[0].birth_year
+          dbExperience = rows[0].experience_level
+        }
+      } catch { /* fall through to body data */ }
+    }
+
+    // Prefer DB; fall back to Zustand-supplied data for legacy users without
+    // a persisted profile yet.
+    const profileForLanguage = buildLanguageProfile({
+      gender: dbGender ?? userProfile?.gender,
+      birthYear: dbBirthYear ?? userProfile?.birthYear ?? null,
+      experienceLevel: dbExperience ?? userProfile?.experience ?? null,
+    })
+
+    const lvl = typeof userProfile?.experience === 'number' ? userProfile.experience : (dbExperience ?? 5)
     const beginnerRules = lvl <= 4 ? `
 
 RULES FOR BEGINNER TRANSLATION (level 1-4):
@@ -106,6 +137,10 @@ RULES FOR BEGINNER TRANSLATION (level 1-4):
         {
           role: 'user',
           content: `You are a Japanese language teacher helping a learner.
+
+${profileForLanguage.translationStyle}
+
+${profileForLanguage.speechStyle}
 
 ${profileContext ? `LEARNER PROFILE:\n${profileContext}\n${beginnerRules}\n` : `${beginnerRules}\n`}Setting: ${setting}
 ${characterName} just said: 「${characterLine}」("${characterLineEN}")

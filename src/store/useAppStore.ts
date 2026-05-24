@@ -7,7 +7,7 @@ import { persist } from 'zustand/middleware'
 
 export interface UserProfile {
   direction: 'en-to-jp' | 'jp-to-en'
-  age: number | null
+  birthYear: number | null
   gender: string | null
   experience: number // 1-10
 }

@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useAppStore, t } from '@/store/useAppStore'
 import { SignedIn, SignedOut, useUser } from '@clerk/nextjs'
+import { House, BookmarkSimple } from '@phosphor-icons/react'
 import UserMenu from './UserMenu'
 
 interface NavLink {
@@ -144,9 +145,9 @@ export default function Navbar() {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#FDFBF8] border-t border-[#E0DAD2] z-40 pb-[env(safe-area-inset-bottom)]">
         <div className="flex justify-around px-2 py-2">
           {[
-            { key: 'nav.dashboard', href: '/dashboard', icon: '🏠', image: null, label: t('nav.dashboard', uiLanguage) },
-            { key: 'nav.collection', href: '/collection', icon: null, image: '/CollectionLogo.png', label: t('nav.collection', uiLanguage) },
-            { key: 'nav.saved', href: '/saved-lessons', icon: '📚', image: null, label: t('nav.saved', uiLanguage) },
+            { key: 'nav.dashboard', href: '/dashboard', Icon: House, image: null, label: t('nav.dashboard', uiLanguage) },
+            { key: 'nav.collection', href: '/collection', Icon: null, image: '/CollectionLogo.png', label: t('nav.collection', uiLanguage) },
+            { key: 'nav.saved', href: '/saved-lessons', Icon: BookmarkSimple, image: null, label: t('nav.saved', uiLanguage) },
           ].map((item) => {
             const isActive =
               pathname === item.href || pathname?.startsWith(item.href + '/')
@@ -166,9 +167,9 @@ export default function Navbar() {
                     height={24}
                     className={`w-6 h-6 rounded-[4px] object-cover ${isActive ? 'opacity-100' : 'opacity-60'}`}
                   />
-                ) : (
-                  <span className="text-xl">{item.icon}</span>
-                )}
+                ) : item.Icon ? (
+                  <item.Icon size={22} weight={isActive ? 'regular' : 'thin'} />
+                ) : null}
                 <span className="text-[10px] font-bold" style={{ fontFamily: 'DM Sans, sans-serif' }}>
                   {item.label}
                 </span>

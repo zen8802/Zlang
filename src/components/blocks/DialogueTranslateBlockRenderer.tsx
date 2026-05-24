@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { SpeakerHigh } from '@phosphor-icons/react'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DialogueTranslateBlock = any
 import Button from '@/components/ui/Button'
@@ -337,10 +338,10 @@ export function DialogueTranslateBlockRenderer({ block, onComplete }: Props) {
             </p>
             <button
               onClick={() => playAudio(current.characterLine)}
-              className="text-[#1B4F8A]/50 text-xs mt-2 hover:text-[#1B4F8A] transition-colors flex items-center gap-1"
+              className="text-[#1B4F8A]/50 text-xs mt-2 hover:text-[#1B4F8A] transition-colors flex items-center gap-1.5"
               style={{ fontFamily: 'DM Sans, sans-serif' }}
             >
-              🔊 Listen
+              <SpeakerHigh size={12} weight="regular" /> Listen
             </button>
           </div>
         </div>
@@ -386,10 +387,10 @@ export function DialogueTranslateBlockRenderer({ block, onComplete }: Props) {
                       : translated.japanese,
                   )
                 }
-                className="text-white/40 text-xs mt-1 hover:text-white/70 transition-colors flex items-center gap-1"
+                className="text-white/40 text-xs mt-1 hover:text-white/70 transition-colors flex items-center gap-1.5"
                 style={{ fontFamily: 'DM Sans, sans-serif' }}
               >
-                🔊 Hear your response
+                <SpeakerHigh size={12} weight="regular" /> Hear your response
               </button>
             </div>
           </div>

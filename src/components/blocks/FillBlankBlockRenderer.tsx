@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { SpeakerHigh } from '@phosphor-icons/react'
 import type { FillBlankBlock } from '@/types/lesson-blocks'
 import Button from '@/components/ui/Button'
 
@@ -135,7 +136,7 @@ export default function FillBlankBlockRenderer({ block, onComplete }: Props) {
                 <p className="font-semibold text-[#3D6B4F]">Correct!</p>
                 <p className="text-3xl font-normal text-[#3D6B4F]" style={{ fontFamily: 'Noto Sans JP' }}>{sentence.answer}</p>
               </div>
-              <button onClick={() => playAudio(sentence.answer)} className="ml-auto w-9 h-9 rounded-full bg-[#FDFBF8] flex items-center justify-center text-[#3D6B4F]">🔊</button>
+              <button onClick={() => playAudio(sentence.answer)} aria-label="Play audio" className="ml-auto w-9 h-9 rounded-full bg-[#FDFBF8] flex items-center justify-center text-[#3D6B4F]"><SpeakerHigh size={16} weight="regular" /></button>
             </div>
             {sentence.explanation && (
               <p className="text-sm text-[#3D6B4F]">{sentence.explanation}</p>

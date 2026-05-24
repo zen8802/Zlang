@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import * as wanakana from 'wanakana'
+import { X } from '@phosphor-icons/react'
 
 interface KanjiCandidate {
   text: string
@@ -207,10 +208,10 @@ export function JapaneseInput({
           ))}
           <button
             onClick={() => setShowCandidates(false)}
-            className="shrink-0 px-2 py-1.5 text-[#9E9892] text-xs"
-            style={{ fontFamily: 'DM Sans, sans-serif' }}
+            aria-label="Hide candidates"
+            className="shrink-0 px-2 py-1.5 text-[#9E9892] hover:text-[#6B6560] transition-colors"
           >
-            ✕
+            <X size={12} weight="bold" />
           </button>
         </div>
       )}

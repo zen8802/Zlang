@@ -1,8 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { SCENARIO_TEMPLATES, CHARACTER_ROSTER } from '@/data/scenarios'
 import { buildProfileContext, type UserProfilePayload } from '@/lib/userProfileContext'
 import { getUserKanjiLevel } from '@/lib/user-level'
+import { buildLanguageProfile } from '@/lib/user-profile'
 
 function levelAdaptiveRules(level: number): string {
   if (level <= 2) {
@@ -115,7 +116,7 @@ export async function POST(request: Request) {
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { scenarioId, customPrompt, customScenario, userProfile }: any =
+    const { scenarioId, customPrompt, customScenario, userProfile, selectedCharacterId }: any =
       await request.json()
 
     if (!scenarioId && !customScenario) {
@@ -226,15 +227,51 @@ export async function POST(request: Request) {
     const { userId: clerkUserId } = auth()
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-    let characterName = scenario.character.name
-    let characterNameJP = scenario.character.nameJP
+    // If the learner picked an alternate character on the picker screen, swap
+    // the canonical scenario.character fields for that roster member's
+    // profile + the scenario-specific relationship line.
+    let effectiveCharacter: {
+      name: string
+      nameJP: string
+      description: string
+      personality: string
+      speechStyle: string
+      relationship: string
+      voiceId: string
+      avatar: string
+    } = scenario.character
+    if (
+      typeof selectedCharacterId === 'string' &&
+      selectedCharacterId &&
+      scenario.character.id !== selectedCharacterId
+    ) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const roster = CHARACTER_ROSTER.find((c: any) => c.id === selectedCharacterId)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const altMeta = (scenario.alternates || []).find((a: any) => a.characterId === selectedCharacterId)
+      if (roster) {
+        effectiveCharacter = {
+          name: roster.name,
+          nameJP: roster.nameJP,
+          description: roster.description,
+          personality: roster.personality,
+          speechStyle: roster.speechStyle,
+          relationship: altMeta?.relationship || scenario.character.relationship,
+          voiceId: roster.voiceId,
+          avatar: roster.avatar,
+        }
+      }
+    }
+
+    let characterName = effectiveCharacter.name
+    let characterNameJP = effectiveCharacter.nameJP
     const characterColor = scenario.color || '#1B4F8A'
-    let characterAvatar = scenario.character.avatar
-    let voiceId = scenario.character.voiceId || 'JOcmGzB8OFjY8MhjHHEf'
-    let characterDescription = scenario.character.description
-    let characterPersonality = scenario.character.personality
-    let characterSpeechStyle = scenario.character.speechStyle
-    let characterRelationship = scenario.character.relationship
+    let characterAvatar = effectiveCharacter.avatar
+    let voiceId = effectiveCharacter.voiceId || 'JOcmGzB8OFjY8MhjHHEf'
+    let characterDescription = effectiveCharacter.description
+    let characterPersonality = effectiveCharacter.personality
+    let characterSpeechStyle = effectiveCharacter.speechStyle
+    let characterRelationship = effectiveCharacter.relationship
     let setting = scenario.setting
     let openingLine = scenario.openingLine
     let scenarioTitle = scenario.title
@@ -302,6 +339,41 @@ Return ONLY valid JSON (no markdown fences):
     // injected into every prompt downstream from here.
     const { level: kanjiLevel, constraint: kanjiConstraint } = await getUserKanjiLevel(clerkUserId || '')
 
+    // Pull demographic profile from the users row so we can persist it on
+    // loop_sessions and shape every AI surface for this conversation.
+    let userGender = 'other'
+    let userBirthYear = 1995
+    if (clerkUserId && process.env.DATABASE_URL) {
+      try {
+        const { neon } = await import('@neondatabase/serverless')
+        const sql = neon(process.env.DATABASE_URL!)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rows = (await sql`
+          SELECT gender, birth_year, experience_level
+          FROM users WHERE clerk_id = ${clerkUserId}
+        `) as Array<{ gender: string | null; birth_year: number | null; experience_level: number | null }>
+        if (rows[0]) {
+          userGender = rows[0].gender || 'other'
+          userBirthYear = rows[0].birth_year ?? 1995
+        }
+      } catch {
+        /* defaults are fine */
+      }
+    }
+
+    const languageProfile = buildLanguageProfile({
+      gender: userGender,
+      birthYear: userBirthYear,
+      experienceLevel: experience,
+    })
+
+    // Learner's display name — used by the AI for auto-reply self-introductions.
+    let learnerName = ''
+    try {
+      const cu = await currentUser()
+      learnerName = cu?.firstName || cu?.username || ''
+    } catch { /* anonymous session — fine */ }
+
     // Generate the opening message via Claude so it fits the loop context
     const systemPrompt = buildLoopSystemPrompt({
       characterName,
@@ -313,11 +385,14 @@ Return ONLY valid JSON (no markdown fences):
       setting,
       userProfile,
       kanjiConstraint,
+      characterStyle: languageProfile.characterStyle,
+      speechStyle: languageProfile.speechStyle,
+      learnerName,
     })
 
     const opening = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 500,
+      max_tokens: 1500,
       system: systemPrompt,
       messages: [
         {
@@ -373,6 +448,7 @@ Return ONLY valid JSON (no markdown fences):
             character_description, character_personality, character_speech_style,
             character_relationship, voice_id, setting, opening_line,
             phase, loop_mode, user_experience_level, kanji_level,
+            user_gender, user_birth_year,
             attempt_messages, retry_messages,
             diagnosis, learn_blocks, milestone_card,
             created_at
@@ -383,6 +459,7 @@ Return ONLY valid JSON (no markdown fences):
             ${characterDescription}, ${characterPersonality}, ${characterSpeechStyle},
             ${characterRelationship}, ${voiceId}, ${setting}, ${openingLine},
             'attempt', ${loopMode}, ${experience}, ${kanjiLevel},
+            ${userGender}, ${userBirthYear},
             ${JSON.stringify([{ role: 'assistant', content: openingMessage }])}::jsonb,
             '[]'::jsonb,
             NULL,
@@ -424,6 +501,9 @@ function buildLoopSystemPrompt(opts: {
   userLevel?: string
   userProfile?: UserProfilePayload | null
   kanjiConstraint: string
+  characterStyle?: string
+  speechStyle?: string
+  learnerName?: string
 }): string {
   const {
     characterName,
@@ -438,15 +518,21 @@ function buildLoopSystemPrompt(opts: {
     userLevel = 'beginner',
     userProfile,
     kanjiConstraint,
+    characterStyle = '',
+    speechStyle = '',
+    learnerName = '',
   } = opts
 
   const profileContext = buildProfileContext(userProfile)
   const level = typeof userProfile?.experience === 'number' ? userProfile.experience : 5
   const adaptiveRules = levelAdaptiveRules(level)
 
+  // Demographic-driven style blocks. Empty strings render to nothing.
+  const demographicBlock = [characterStyle, speechStyle].filter(Boolean).join('\n\n')
+
   return `You are playing a character in a Japanese language learning conversation simulator (Loop mode — Attempt phase).
 
-${profileContext ? `LEARNER PROFILE:\n${profileContext}\n\n` : ''}${adaptiveRules}
+${demographicBlock ? `${demographicBlock}\n\n` : ''}${profileContext ? `LEARNER PROFILE:\n${profileContext}\n\n` : ''}${adaptiveRules}
 CHARACTER: ${characterName} (${characterNameJP})
 ${characterDescription}
 Personality: ${characterPersonality}
@@ -459,7 +545,7 @@ RELATIONSHIP: ${characterRelationship}
 THE LEARNER:
 - Native language: ${nativeLanguage}
 - Target language: ${targetLanguage} (this is what they're learning)
-- Level: ${userLevel}
+- Level: ${userLevel}${learnerName ? `\n- Name: ${learnerName} (use this when an auto-reply self-introduction is appropriate)` : ''}
 
 STRICT RULES:
 1. Stay COMPLETELY in character. Speak in ${targetLanguage}.
@@ -476,11 +562,44 @@ STRICT RULES:
    exampleEN is the English translation of that example
    Example: 水(みず)|みず|mizu|water|noun|水(みず)をください。|mizu o kudasai.|Water, please.
    Only include words actually used in your dialogue. Include the furigana format in the word field.
-8. Then add "---ROMAJI---" with the romaji reading of your ENTIRE dialogue. Use macrons for long vowels: ō (おう/おお), ū (うう), ē (えい), ā (ああ). Example: ベーコン → bēkon, とうきょう → Tōkyō, ラーメン → rāmen. This helps learners pronounce correctly.
-9. Then add "---EN---" with a natural English translation of your dialogue.
+8. Then add "---ROMAJI---" with the romaji reading of your dialogue. Use macrons for long vowels: ō (おう/おお), ū (うう), ē (えい), ā (ああ). Example: ベーコン → bēkon, とうきょう → Tōkyō, ラーメン → rāmen. If your dialogue uses "---NEXT---" to split into multiple bubbles, the ROMAJI section MUST also use "---NEXT---" with one segment per bubble (in the same order). DO NOT include romaji for ---AUTOREPLY--- text.
+9. Then add "---EN---" with a natural English translation. If your dialogue uses "---NEXT---", the EN section MUST also use "---NEXT---" with one segment per bubble (matching order). DO NOT include EN for ---AUTOREPLY--- text.
 10. Then add "---COACH---" with ONE concise cultural fact in ${nativeLanguage}. MAX 1 sentence. Must be a specific, concrete fact — a date, a number, a rule, an origin story, a social norm. NO flowery descriptions. Include any relevant Japanese words with furigana: 漢字(かんじ) format.
 11. Never break character before the separators.
 12. Keep responses concise — 1-3 sentences of dialogue.
+12a. MULTI-BUBBLE DIALOGUE — If your turn has TWO OR MORE natural beats (e.g., a greeting THEN a topic shift, or a statement THEN a separate question), split the bubbles using "---NEXT---" on its own line between them. KEEP each bubble to 1-2 sentences max. Three sentences crammed into one bubble is OVERWHELMING.
+   Example:
+     あ、おつかれさまです。田中(たなか)です。
+     ---NEXT---
+     じてんしゃをかいにきてくださって、ありがとうございます。
+     ---NEXT---
+     こちらがしゃしんのじてんしゃです。まず見(み)てみませんか？
+12b. AUTO-REPLY FOR FORMULAIC LEARNER TURNS — When the natural learner response to one of your bubbles would be PURELY MECHANICAL (reciprocating a self-introduction, saying "thank you" back, acknowledging a routine いらっしゃいませ), you MAY pre-fill the learner's response so the conversation flows without forcing them to type an obvious one-liner. Use this SPARINGLY. Format:
+     ---AUTOREPLY---
+     [learner's response in Japanese, demographic-appropriate, with furigana on kanji]
+     ---AUTOREPLY_EN---
+     [the same in natural English]
+     ---NEXT---
+     [your next bubble continues the conversation]
+   ${learnerName ? `Use the learner's name "${learnerName}" when the auto-reply is a self-introduction (e.g., こちらこそ、${learnerName}です).` : ''}
+   DO NOT auto-reply with anything that has scenario consequences (orders, decisions, agreements). ONLY mechanical pleasantries. Your turn must still END with a bubble that asks the learner a concrete question or request.
+12c. PER-BUBBLE ROMAJI AND EN — When dialogue is split via "---NEXT---", ROMAJI and EN sections must ALSO be split via "---NEXT---" with one segment per bubble in matching order. VOCAB, COACH, OPTIONS, JP_OF_YOURS, HINTS still cover the FULL turn (no splitting). Do NOT include auto-reply text in ROMAJI or EN.
+   Example:
+     [dialogue line 1]
+     ---NEXT---
+     [dialogue line 2]
+     ---VOCAB---
+     ...
+     ---ROMAJI---
+     [romaji of line 1]
+     ---NEXT---
+     [romaji of line 2]
+     ---EN---
+     [english of line 1]
+     ---NEXT---
+     [english of line 2]
+     ---COACH---
+     ...
 13. Progress the scenario naturally. Don't wait for perfect Japanese.
 13a. CRITICAL — NEVER end your turn on a pure acknowledgment OR a pure greeting. If your natural reaction would be a one-line ack like "good choice", "okay", "got it", "わかった", "了解(りょうかい)", "いいね", "はい" — DO NOT stop there. In the SAME message, immediately chain into the next conversation beat from the SETTING's CONVERSATION FLOW (or, if no flow is defined, the next natural step in the scenario). Every message must end with a CONCRETE QUESTION OR REQUEST the learner can directly answer. Examples of acceptable endings: "what'll you have?", "how firm do you want the noodles?", "that'll be 800 yen", "where are you from?". Examples of UNACCEPTABLE endings: "welcome!", "have a seat!", "sit anywhere!", "good choice!" — these give the learner nothing to respond to.
 13b. OPENING MESSAGE — your VERY FIRST message in the conversation MUST follow rule 13a even more strictly. After greeting the learner, in the SAME message, ask the FIRST question of the scenario. For a ramen shop the opening must end with the equivalent of "what'll you have today?" / 何(なに)にしますか？ — never just "welcome, sit down". The learner should be able to answer your opening message with a concrete order/preference/request immediately.

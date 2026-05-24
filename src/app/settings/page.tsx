@@ -10,7 +10,7 @@
 //   settings.totalXP, settings.lessonsCompleted
 // ---------------------------------------------------------------------------
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import Navbar from '@/components/layout/Navbar'
 import MobileNav from '@/components/layout/MobileNav'
@@ -42,6 +42,50 @@ export default function SettingsPage() {
   const [showResetModal, setShowResetModal] = useState(false)
   const [showResetAllModal, setShowResetAllModal] = useState(false)
   const [pendingCorridor, setPendingCorridor] = useState<'en-to-jp' | 'jp-to-en' | null>(null)
+
+  // ------- Demographic profile (from /api/user/profile) -------
+  const [profileGender, setProfileGender] = useState<'male' | 'female' | 'other'>('other')
+  const [profileBirthYear, setProfileBirthYear] = useState<number>(1995)
+  const [profileExperience, setProfileExperience] = useState<number>(3)
+  const [profileLoaded, setProfileLoaded] = useState(false)
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [profileSaved, setProfileSaved] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/user/profile')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.gender) setProfileGender(data.gender)
+        if (data?.birthYear) setProfileBirthYear(data.birthYear)
+        if (typeof data?.experienceLevel === 'number') setProfileExperience(data.experienceLevel)
+        setProfileLoaded(true)
+      })
+      .catch(() => setProfileLoaded(true))
+  }, [])
+
+  const handleSaveProfile = useCallback(async () => {
+    setProfileSaving(true)
+    try {
+      await fetch('/api/user/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gender: profileGender,
+          birthYear: profileBirthYear,
+          experienceLevel: profileExperience,
+        }),
+      })
+      setProfileSaved(true)
+      setTimeout(() => setProfileSaved(false), 1800)
+    } catch {
+      /* silent */
+    }
+    setProfileSaving(false)
+  }, [profileGender, profileBirthYear, profileExperience])
+
+  const CURRENT_YEAR = new Date().getFullYear()
+  const YEARS = Array.from({ length: 70 }, (_, i) => CURRENT_YEAR - 13 - i)
+  const computedAge = CURRENT_YEAR - profileBirthYear
 
   // ------- Handlers -------
   const handleCorridorSwitch = useCallback(
@@ -97,6 +141,126 @@ export default function SettingsPage() {
         <h1 className="text-3xl font-display font-bold text-accent text-glow mb-8">
           {t('settings.title', uiLanguage)}
         </h1>
+
+        {/* ===== Profile — drives demographic-aware Japanese ===== */}
+        <motion.div custom={0} initial="hidden" animate="visible" variants={sectionVariants}>
+          <Card padding="lg" className="mb-5">
+            <h2 className="text-lg font-semibold text-foreground mb-1 flex items-center gap-2">
+              <span className="text-accent/60">⚙</span>
+              {uiLanguage === 'en' ? 'Profile' : 'プロフィール'}
+            </h2>
+            <p className="text-xs text-foreground/40 mb-5">
+              {uiLanguage === 'en'
+                ? 'Shapes how the app speaks to you and how your Japanese sounds.'
+                : 'これにより、アプリの話し方やあなたの日本語のトーンが変わります。'}
+            </p>
+
+            {/* Gender */}
+            <div className="py-3 border-b border-black/[0.06]">
+              <p className="text-sm font-medium text-foreground mb-2">
+                {uiLanguage === 'en' ? 'Gender' : '性別'}
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {(['male', 'female', 'other'] as const).map((g) => (
+                  <button
+                    key={g}
+                    onClick={() => setProfileGender(g)}
+                    disabled={!profileLoaded}
+                    className="py-2.5 rounded-[8px] text-xs font-medium border-2 transition-all capitalize"
+                    style={{
+                      fontFamily: 'DM Sans, sans-serif',
+                      backgroundColor: profileGender === g ? '#1B4F8A' : '#FDFBF8',
+                      borderColor: profileGender === g ? '#1B4F8A' : '#E0DAD2',
+                      color: profileGender === g ? 'white' : '#1A1814',
+                    }}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Birth year */}
+            <div className="py-3 border-b border-black/[0.06]">
+              <div className="flex items-baseline justify-between mb-2">
+                <p className="text-sm font-medium text-foreground">
+                  {uiLanguage === 'en' ? 'Year of birth' : '生年'}
+                </p>
+                {profileLoaded && (
+                  <p className="text-xs text-foreground/50">
+                    {uiLanguage === 'en'
+                      ? `${computedAge} years old`
+                      : `${computedAge}歳`}
+                  </p>
+                )}
+              </div>
+              <select
+                value={profileBirthYear}
+                onChange={(e) => setProfileBirthYear(parseInt(e.target.value, 10))}
+                disabled={!profileLoaded}
+                className="w-full px-4 py-3 rounded-[10px] border-2 outline-none text-sm cursor-pointer"
+                style={{
+                  fontFamily: 'DM Sans, sans-serif',
+                  backgroundColor: '#FDFBF8',
+                  borderColor: '#E0DAD2',
+                  color: '#1A1814',
+                }}
+              >
+                {YEARS.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Experience */}
+            <div className="py-3">
+              <div className="flex items-baseline justify-between mb-2">
+                <p className="text-sm font-medium text-foreground">
+                  {uiLanguage === 'en' ? 'Japanese experience' : '日本語の経験'}
+                </p>
+                <p className="text-xs text-foreground/50" style={{ fontFamily: 'DM Mono, monospace' }}>
+                  {profileExperience}/10
+                </p>
+              </div>
+              <input
+                type="range"
+                min={1}
+                max={10}
+                value={profileExperience}
+                onChange={(e) => setProfileExperience(parseInt(e.target.value, 10))}
+                disabled={!profileLoaded}
+                style={{ width: '100%', accentColor: '#1B4F8A' }}
+              />
+            </div>
+
+            {/* Save */}
+            <div className="pt-4">
+              <button
+                onClick={handleSaveProfile}
+                disabled={!profileLoaded || profileSaving}
+                className="w-full py-3 rounded-[10px] text-sm font-medium text-white transition-all disabled:opacity-50 active:translate-y-px"
+                style={{
+                  fontFamily: 'DM Sans, sans-serif',
+                  backgroundColor: profileSaved ? '#3D6B4F' : '#1B4F8A',
+                }}
+              >
+                {profileSaved
+                  ? uiLanguage === 'en'
+                    ? '✓ Saved'
+                    : '✓ 保存しました'
+                  : profileSaving
+                    ? uiLanguage === 'en'
+                      ? 'Saving…'
+                      : '保存中…'
+                    : uiLanguage === 'en'
+                      ? 'Save profile'
+                      : 'プロフィールを保存'}
+              </button>
+            </div>
+          </Card>
+        </motion.div>
 
         {/* ===== Language & Learning ===== */}
         <motion.div custom={0} initial="hidden" animate="visible" variants={sectionVariants}>

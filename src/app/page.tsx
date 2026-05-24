@@ -17,7 +17,7 @@ export default function OnboardingPage() {
 
   const [step, setStep] = useState<Step>('language')
   const [direction, setDirection] = useState<'en-to-jp' | 'jp-to-en'>('en-to-jp')
-  const [age, setAge] = useState<number | null>(null)
+  const [birthYear, setBirthYear] = useState<number | null>(null)
   const [gender, setGender] = useState<string | null>(null)
   const [experience, setExperience] = useState<number>(1)
   const [exiting, setExiting] = useState(false)
@@ -31,15 +31,29 @@ export default function OnboardingPage() {
   }
 
   const finish = async () => {
-    const profile = { direction, age, gender, experience }
+    const profile = { direction, birthYear, gender, experience }
     setUserProfile(profile)
+
+    // Persist to the database (canonical source for AI prompts).
+    // Fire-and-forget — Zustand + Clerk cover the immediate session.
+    void fetch('/api/user/profile', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        gender,
+        birthYear,
+        experienceLevel: experience,
+        nativeLanguage: direction === 'jp-to-en' ? 'ja' : 'en',
+        targetLanguage: direction === 'jp-to-en' ? 'en' : 'ja',
+      }),
+    }).catch(() => { /* DB is best-effort; local + Clerk already cover us */ })
+
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('mirai_profile', JSON.stringify(profile))
       } catch {}
     }
     // Persist to Clerk so the profile follows the user across devices/browsers.
-    // Fire-and-forget — we don't want to block the redirect on a slow API call.
     if (user) {
       void user
         .update({
@@ -94,9 +108,9 @@ export default function OnboardingPage() {
         )}
         {step === 'profile' && (
           <ProfileStep
-            age={age}
+            birthYear={birthYear}
             gender={gender}
-            onChangeAge={setAge}
+            onChangeBirthYear={setBirthYear}
             onChangeGender={setGender}
             onContinue={() => advance('experience')}
             onBack={() => advance('language')}

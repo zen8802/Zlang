@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, ReactNode } from 'react'
+import { X } from '@phosphor-icons/react'
 
 interface ModalProps {
   isOpen: boolean
@@ -36,7 +37,9 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
         {title && (
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold" style={{ color: '#1A1A2E' }}>{title}</h2>
-            <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors">✕</button>
+            <button onClick={onClose} aria-label="Close" className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors">
+              <X size={14} weight="bold" />
+            </button>
           </div>
         )}
         {children}

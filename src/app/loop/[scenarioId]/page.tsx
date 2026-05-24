@@ -5,9 +5,10 @@ import { useParams, useRouter } from 'next/navigation'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
-import { SCENARIO_TEMPLATES } from '@/data/scenarios'
+import { SCENARIO_TEMPLATES, CHARACTER_ROSTER } from '@/data/scenarios'
 import type { ScenarioTemplate } from '@/data/scenarios'
 import { useAppStore } from '@/store/useAppStore'
+import { Check, CaretDown } from '@phosphor-icons/react'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const DIFFICULTY_BADGE: Record<string, { color: 'green' | 'blue' | 'gold'; label: string }> = {
@@ -16,19 +17,18 @@ const DIFFICULTY_BADGE: Record<string, { color: 'green' | 'blue' | 'gold'; label
   advanced: { color: 'gold', label: 'Advanced' },
 }
 
-const HOW_IT_WORKS_BEGINNER = [
-  { emoji: '💬', title: 'Experience the conversation', desc: 'Type what you want to say in English. We translate it into natural Japanese for you.' },
-  { emoji: '📖', title: 'Get a personal lesson', desc: 'AI builds a lesson from exactly what happened in your conversation. Nothing generic.' },
-  { emoji: '👁️', title: 'See how much you remember', desc: 'The conversation replays with translations hidden. Tap to reveal what you understood.' },
-  { emoji: '🃏', title: 'Collect words you discovered', desc: 'Every Japanese word you encounter gets added to your collection automatically.' },
-]
-
-const HOW_IT_WORKS_INTERMEDIATE = [
-  { emoji: '💬', title: 'Jump straight in', desc: 'No warmup. No vocab list. The character starts talking and you respond.' },
-  { emoji: '😅', title: 'Struggle productively', desc: 'Freeze up, make mistakes, work around gaps. That discomfort is the learning.' },
-  { emoji: '🎯', title: 'Get a surgical lesson', desc: 'AI diagnoses exactly what held you back and teaches only that. Nothing else.' },
-  { emoji: '🔄', title: 'Retry with new knowledge', desc: 'Same scenario, same character. This time you have the words. Use them.' },
-]
+interface CharacterChoice {
+  id: string
+  name: string
+  nameJP: string
+  description: string
+  personality: string
+  speechStyle: string
+  relationship: string
+  voiceId: string
+  avatar: string
+  isRecommended: boolean
+}
 
 export default function LoopScenarioPage() {
   const params = useParams()
@@ -42,6 +42,50 @@ export default function LoopScenarioPage() {
   const scenario: ScenarioTemplate | undefined = SCENARIO_TEMPLATES.find(s => s.id === scenarioId)
   const isCustom = scenarioId === 'custom'
 
+  // Character picker — assembles the recommended character + any alternates
+  // declared on the scenario. The recommended is auto-selected; clicking the
+  // character card opens the dropdown to swap.
+  const recommendedId = scenario?.character.id || ''
+  const characterChoices: CharacterChoice[] = (() => {
+    if (!scenario) return []
+    const list: CharacterChoice[] = [
+      {
+        id: recommendedId,
+        name: scenario.character.name,
+        nameJP: scenario.character.nameJP,
+        description: scenario.character.description,
+        personality: scenario.character.personality,
+        speechStyle: scenario.character.speechStyle,
+        relationship: scenario.character.relationship,
+        voiceId: scenario.character.voiceId,
+        avatar: scenario.character.avatar,
+        isRecommended: true,
+      },
+    ]
+    for (const alt of scenario.alternates || []) {
+      const roster = CHARACTER_ROSTER.find((c) => c.id === alt.characterId)
+      if (!roster || roster.id === recommendedId) continue
+      list.push({
+        id: roster.id,
+        name: roster.name,
+        nameJP: roster.nameJP,
+        description: roster.description,
+        personality: roster.personality,
+        speechStyle: roster.speechStyle,
+        relationship: alt.relationship,
+        voiceId: roster.voiceId,
+        avatar: roster.avatar,
+        isRecommended: false,
+      })
+    }
+    return list
+  })()
+
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string>(recommendedId)
+  const [characterPickerOpen, setCharacterPickerOpen] = useState(false)
+  const selectedCharacter =
+    characterChoices.find((c) => c.id === selectedCharacterId) || characterChoices[0]
+
   const handleStart = async () => {
     setIsStarting(true)
     try {
@@ -52,6 +96,7 @@ export default function LoopScenarioPage() {
           scenarioId: isCustom ? 'custom' : scenarioId,
           customSituation: isCustom ? customSituation : undefined,
           userProfile,
+          selectedCharacterId: !isCustom ? selectedCharacterId : undefined,
         }),
       })
       const data = await res.json()
@@ -188,77 +233,147 @@ export default function LoopScenarioPage() {
           </p>
         </Card>
 
-        {/* Character preview */}
-        <Card variant="default" padding="md" className="mb-4">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-14 h-14 rounded-full shrink-0 flex items-center justify-center text-white text-xl font-bold overflow-hidden border-2 border-white"
-              style={{
-                backgroundColor: scenario.color || '#1B4F8A',
-              }}
-            >
-              {scenario.character.avatar ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={scenario.character.avatar} alt="" className="w-full h-full object-cover" />
-              ) : (
-                scenario.character.name[0]
-              )}
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold" style={{ color: '#1A1814' }}>
-                {scenario.character.name}
-                <span className="font-normal ml-1.5 text-xs" style={{ color: '#9E9892', fontFamily: 'Noto Sans JP' }}>
-                  {scenario.character.nameJP}
-                </span>
-              </p>
-              <p className="text-xs mt-0.5 line-clamp-2" style={{ color: '#6B6560' }}>
-                {scenario.character.description}
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        {/* How this works — adapts to user level */}
-        {(() => {
-          const isBeginnerMode = (userProfile?.experience || 1) <= 2
-          const steps = isBeginnerMode ? HOW_IT_WORKS_BEGINNER : HOW_IT_WORKS_INTERMEDIATE
-          return (
-            <div
-              className="rounded-[10px] border border-[#E0DAD2] overflow-hidden mb-6"
-              style={{ backgroundColor: '#FDFBF8' }}
-            >
-              <div className="px-4 pt-4 pb-2">
-                <p
-                  className="text-[10px] tracking-widest uppercase text-[#9E9892] font-medium"
-                  style={{ fontFamily: 'DM Sans' }}
-                >
-                  How this works
+        {/* Character picker — preview card is clickable; opens dropdown */}
+        <div className="mb-4">
+          <button
+            type="button"
+            onClick={() => characterChoices.length > 1 && setCharacterPickerOpen((o) => !o)}
+            className={`w-full rounded-[10px] border border-[#E0DAD2] bg-[#FDFBF8] px-4 py-3 text-left transition-colors focus:outline-none focus:border-[#1B4F8A] ${
+              characterChoices.length > 1 ? 'hover:border-[#C8C3BC] cursor-pointer' : 'cursor-default'
+            }`}
+            aria-expanded={characterPickerOpen}
+            disabled={characterChoices.length <= 1}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className="w-14 h-14 rounded-full shrink-0 flex items-center justify-center text-white text-xl font-bold overflow-hidden border-2 border-white"
+                style={{ backgroundColor: scenario.color || '#1B4F8A' }}
+              >
+                {selectedCharacter?.avatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={selectedCharacter.avatar}
+                    alt=""
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+                    }}
+                  />
+                ) : (
+                  selectedCharacter?.name?.[0] || '?'
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold flex items-center flex-wrap gap-x-1.5" style={{ color: '#1A1814' }}>
+                  <span>{selectedCharacter?.name}</span>
+                  <span className="font-normal text-xs" style={{ color: '#9E9892', fontFamily: 'Noto Sans JP' }}>
+                    {selectedCharacter?.nameJP}
+                  </span>
+                  {selectedCharacter?.isRecommended && (
+                    <span
+                      className="italic text-[10px]"
+                      style={{ color: '#1B4F8A', fontFamily: 'DM Sans, sans-serif' }}
+                    >
+                      recommended
+                    </span>
+                  )}
+                </p>
+                <p className="text-xs mt-0.5 line-clamp-2" style={{ color: '#6B6560' }}>
+                  {selectedCharacter?.description}
                 </p>
               </div>
-              <div className="divide-y divide-[#F5F0EB]">
-                {steps.map((step, i) => (
-                  <div key={i} className="flex items-start gap-3 px-4 py-3">
-                    <span className="text-lg shrink-0 mt-0.5">{step.emoji}</span>
-                    <div>
-                      <p
-                        className="text-[#1A1814] font-semibold text-sm"
-                        style={{ fontFamily: 'Shippori Mincho' }}
-                      >
-                        {step.title}
-                      </p>
-                      <p
-                        className="text-[#9E9892] text-xs mt-0.5 leading-relaxed"
-                        style={{ fontFamily: 'DM Sans' }}
-                      >
-                        {step.desc}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {characterChoices.length > 1 && (
+                <CaretDown
+                  size={16}
+                  weight="bold"
+                  style={{
+                    color: '#9E9892',
+                    transform: characterPickerOpen ? 'rotate(180deg)' : 'rotate(0)',
+                    transition: 'transform 0.18s ease',
+                  }}
+                />
+              )}
             </div>
-          )
-        })()}
+          </button>
+
+          {characterPickerOpen && characterChoices.length > 1 && (
+            <div className="mt-2 rounded-[10px] border border-[#E0DAD2] bg-[#FDFBF8] overflow-hidden">
+              <div className="px-4 py-2 border-b border-[#F5F0EB]">
+                <p
+                  className="text-[10px] tracking-widest uppercase text-[#9E9892] font-medium"
+                  style={{ fontFamily: 'DM Sans, sans-serif' }}
+                >
+                  Practice with
+                </p>
+              </div>
+              <ul className="divide-y divide-[#F5F0EB]">
+                {characterChoices.map((c) => {
+                  const isSelected = c.id === selectedCharacterId
+                  return (
+                    <li key={c.id || c.name}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedCharacterId(c.id)
+                          setCharacterPickerOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-3 transition-colors ${
+                          isSelected ? 'bg-[#EBF0F8]' : 'hover:bg-[#F5F0EB]'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div
+                            className="w-10 h-10 rounded-full shrink-0 flex items-center justify-center text-white text-sm font-bold overflow-hidden border border-white"
+                            style={{ backgroundColor: scenario.color || '#1B4F8A' }}
+                          >
+                            {c.avatar ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={c.avatar}
+                                alt=""
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+                                }}
+                              />
+                            ) : (
+                              c.name[0]
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold flex items-center flex-wrap gap-x-1.5" style={{ color: '#1A1814' }}>
+                              <span>{c.name}</span>
+                              <span className="font-normal text-xs" style={{ color: '#9E9892', fontFamily: 'Noto Sans JP' }}>
+                                {c.nameJP}
+                              </span>
+                              {c.isRecommended && (
+                                <span
+                                  className="italic text-[10px]"
+                                  style={{ color: '#1B4F8A', fontFamily: 'DM Sans, sans-serif' }}
+                                >
+                                  recommended
+                                </span>
+                              )}
+                            </p>
+                            <p className="text-xs mt-0.5 leading-relaxed line-clamp-2" style={{ color: '#6B6560' }}>
+                              {c.description}
+                            </p>
+                            <p className="text-[11px] mt-1 italic" style={{ color: '#9E9892' }}>
+                              {c.relationship}
+                            </p>
+                          </div>
+                          {isSelected && (
+                            <Check size={16} weight="bold" style={{ color: '#1B4F8A', marginTop: 4 }} />
+                          )}
+                        </div>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          )}
+        </div>
 
         {/* Start button */}
         <Button

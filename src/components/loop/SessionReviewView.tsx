@@ -73,7 +73,13 @@ function parseCharacterContent(raw: string, kanjiLevel: number) {
 // ─── Component ─────────────────────────────────────────────────────────────
 
 export default function SessionReviewView({ session, initialTab = 'conversation', onBack }: Props) {
-  const [tab, setTab] = useState<'conversation' | 'lesson'>(initialTab)
+  // `tab` is now driven by the parent (the session page's phase strip).
+  // We keep the prop name `initialTab` for back-compat but treat it as the
+  // current value — the parent re-renders with a new prop when the strip is
+  // clicked, and that prop change drives this view.
+  const tab = initialTab
+  // onBack and setTab no longer used internally; suppress unused warnings.
+  void onBack
 
   const kanjiLevel: number = session?.kanjiLevel ?? 1
 
@@ -90,57 +96,12 @@ export default function SessionReviewView({ session, initialTab = 'conversation'
 
   const [blockIndex, setBlockIndex] = useState(0)
 
-  const hasConversation = messages.length > 0
   const hasLesson = lessonBlocks.length > 0
 
   return (
     <div className="h-full flex flex-col" style={{ backgroundColor: '#F5F0EB' }}>
-      {/* Top bar */}
-      <div className="shrink-0 bg-[#FDFBF8] border-b border-[#E0DAD2] px-4 py-3">
-        <div className="flex items-center justify-between mb-3">
-          <button
-            onClick={onBack}
-            className="text-sm text-[#9E9892] hover:text-[#6B6560] transition-colors"
-            style={{ fontFamily: 'DM Sans' }}
-          >
-            ← Summary
-          </button>
-          <p className="text-sm font-semibold truncate max-w-[60%]" style={{ color: '#1A1814', fontFamily: 'Shippori Mincho' }}>
-            {session?.scenarioTitle || 'Review'}
-          </p>
-          <div style={{ width: '60px' }} />
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-1 p-1 rounded-[10px]" style={{ backgroundColor: '#F5F0EB' }}>
-          <button
-            onClick={() => setTab('conversation')}
-            disabled={!hasConversation}
-            className="flex-1 py-2 rounded-[8px] text-xs font-medium transition-colors disabled:opacity-40"
-            style={{
-              fontFamily: 'DM Sans',
-              backgroundColor: tab === 'conversation' ? '#FDFBF8' : 'transparent',
-              color: tab === 'conversation' ? '#1B4F8A' : '#9E9892',
-              boxShadow: tab === 'conversation' ? '0 1px 3px rgba(26,24,20,0.06)' : 'none',
-            }}
-          >
-            Conversation
-          </button>
-          <button
-            onClick={() => setTab('lesson')}
-            disabled={!hasLesson}
-            className="flex-1 py-2 rounded-[8px] text-xs font-medium transition-colors disabled:opacity-40"
-            style={{
-              fontFamily: 'DM Sans',
-              backgroundColor: tab === 'lesson' ? '#FDFBF8' : 'transparent',
-              color: tab === 'lesson' ? '#1B4F8A' : '#9E9892',
-              boxShadow: tab === 'lesson' ? '0 1px 3px rgba(26,24,20,0.06)' : 'none',
-            }}
-          >
-            Lesson
-          </button>
-        </div>
-      </div>
+      {/* No internal header/tabs — the parent session page's phase strip
+          is now the single navigator and controls `initialTab`. */}
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto">

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { SpeakerHigh } from '@phosphor-icons/react'
 import { renderFurigana } from '@/components/japanese/FuriganaText'
 
 interface Question {
@@ -84,10 +85,10 @@ export default function RecognitionQuizBlockRenderer({ block, onComplete }: Prop
       >
         <button
           onClick={() => speak(question.wordJP)}
-          className="w-20 h-20 rounded-full flex items-center justify-center text-3xl border-2 border-[#E0DAD2] hover:border-[#1B4F8A]/30 transition-colors mb-4"
+          className="w-20 h-20 rounded-full flex items-center justify-center border-2 border-[#E0DAD2] hover:border-[#1B4F8A]/30 transition-colors mb-4 text-[#1B4F8A]"
           aria-label="Play word"
         >
-          🔊
+          <SpeakerHigh size={32} weight="regular" />
         </button>
         <p style={{ fontFamily: 'Noto Sans JP', fontSize: '32px', color: '#1A1814', fontWeight: 300 }}>
           {renderFurigana(question.wordJP, '0.4em')}

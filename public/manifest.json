@@ -1,14 +1,10 @@
 {
-  "name": "Zlang",
-  "short_name": "Zlang",
+  "name": "Kombu",
+  "short_name": "Kombu",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F5F0EB",
-  "theme_color": "#1B4F8A",
-  "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
-  ],
+  "theme_color": "#bbead6",
   "share_target": {
     "action": "/share",
     "method": "GET",

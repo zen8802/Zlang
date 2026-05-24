@@ -32,7 +32,12 @@ A learner described this situation they want to practice:
 
 Learner profile:
 - Experience level: ${userProfile?.experience || 3}/10
-- Age: ${userProfile?.age || 25}
+- Age: ${(() => {
+  const by = (userProfile as { birthYear?: number; age?: number } | null | undefined)?.birthYear
+  if (typeof by === 'number') return new Date().getFullYear() - by
+  const a = (userProfile as { age?: number } | null | undefined)?.age
+  return typeof a === 'number' ? a : 25
+})()}
 - Gender: ${userProfile?.gender || 'other'}
 - Native language: ${userProfile?.direction === 'jp-to-en' ? 'Japanese' : 'English'}
 

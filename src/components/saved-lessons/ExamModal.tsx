@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { SpeakerHigh, X } from '@phosphor-icons/react'
 import Button from '@/components/ui/Button'
 
 interface ExamQuestion {
@@ -139,10 +140,10 @@ export function ExamModal({ lessonId, lessonTitle, onClose, onComplete }: ExamMo
       <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: '#E0DAD2' }}>
         <button
           onClick={onClose}
-          className="text-sm text-[#6B6560] hover:text-[#1A1814]"
+          className="text-sm text-[#6B6560] hover:text-[#1A1814] inline-flex items-center gap-1.5"
           style={{ fontFamily: 'DM Sans, sans-serif' }}
         >
-          ✕ Close
+          <X size={13} weight="bold" /> Close
         </button>
         <p
           className="text-sm font-semibold text-[#1A1814] truncate mx-4"
@@ -230,10 +231,11 @@ export function ExamModal({ lessonId, lessonTitle, onClose, onComplete }: ExamMo
               <div className="flex justify-center">
                 <button
                   onClick={() => speakJapanese(currentQuestion.correct_answer)}
-                  className="w-16 h-16 rounded-full flex items-center justify-center text-3xl hover:bg-[#EBF0F8] transition-colors border"
+                  aria-label="Play audio"
+                  className="w-16 h-16 rounded-full flex items-center justify-center text-[#1B4F8A] hover:bg-[#EBF0F8] transition-colors border"
                   style={{ borderColor: '#E0DAD2', backgroundColor: '#FDFBF8' }}
                 >
-                  🔊
+                  <SpeakerHigh size={28} weight="regular" />
                 </button>
               </div>
             )}

@@ -20,7 +20,7 @@ export default function RootLayout({
       <html lang="en" className="dark">
         <head>
           <link rel="manifest" href="/manifest.json" />
-          <meta name="theme-color" content="#1B4F8A" />
+          <meta name="theme-color" content="#bbead6" />
         </head>
         <body className="font-body antialiased min-h-screen bg-background text-foreground relative">
           <OnboardingGuard>

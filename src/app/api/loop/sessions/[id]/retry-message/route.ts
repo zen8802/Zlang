@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { buildKanjiConstraint } from '@/data/kanji-levels'
+import { buildLanguageProfile } from '@/lib/user-profile'
 
 export async function POST(
   request: Request,
@@ -12,7 +13,7 @@ export async function POST(
   }
 
   try {
-    const { message, messages: clientMessages } = await request.json()
+    const { message, messages: clientMessages, learnerName } = await request.json()
 
     if (!message || typeof message !== 'string') {
       return Response.json({ error: 'message is required' }, { status: 400 })
@@ -32,7 +33,8 @@ export async function POST(
       SELECT
         character_name, character_name_jp, character_description,
         character_personality, character_speech_style, character_relationship,
-        setting, retry_messages, diagnosis, kanji_level
+        setting, retry_messages, diagnosis, kanji_level,
+        user_gender, user_birth_year, user_experience_level
       FROM loop_sessions
       WHERE id = ${sessionId}
       LIMIT 1
@@ -44,6 +46,11 @@ export async function POST(
 
     const row = rows[0]
     const kanjiConstraint = buildKanjiConstraint(row.kanji_level || 1)
+    const languageProfile = buildLanguageProfile({
+      gender: row.user_gender,
+      birthYear: row.user_birth_year,
+      experienceLevel: row.user_experience_level,
+    })
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const diagnosis = row.diagnosis as any
@@ -57,6 +64,9 @@ export async function POST(
       setting: row.setting,
       diagnosis,
       kanjiConstraint,
+      characterStyle: languageProfile.characterStyle,
+      speechStyle: languageProfile.speechStyle,
+      learnerName: typeof learnerName === 'string' ? learnerName : undefined,
     })
 
     // Use client-provided messages if available, otherwise fall back to DB
@@ -81,7 +91,7 @@ export async function POST(
 
     const stream = anthropic.messages.stream({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
+      max_tokens: 1500,
       system: systemPrompt,
       messages: conversationHistory,
     })
@@ -158,6 +168,9 @@ function buildRetrySystemPrompt(opts: {
   targetLanguage?: string
   userLevel?: string
   kanjiConstraint: string
+  characterStyle?: string
+  speechStyle?: string
+  learnerName?: string
 }): string {
   const {
     characterName,
@@ -172,7 +185,11 @@ function buildRetrySystemPrompt(opts: {
     targetLanguage = 'Japanese',
     userLevel = 'beginner',
     kanjiConstraint,
+    characterStyle = '',
+    speechStyle = '',
+    learnerName = '',
   } = opts
+  const demographicBlock = [characterStyle, speechStyle].filter(Boolean).join('\n\n')
 
   // Extract diagnosis details for the retry context
   const failureType = diagnosis?.failureType || 'vocabulary'
@@ -198,7 +215,7 @@ Be encouraging when they use the target language correctly.`
 
   return `You are playing a character in a Japanese language learning conversation simulator (Loop mode — RETRY phase).
 
-CHARACTER: ${characterName} (${characterNameJP})
+${demographicBlock ? `${demographicBlock}\n\n` : ''}CHARACTER: ${characterName} (${characterNameJP})
 ${characterDescription}
 Personality: ${characterPersonality}
 Speech style: ${characterSpeechStyle}
@@ -210,7 +227,7 @@ RELATIONSHIP: ${characterRelationship}
 THE LEARNER:
 - Native language: ${nativeLanguage}
 - Target language: ${targetLanguage} (this is what they're learning)
-- Level: ${userLevel}
+- Level: ${userLevel}${learnerName ? `\n- Name: ${learnerName} (use this when an auto-reply self-introduction is appropriate)` : ''}
 ${diagnosisContext}
 
 STRICT RULES:
@@ -228,11 +245,22 @@ STRICT RULES:
    exampleEN is the English translation of that example
    Example: 水(みず)|みず|mizu|water|noun|水(みず)をください。|mizu o kudasai.|Water, please.
    Only include words actually used in your dialogue. Include the furigana format in the word field.
-8. Then add "---ROMAJI---" with the romaji reading of your ENTIRE dialogue. Use macrons for long vowels: ō (おう/おお), ū (うう), ē (えい), ā (ああ). Example: ベーコン → bēkon, とうきょう → Tōkyō, ラーメン → rāmen. This helps learners pronounce correctly.
-9. Then add "---EN---" with a natural English translation of your dialogue.
+8. Then add "---ROMAJI---" with the romaji reading. Use macrons for long vowels. If dialogue uses "---NEXT---", the ROMAJI section MUST also use "---NEXT---" with one segment per bubble. Do NOT include romaji for ---AUTOREPLY--- text.
+9. Then add "---EN---" with natural English translation. If dialogue uses "---NEXT---", the EN section MUST also use "---NEXT---" with one segment per bubble. Do NOT include EN for ---AUTOREPLY--- text.
 10. Then add "---COACH---" with ONE concise cultural fact in ${nativeLanguage}. MAX 1 sentence. Must be a specific, concrete fact — a date, a number, a rule, an origin story, a social norm. NO flowery descriptions. Include any relevant Japanese words with furigana: 漢字(かんじ) format.
 11. Never break character before the separators.
 12. Keep responses concise — 1-3 sentences of dialogue.
+12a. MULTI-BUBBLE DIALOGUE — If your turn has TWO OR MORE natural beats, split bubbles using "---NEXT---" on its own line. Each bubble should be 1-2 sentences max — three sentences in one bubble is overwhelming.
+12b. AUTO-REPLY FOR FORMULAIC LEARNER TURNS — When the natural learner response would be PURELY MECHANICAL (reciprocating a self-introduction, "thank you" back, etc.), you MAY pre-fill it. Use sparingly. Format:
+     ---AUTOREPLY---
+     [learner's response in Japanese, demographic-appropriate, with furigana on kanji]
+     ---AUTOREPLY_EN---
+     [the same in natural English]
+     ---NEXT---
+     [your next bubble]
+   ${learnerName ? `Use the learner's name "${learnerName}" for self-introductions.` : ''}
+   DO NOT auto-reply with anything that has scenario consequences. Your turn must still END with a bubble asking a concrete question.
+12c. PER-BUBBLE ROMAJI/EN — When dialogue uses "---NEXT---", ROMAJI and EN must ALSO split via "---NEXT---" with one segment per bubble in matching order. VOCAB/COACH/OPTIONS still cover the full turn. Do NOT include auto-reply text in ROMAJI or EN.
 13. Progress the scenario naturally. Don't wait for perfect Japanese.
 14. If the learner writes in ${nativeLanguage}, gently respond in ${targetLanguage} and the coach note should say "Try responding in Japanese next time!"
 15. After ---COACH---, always add ---OPTIONS--- followed by exactly 4 response options the learner could say next.

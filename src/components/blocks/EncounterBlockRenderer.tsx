@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { SpeakerHigh } from '@phosphor-icons/react'
 import { renderFurigana } from '@/components/japanese/FuriganaText'
 
 interface EncounterWord {
@@ -124,10 +125,10 @@ export default function EncounterBlockRenderer({ block, onComplete }: Props) {
             </div>
             <button
               onClick={playAudio}
-              className="w-11 h-11 rounded-full flex items-center justify-center border border-[#E0DAD2] hover:border-[#1B4F8A]/40 transition-colors shrink-0"
+              className="w-11 h-11 rounded-full flex items-center justify-center border border-[#E0DAD2] hover:border-[#1B4F8A]/40 transition-colors shrink-0 text-[#1B4F8A]"
               aria-label="Play pronunciation"
             >
-              🔊
+              <SpeakerHigh size={20} weight="regular" />
             </button>
           </div>
 

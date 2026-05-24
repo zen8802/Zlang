@@ -17,7 +17,12 @@
       "Bash(cat src/scripts/migrate*.ts)",
       "Bash(grep -l DATABASE_URL .env*)",
       "Bash(ls .env*)",
-      "Bash(npx dotenv:*)"
+      "Bash(npx dotenv:*)",
+      "Bash(kill %1)",
+      "Bash(cat /tmp/claude/c--dev-Zlang/afca0e86-f788-4ee9-a0c5-a10403385e3b/tasks/byx2bnyw3.output 2>/dev/null || cat \"C:\\\\Users\\\\zyosh\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--dev-Zlang\\\\afca0e86-f788-4ee9-a0c5-a10403385e3b\\\\tasks\\\\byx2bnyw3.output\" 2>&1 | tail -5)",
+      "Read(//tmp/claude/c--dev-Zlang/afca0e86-f788-4ee9-a0c5-a10403385e3b/tasks/**)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(npx eslint *)"
     ],
     "additionalDirectories": [
       "C:\\dev\\Zlang\\src\\app\\loop\\retake",

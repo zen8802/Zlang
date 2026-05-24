@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { buildProfileContext, type UserProfilePayload } from '@/lib/userProfileContext'
 import { buildKanjiConstraint } from '@/data/kanji-levels'
+import { buildLanguageProfile } from '@/lib/user-profile'
 
 function levelAdaptiveRules(level: number): string {
   if (level <= 2) {
@@ -54,7 +55,7 @@ export async function POST(
   }
 
   try {
-    const { message, messages: clientMessages, userProfile } = await request.json()
+    const { message, messages: clientMessages, userProfile, learnerName } = await request.json()
 
     if (!message || typeof message !== 'string') {
       return Response.json({ error: 'message is required' }, { status: 400 })
@@ -78,7 +79,8 @@ export async function POST(
       SELECT
         character_name, character_name_jp, character_description,
         character_personality, character_speech_style, character_relationship,
-        setting, attempt_messages, kanji_level
+        setting, attempt_messages, kanji_level,
+        user_gender, user_birth_year, user_experience_level
       FROM loop_sessions
       WHERE id = ${sessionId}
       LIMIT 1
@@ -91,6 +93,14 @@ export async function POST(
     const row = rows[0]
     const kanjiConstraint = buildKanjiConstraint(row.kanji_level || 1)
 
+    // Demographic-aware style strings — pulled from the snapshot we stored
+    // on the session row at create time. No fresh DB call required.
+    const languageProfile = buildLanguageProfile({
+      gender: row.user_gender,
+      birthYear: row.user_birth_year,
+      experienceLevel: row.user_experience_level,
+    })
+
     systemPrompt = buildAttemptSystemPrompt({
       characterName: row.character_name,
       characterNameJP: row.character_name_jp,
@@ -101,6 +111,9 @@ export async function POST(
       setting: row.setting,
       userProfile,
       kanjiConstraint,
+      characterStyle: languageProfile.characterStyle,
+      speechStyle: languageProfile.speechStyle,
+      learnerName: typeof learnerName === 'string' ? learnerName : undefined,
     })
 
     // Use client-provided messages if available, otherwise fall back to DB
@@ -123,7 +136,7 @@ export async function POST(
 
     const stream = anthropic.messages.stream({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
+      max_tokens: 1500,
       system: systemPrompt,
       messages: conversationHistory,
     })
@@ -199,6 +212,9 @@ function buildAttemptSystemPrompt(opts: {
   userLevel?: string
   userProfile?: UserProfilePayload | null
   kanjiConstraint: string
+  characterStyle?: string
+  speechStyle?: string
+  learnerName?: string
 }): string {
   const {
     characterName,
@@ -213,15 +229,19 @@ function buildAttemptSystemPrompt(opts: {
     userLevel = 'beginner',
     userProfile,
     kanjiConstraint,
+    characterStyle = '',
+    speechStyle = '',
+    learnerName = '',
   } = opts
 
   const profileContext = buildProfileContext(userProfile)
+  const demographicBlock = [characterStyle, speechStyle].filter(Boolean).join('\n\n')
   const level = typeof userProfile?.experience === 'number' ? userProfile.experience : 5
   const adaptiveRules = levelAdaptiveRules(level)
 
   return `You are playing a character in a Japanese language learning conversation simulator (Loop mode — Attempt phase).
 
-${profileContext ? `LEARNER PROFILE:\n${profileContext}\n\n` : ''}${adaptiveRules}
+${demographicBlock ? `${demographicBlock}\n\n` : ''}${profileContext ? `LEARNER PROFILE:\n${profileContext}\n\n` : ''}${adaptiveRules}
 CHARACTER: ${characterName} (${characterNameJP})
 ${characterDescription}
 Personality: ${characterPersonality}
@@ -234,7 +254,7 @@ RELATIONSHIP: ${characterRelationship}
 THE LEARNER:
 - Native language: ${nativeLanguage}
 - Target language: ${targetLanguage} (this is what they're learning)
-- Level: ${userLevel}
+- Level: ${userLevel}${learnerName ? `\n- Name: ${learnerName} (use this when an auto-reply self-introduction is appropriate)` : ''}
 
 STRICT RULES:
 1. Stay COMPLETELY in character. Speak in ${targetLanguage}.
@@ -251,11 +271,52 @@ STRICT RULES:
    exampleEN is the English translation of that example
    Example: 水(みず)|みず|mizu|water|noun|水(みず)をください。|mizu o kudasai.|Water, please.
    Only include words actually used in your dialogue. Include the furigana format in the word field.
-8. Then add "---ROMAJI---" with the romaji reading of your ENTIRE dialogue. Use macrons for long vowels: ō (おう/おお), ū (うう), ē (えい), ā (ああ). Example: ベーコン → bēkon, とうきょう → Tōkyō, ラーメン → rāmen. This helps learners pronounce correctly.
-9. Then add "---EN---" with a natural English translation of your dialogue.
+8. Then add "---ROMAJI---" with the romaji reading of your dialogue. Use macrons for long vowels: ō (おう/おお), ū (うう), ē (えい), ā (ああ). Example: ベーコン → bēkon, とうきょう → Tōkyō, ラーメン → rāmen. If your dialogue uses "---NEXT---" to split into multiple bubbles, the ROMAJI section MUST also use "---NEXT---" with one segment per bubble (in the same order). DO NOT include romaji for ---AUTOREPLY--- text — the romaji segments correspond to YOUR bubbles only.
+9. Then add "---EN---" with a natural English translation. If your dialogue uses "---NEXT---", the EN section MUST also use "---NEXT---" with one segment per bubble (matching the dialogue order). DO NOT include EN for ---AUTOREPLY--- text.
 10. Then add "---COACH---" with ONE concise cultural fact in ${nativeLanguage}. MAX 1 sentence. Must be a specific, concrete fact — a date, a number, a rule, an origin story, a social norm. NO flowery descriptions. Include any relevant Japanese words with furigana: 漢字(かんじ) format.
 11. Never break character before the separators.
 12. Keep responses concise — 1-3 sentences of dialogue.
+12a. MULTI-BUBBLE DIALOGUE — If your turn has TWO OR MORE natural beats (e.g., a greeting THEN a topic shift, or a statement THEN a separate question), split the bubbles using "---NEXT---" on its own line between them. KEEP each bubble to 1-2 sentences max. Three sentences crammed into one bubble is OVERWHELMING.
+   Example:
+     あ、おつかれさまです。田中(たなか)です。
+     ---NEXT---
+     じてんしゃをかいにきてくださって、ありがとうございます。
+     ---NEXT---
+     こちらがしゃしんのじてんしゃです。まず見(み)てみませんか？
+12b. AUTO-REPLY FOR FORMULAIC LEARNER TURNS — When the natural learner response to one of your bubbles would be PURELY MECHANICAL (reciprocating a self-introduction, saying "thank you" back, acknowledging a "yes please", a routine いらっしゃいませ → こんにちは echo), you MAY pre-fill the learner's response so the conversation flows without forcing them to type an obvious one-liner. Use this SPARINGLY — only when the learner has nothing meaningful to choose. Format:
+     ---AUTOREPLY---
+     [learner's response in Japanese, demographic-appropriate politeness, with furigana on any kanji]
+     ---AUTOREPLY_EN---
+     [the same in natural English]
+     ---NEXT---
+     [your next bubble continues the conversation]
+   ${learnerName ? `Use the learner's name "${learnerName}" when the auto-reply is a self-introduction (e.g., こちらこそ、${learnerName}です).` : ''}
+   Example, after introducing yourself as Tanaka:
+     あ、おつかれさまです。田中(たなか)です。
+     ---AUTOREPLY---
+     こちらこそ、よろしくおねがいします。
+     ---AUTOREPLY_EN---
+     Likewise, nice to meet you.
+     ---NEXT---
+     じてんしゃをかいにきてくださって、ありがとうございます。
+   DO NOT auto-reply with anything that has scenario consequences (orders, decisions, agreements to do something). ONLY for mechanical pleasantries. Your turn must still END with a bubble that asks the learner a concrete question or request.
+12c. PER-BUBBLE ROMAJI AND EN — When your dialogue is split into multiple bubbles via "---NEXT---", the ROMAJI and EN sections must ALSO be split via "---NEXT---" with one segment per dialogue bubble in matching order. VOCAB, COACH, OPTIONS, JP_OF_YOURS, and HINTS still cover the FULL combined turn (no splitting). Do NOT include the auto-reply text in ROMAJI or EN — those describe YOUR bubbles only.
+   Example:
+     [dialogue line 1]
+     ---NEXT---
+     [dialogue line 2]
+     ---VOCAB---
+     ...
+     ---ROMAJI---
+     [romaji of line 1]
+     ---NEXT---
+     [romaji of line 2]
+     ---EN---
+     [english of line 1]
+     ---NEXT---
+     [english of line 2]
+     ---COACH---
+     ...
 13. Progress the scenario naturally. Don't wait for perfect Japanese.
 13a. CRITICAL — NEVER end your turn on a pure acknowledgment OR pure greeting. Every message must end with a CONCRETE QUESTION OR REQUEST the learner can directly answer. If your natural reaction would be a one-line ack like "good choice", "okay", "got it", "sounds good", "わかった", "了解(りょうかい)", "いいね", "はい" — DO NOT stop there. In the SAME message, immediately chain into the next conversation beat from the SETTING's CONVERSATION FLOW (or, if no flow is defined, the next natural step in the scenario). Examples:
     BAD: "おう、硬(かた)めだな！いいぞ。" — pure ack, nothing to respond to.
